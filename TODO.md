@@ -12,6 +12,14 @@ covers it.
   - Mods that change spell files (SCS/Stratagems, Ascension, iwdification) change names and effects; the
     generated spell-name table must be regenerated after mod changes.
   - The BG2EE-GameLog tap should coexist in the same `ui.menu`.
+  - The engine mounts every `*.zip` in the game folder, its `dlc/` folder and the user folder at startup
+    (see the Phase 0 delivery note). A DLC-style zip, one with its own `mod.key`, supplies resources the
+    engine uses. Check whether the spell-name lookup must read them too.
+- **Security implications of mounted zips: unchecked.** Any zip dropped into those three folders is
+  read by the game at every launch, including stray mod downloads. Check what such a zip can change
+  (overrides, scripts, `ui.menu`, Lua), whether that reaches the inspector's Lua or the data it prints,
+  and whether `doctor` should list the zips it finds. Record the result in `docs/rules/security-first.md`
+  or a delivery note.
   - Method: test with iwdification, Ascension and Stratagems, then record results in
     `docs/requirements.md` and a delivery note.
 - **Clean-machine install: untested.** Confirm `docs/requirements.md` is complete on a Mac or user

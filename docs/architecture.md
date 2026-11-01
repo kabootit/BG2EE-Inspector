@@ -62,6 +62,7 @@ flowchart TD
 | `src/lint/` | `docs.ts`, `security.ts` | Step 0 |
 | `src/setup/` | doctor checks, WeiDU and Lua downloads | Step 1 |
 | `src/re/` | Mach-O and arm64 helpers, `derive.ts` for `native/builds.h` | Phase 1 |
+| `src/build/` | building and checking the dylib, shared by `build` and `doctor` | Phase 0 |
 | `src/game/` | launcher, redaction, WeiDU install, e2e save handling | Phase 0 onward |
 | `src/gamefiles/` | `.cre`, `.spl`, `dialog.tlk` readers adapted from BG2EE-GameLog | Phase 3 and 5 |
 | `src/model/` | schema-1 types and guard, captured-session parsing | Phase 3 and 4 |

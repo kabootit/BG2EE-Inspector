@@ -3,13 +3,13 @@ type: ADR
 id: "0001"
 title: "Load a native library with DYLD_INSERT_LIBRARIES on BG2:EE 2.7.3"
 description: "Creature state is unreachable from the game's Lua, and the hardened runtime blocks external memory readers and code patching, so a read-only dylib is loaded into the native arm64 2.7.3 game through the entitlements it ships with."
-status: proposed
+status: active
 date: 2026-11-01
 ---
 
 # ADR-0001: Load a native library with DYLD_INSERT_LIBRARIES on BG2:EE 2.7.3
 
-**Status:** Proposed (active once the Phase 0 gate passes) · **Date:** 2026-11-01
+**Status:** Active (Phase 0 gate passed 2026-11-01) · **Date:** 2026-11-01
 
 ## References
 
@@ -47,8 +47,9 @@ launched through the game's own executable.**
 
 - Only the 2.7.3 Steam build is supported; older versions are out of scope.
 - The launcher sets the variable through `/usr/bin/env` inside `script`'s argument list, because `script`
-  is SIP-protected and dyld strips `DYLD_*` variables from protected processes. This is verified in
-  Phase 0.
+  is SIP-protected and dyld strips `DYLD_*` variables from protected processes. Verified in Phase 0:
+  the library loads into the game this way, and the same variable set on `script` itself is stripped
+  ([delivery note](../notes/2026-11-01-injection.md)).
 - The library hooks nothing by patching code. Its single hook swaps one data pointer (ADR-0002).
 
 ## Options considered
@@ -71,8 +72,8 @@ launched through the game's own executable.**
   (TODO.md).
 - A Steam update that removes either entitlement ends this approach; `deno task doctor` checks both on
   every run.
-- Re-evaluate if Phase 0 shows the variable cannot survive the launch path, or if Beamdog changes the
-  entitlements.
+- Re-evaluate if Beamdog changes the entitlements, or if a macOS update starts stripping the variable
+  from the game itself.
 
 [^eeex-thread]: [MOD] EEex (v1.3.1), Bubb and contributors, Beamdog Forums,
     <https://forums.beamdog.com/discussion/71798/mod-eeex-v1-3-1>

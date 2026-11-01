@@ -51,6 +51,8 @@ The tasks available so far; more arrive with each step of the plan:
 | `deno task doctor` | check every requirement in docs/requirements.md; reads the game, never runs it or WeiDU |
 | `deno task setup-weidu` | download WeiDU v251 arm64 into `vendor/weidu/`, checked against GitHub's digest |
 | `deno task setup-dev` | download the Lua 5.2.4 source into `vendor/` (contributors only) |
+| `deno task build` | build `build/a7x.dylib` (arm64, ad-hoc signed) from `native/` |
+| `deno task play` | launch the game with the library, log redacted output to `logs/`; `--no-inject` for a control run. Only when asked |
 | `deno task lint` | fmt check, lint, type-check, tests, `lint:docs`, `lint:security`. Run before every commit |
 | `deno task lint:docs` | the mechanical docs rules |
 | `deno task lint:security` | the mechanical security invariants |
@@ -60,7 +62,7 @@ The tasks available so far; more arrive with each step of the plan:
 ## Layout
 
 ```text
-native/          the read-only dylib (C) and per-build address table (from Phase 0)
+native/          the read-only dylib (C); the per-build address table arrives in Phase 1
 mod/inspector/   the WeiDU component and in-game Lua (from Phase 3)
 src/             Deno, grouped by concern; no loose files (test/structure_test.ts)
   tasks/         one entry point per deno task: `await runTask(main)`; the only code that exits
@@ -68,7 +70,9 @@ src/             Deno, grouped by concern; no loose files (test/structure_test.t
   lint/          docs.ts, security.ts
   setup/         doctor.ts, install.ts, download.ts, system.ts (the machine, injectable for tests)
   re/            macho.ts (Mach-O architectures for now)
-                 later: game/, gamefiles/, model/, verify/ (see docs/architecture.md)
+  build/         dylib.ts (build and check the library, shared by build and doctor)
+  game/          capture.ts, launch.ts, session.ts (the play launcher)
+                 later: gamefiles/, model/, verify/ (see docs/architecture.md)
 test/            mirrors src/ (test/lint/docs_test.ts tests src/lint/docs.ts); test/lua, test/e2e later
 docs/            rules, ADRs, plans, delivery notes, specs; start at docs/README.md
 .claude/         committed settings (deny and ask lists) and skills

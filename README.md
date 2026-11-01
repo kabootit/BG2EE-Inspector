@@ -20,7 +20,8 @@ with two code-signing entitlements, `allow-dyld-environment-variables` and
 
 ## Installation
 
-Steps 1 to 3 work today; steps 4 to 6 arrive in the phases after Step 1.
+Steps 1 to 4 and 6 work today, though the library only announces that it loaded; step 5 arrives in a
+later phase.
 
 1. Install the [requirements](docs/requirements.md), including **Deno 2.9.8** or later.
 2. `deno task setup-weidu`: fetch the pinned WeiDU release.
