@@ -1,7 +1,7 @@
 # Plan: BG2EE-Inspector foundation, in-game creature stats on macOS
 
 > **Status:** approved 2026-11-01. Step 0 (scaffold and conventions) is recorded in the
-> [Step 0 delivery note](../notes/conventions-notes.md). Decisions are recorded in the
+> [Step 0 delivery note](../notes/2026-11-01-setup.md). Decisions are recorded in the
 > [ADRs](../adr/README.md), and diagrams also appear in [docs/architecture.md](../architecture.md).
 > Edited in place until pushed, per [working-together.md](../rules/working-together.md).
 
@@ -339,7 +339,7 @@ BG2EE-Inspector/
     rules/             one rule per file
     adr/               README.md (list), 0000-template.md, NNNN-slug.md
     plans/             YYYY-MM-DD-topic.md
-    notes/             <topic>-notes.md (delivery notes)
+    notes/             YYYY-MM-DD-<topic>.md (delivery notes, dated so they sort by time)
     architecture.md    diagrams 1-5 (roadmap, code organization, runtime layers, boot, inspect)
     re-notes.md, findings.md, gotchas.md, security.md, data-model.md, api.md, testing.md
   native/              a7x.c, builds.h (per-build address table)
@@ -445,7 +445,7 @@ Each file has the same shape:
   - the design
   - `## Verification`
   - `## Order of work`, ending with "ask before any commit or remote".
-- **Delivery notes.** After each discrete effort (Step 0, Step 1, each Phase), write `docs/notes/<topic>-notes.md`:
+- **Delivery notes.** After each discrete effort (Step 0, Step 1, each Phase), write `docs/notes/YYYY-MM-DD-<topic>.md` (dated like plans so the folder sorts by time; the topic is the step's `initial/<summary>` name, e.g. `2026-11-01-setup.md`):
   - frontmatter `title` and `description`
   - a `>` lede linking the ADR and the plan
   - `## Status` with a `| Piece | State |` table
@@ -532,7 +532,7 @@ The GitHub repo `kabootit/BG2EE-Inspector` starts **private**, with issues and t
 3. Write `docs/` rules, the ADR template and the four ADRs, and save this plan.
 4. Write `lint_docs.ts` and `lint_security.ts`, with tests in `test/`.
 5. Write the two skills.
-6. Write the delivery note `docs/notes/conventions-notes.md`.
+6. Write the delivery note `docs/notes/2026-11-01-setup.md`.
 7. When asked: commit, create the private GitHub repo, and push `main` and `initial/setup`.
 
 No commit until asked.

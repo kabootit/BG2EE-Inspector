@@ -14,7 +14,7 @@ date: 2026-11-01
 ## References
 
 - [docs/README.md](../README.md): the index of every rule and document.
-- [Step 0 delivery note](../notes/conventions-notes.md): what was built.
+- [Step 0 delivery note](../notes/2026-11-01-setup.md): what was built.
 
 ## Context
 

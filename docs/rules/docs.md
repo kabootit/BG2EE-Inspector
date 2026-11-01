@@ -37,7 +37,8 @@ remote change.
 
 ## Delivery notes
 
-After each discrete effort (each step or phase), write `docs/notes/<topic>-notes.md` with frontmatter
+After each discrete effort (each step or phase), write `docs/notes/YYYY-MM-DD-<topic>.md` (dated like
+plans, so the folder sorts by time; `lint:docs` checks the name) with frontmatter
 `title` and `description`: a lede linking the ADR and the plan, Status (a piece-by-piece table), Plan
 summary, What was built, Gotchas worth remembering, Verification (what was run, with counts, and a
 numbered "still to check by hand" list), and Follow-ups. It never claims more verification than happened.

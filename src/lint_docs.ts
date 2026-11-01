@@ -341,7 +341,10 @@ export function checkAdrs(docs: Doc[]): Finding[] {
   return out;
 }
 
-/** Delivery notes: `<topic>-notes.md` with title and description frontmatter. */
+/**
+ * Delivery notes: `YYYY-MM-DD-<topic>.md`, so they sort by time like plans, with
+ * title and description frontmatter.
+ */
 export function checkNotes(docs: Doc[]): Finding[] {
   const out: Finding[] = [];
   for (
@@ -349,12 +352,12 @@ export function checkNotes(docs: Doc[]): Finding[] {
       d.path.startsWith("docs/notes/") && !d.path.endsWith("/README.md")
     )
   ) {
-    if (!/^docs\/notes\/[a-z0-9-]+-notes\.md$/.test(doc.path)) {
+    if (!/^docs\/notes\/\d{4}-\d{2}-\d{2}-[a-z0-9-]+\.md$/.test(doc.path)) {
       out.push({
         rule: "note-name",
         file: doc.path,
         line: 1,
-        detail: "delivery notes are named <topic>-notes.md",
+        detail: "delivery notes are named YYYY-MM-DD-<topic>.md",
       });
     }
     const fm = parseFrontmatter(doc.text);

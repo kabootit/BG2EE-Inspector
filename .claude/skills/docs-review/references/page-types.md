@@ -34,9 +34,11 @@ Written in plan mode, saved on approval.
 - Context with "Decisions made (date)", Deliverables (ADR, delivery note, code), the design,
   Verification, and an order of work ending with asking before any commit or remote change.
 
-## Delivery note (`docs/notes/<topic>-notes.md`)
+## Delivery note (`docs/notes/YYYY-MM-DD-<topic>.md`)
 
-Written after each step or phase; it says what was built and where, while the ADR says why.
+Written after each step or phase; it says what was built and where, while the ADR says why. The date
+prefix makes the folder sort by time, like `docs/plans/`; use the date the note is written, and a short
+topic (for this plan, the `initial/<summary>` branch name, e.g. `2026-11-01-setup.md`).
 
 - Frontmatter `title` and `description`.
 - H1, then a `>` lede linking the ADR and the plan.

@@ -134,8 +134,15 @@ Deno.test("notes and plans follow their naming and front matter", () => {
     "note-frontmatter",
   ]);
   deepStrictEqual(
+    rules(checkNotes([{
+      path: "docs/notes/setup-notes.md",
+      text: "---\ntitle: T\ndescription: D\n---\n# T\n",
+    }])),
+    ["note-name"],
+  );
+  deepStrictEqual(
     checkNotes([{
-      path: "docs/notes/step-notes.md",
+      path: "docs/notes/2026-11-01-setup.md",
       text: "---\ntitle: T\ndescription: D\n---\n# T\n",
     }]),
     [],
