@@ -345,8 +345,36 @@ BG2EE-Inspector/
   native/              a7x.c, builds.h (per-build address table)
   test/e2e/            fixtures.json (committed); saves/ (gitignored, local fixture saves)
   examples/consumer-mod/  minimal external mod proving the public A7X API (not installed by default)
-  mod/inspector/  src/  test/  vendor/ (gitignored)
+  mod/inspector/       WeiDU component and in-game Lua
+  src/                 grouped by concern, no loose files (see "src layout" below)
+  test/                mirrors src/
+  vendor/              gitignored downloads
 ```
+
+### src layout
+
+Decided 2026-11-01, once it was clear a flat `src/` would not hold up. Sources are grouped by concern, and a folder is created only when its first file arrives:
+
+| folder | holds | arrives in |
+| --- | --- | --- |
+| `src/tasks/` | one thin entry point per `deno task`: `await runTask(main)`, argument parsing, printing | Step 0 |
+| `src/shared/` | `deno_version.ts`, `task.ts` (the runner), `repo_files.ts`, later `config.ts`, `sha256.ts` | Step 0 |
+| `src/lint/` | `docs.ts`, `security.ts` | Step 0 |
+| `src/setup/` | doctor checks, `weidu.ts`, `lua.ts` | Step 1 |
+| `src/re/` | `macho.ts`, `arm64.ts`, `derive.ts` (emits `native/builds.h`) | Phase 1 |
+| `src/game/` | `play.ts` (pty and DYLD launch), `redact.ts`, `install_mod.ts`, `saves.ts` | Phase 0 onward |
+| `src/gamefiles/` | `iebinary.ts`, `resources.ts`, `opcodes.ts`, `protections.ts`, `spellnames.ts`, adapted from GameLog | Phase 3 and 5 |
+| `src/model/` | `model.ts` (schema-1 types and guard), `session.ts` (parses `A7X*` lines) | Phase 3 and 4 |
+| `src/verify/` | assertions for `deno task verify` and `deno task e2e` | Phase 3 |
+
+Rules, enforced by `test/structure_test.ts`:
+
+- No files directly in `src/`.
+- Only `src/tasks/*` and the runner `src/shared/task.ts` may call `Deno.exit` or read `Deno.args`. Every library module is safe to import from a test.
+- Every task entry point runs through `runTask()`, which checks the Deno version first.
+- Every `deno run` task in `deno.json` points at a file in `src/tasks/`.
+
+`test/` mirrors `src/` (`test/lint/docs_test.ts` tests `src/lint/docs.ts`).
 
 ### README
 
@@ -460,7 +488,7 @@ Each file has the same shape:
 ### Linters (`deno task lint` runs all of them; any finding fails it)
 
 - **`deno fmt --check`, `deno lint`, `deno check`, `deno test test/`.** Recommended lint rules plus `no-explicit-any`. `compilerOptions.strict`.
-- **`deno task lint:docs`** (`src/lint_docs.ts`), the mechanical half of the docs rules:
+- **`deno task lint:docs`** (`src/lint/docs.ts`), the mechanical half of the docs rules:
   - ADRs: frontmatter present and valid, H1 matches the title, ids sequential, each one listed in `docs/adr/README.md`
   - notes and plans: frontmatter present and valid; filenames follow the naming pattern
   - every `docs/` file reachable from `docs/README.md`
@@ -468,7 +496,7 @@ Each file has the same shape:
   - every fenced block declares a language
   - **no em dashes**
   - **no personal info** (`/Users/<name>` paths, email addresses)
-- **`deno task lint:security`** (`src/lint_security.ts`, ported from GameLog's `src/lint.ts`):
+- **`deno task lint:security`** (`src/lint/security.ts`, ported from GameLog's `src/lint.ts`):
   - every Deno task uses scoped `--allow-*` flags (no `-A`, no bare flags)
   - servers bind `127.0.0.1`
   - imports limited to pinned `jsr:@std`
@@ -548,7 +576,7 @@ Deliverables:
 
 ### WeiDU: `deno task setup-weidu`
 
-- **Download.** It fetches `WeiDU-Mac-ARM-251.zip` from `https://github.com/WeiDUorg/weidu/releases/download/v251.00/` using Deno's `fetch`. It checks a SHA-256 pinned in `src/config.ts`, and on any mismatch it refuses without unpacking.
+- **Download.** It fetches `WeiDU-Mac-ARM-251.zip` from `https://github.com/WeiDUorg/weidu/releases/download/v251.00/` using Deno's `fetch`. It checks a SHA-256 pinned in `src/shared/config.ts`, and on any mismatch it refuses without unpacking.
 - **Unpack.** It unzips with macOS's built-in `ditto -x -k` (`--allow-run=ditto`, nothing else) into gitignored `vendor/weidu/`, then checks that the binary is arm64.
 - **Idempotent:** if the pinned version is already present, it does nothing.
 - **Finding WeiDU** (`install-mod`, then `doctor`): `$BG2EE_WEIDU` if set (an explicit override, still SHA-checked against the known list, with a warning if unknown), otherwise `vendor/weidu/`.
@@ -573,7 +601,7 @@ Deliverables:
 | macOS | tested 14.6.1 (floor unknown) | none | none | `sw_vers` |
 | BG2:EE | **2.7.3**, Steam | Steam (the default branch) | addresses are binary-specific; GOG and App Store builds untested (the App Store build is sandboxed and may lack the entitlements) | **SHA-256 of the executable** against the known-good list in `src/config.ts`, plus `CFBundleShortVersionString` and **both entitlements** via `codesign -d --entitlements` |
 | Xcode Command Line Tools **or** full Xcode | CLT 16.2 / Xcode with Apple clang 16 (tested) | `xcode-select --install` (CLT, smaller) or Xcode from the App Store | `clang -arch arm64` builds the dylib from source, and the linker ad-hoc signs it. No prebuilt binaries are shipped at first | `xcode-select -p`, then `xcrun -f clang` and `clang --version`. Never trust `/usr/bin/clang`: it's a stub that exists even with nothing installed |
-| Deno | **2.9.8 or later** (explicit requirement, enforced by `requireDeno()` in `src/deno_version.ts` at the start of every task) | deno.com installer, or `deno upgrade` | build, install and launch tasks | `deno --version` against `MIN_DENO` |
+| Deno | **2.9.8 or later** (explicit requirement, checked by `runTask()` in `src/shared/task.ts` at the start of every task, against `MIN_DENO` in `src/shared/deno_version.ts`) | deno.com installer, or `deno upgrade` | build, install and launch tasks | `deno --version` against `MIN_DENO` |
 | WeiDU | **v251.00**, native arm64 (`WeiDU-Mac-ARM-251.zip`), pinned SHA-256 | `deno task setup-weidu` (details below) | installs the ui.menu patch | identifies the version **by SHA-256 against a known list, without running the binary**; reports the architecture with `file` |
 
 **Optional:** `Debug Mode = 1` under `Program Options` in `~/Documents/Baldur's Gate II - Enhanced Edition/Baldur.lua`. It enables the Ctrl+Space console for the `A7X.show(...)` commands; the hotkey works without it. Edit the file only while the game is closed, because the game rewrites it on exit. `doctor` reads it and reports the value, without changing it.
@@ -663,7 +691,7 @@ These are facts read from the projects' repos on 2026-11-01. The EEex forum-thre
 1. **An address table keyed by build instead of a runtime pattern scan.**
    - `native/builds.h` maps each supported build's **`LC_UUID`** (read for free from the in-memory Mach-O header via `_dyld_get_image_header(0)`) to image-relative offsets: the `luaL_Reg` entry, the Lua API functions, and `g_pBaldurChitin`. The ASLR slide is added at load.
    - Each address is checked at load against a few expected bytes. An unknown UUID or any mismatch means `A7X disabled` and nothing registered.
-   - `src/macho.ts` and pattern searching move to dev tooling (`deno task derive`), which re-derives the table after a game update.
+   - `src/re/macho.ts` and pattern searching move to dev tooling (`deno task derive`), which re-derives the table after a game update.
    - `doctor` still pins the SHA-256.
 2. **Enumerate creatures through the global `CGameObjectArray`** (RadarOverlay's method), filtered by area and EA, instead of locating per-area lists.
 3. **Bounded walks:** every list or array walk in Lua has a node cap and a pointer-range check, on top of the `mach_vm_read_overwrite` safety.
@@ -730,7 +758,7 @@ Patterns, offsets and doctor's known-good list are all keyed to the executable's
 Tools:
 
 - **`xcrun llvm-objdump --arch=arm64 -d --start-address/--stop-address`** disassembles small address ranges.
-- **`src/macho.ts`**, a Deno helper. It reads the arm64 slice's segments and sections, finds C strings and the pointers to them, resolves `ADRP`+`ADD`/`LDR` pairs into data addresses, and lists `BL` call targets. Real-data tests go in `test/macho_test.ts`.
+- **`src/re/macho.ts`**, a Deno helper. It reads the arm64 slice's segments and sections, finds C strings and the pointers to them, resolves `ADRP`+`ADD`/`LDR` pairs into data addresses, and lists `BL` call targets. Real-data tests go in `test/macho_test.ts`.
 - **`vendor/lua-5.2.4/`**, compiled with `clang -arch arm64 -O2` as a reference. The patch level and compiler flags may differ from the game's, so functions are confirmed by behavior, not byte-identity.
 - `lldb` can't attach (hardened runtime, no `get-task-allow`). Runtime facts come from the dylib's own logging.
 
@@ -846,7 +874,7 @@ Both use **one model**, defined once and versioned:
 | piece | file | role |
 | --- | --- | --- |
 | **Specification** | `docs/data-model.md` | Every field with its type, **unit** (engine units such as ticks; formatting is never baked into the data), the engine field it comes from, and its **validation status**. A field whose gate hasn't passed is omitted, never guessed (per `verify-derived-values.md`). |
-| **Type definition** | `src/model.ts` | TypeScript types plus one hand-written parse guard. Untrusted JSON gets its type at this single boundary (Tranquil `types.md`), with no `any`. |
+| **Type definition** | `src/model/model.ts` | TypeScript types plus one hand-written parse guard. Untrusted JSON gets its type at this single boundary (Tranquil `types.md`), with no `any`. |
 | **Lua producer** | `mod/inspector/lib/a7x_api.lua` | Builds tables in exactly the documented shape, with snake_case keys and `schema = 1` on every record. |
 | **Encoder** | `mod/inspector/lib/a7x_json.lua` | A minimal **encode-only** JSON writer (about 60 lines), written in this project rather than vendored, so no new dependency. Keys are sorted for deterministic output. `nil` fields are left out. Integers are kept as integers. Strings are escaped per RFC 8259. |
 | **Transport** | `Infinity_Log("A7XDATA\t" .. json)` | Goes to stdout, then the existing pty capture, then Deno. This is the same channel and prefix-marker idea GameLog uses for `A7LOG`, `A7ROSTER` and `A7STATS`. Lines are emitted on each inspect, plus in validation runs. |
@@ -994,11 +1022,13 @@ The clean reinstall left no `override/`, so the GameLog tap is no longer install
 
 ## Reuse from BG2EE-GameLog (adapt by copying)
 
-- `src/play.ts` (pty launch, `redact()`)
-- `src/install_mod.ts` (`copyTree()`, the uninstall path, and the SHA-256 display; its `setup-*` discovery is replaced by `vendor/weidu/`)
-- `src/config.ts` (environment-variable overrides)
-- `src/lint.ts` (security invariants, which become `lint_security.ts`)
-- `src/iebinary.ts`, `src/resources.ts`, `src/opcodes.ts`, `src/protections.ts` (spell names and effect semantics for Phase 5)
+GameLog paths on the left; where each lands here follows the "src layout" table.
+
+- `src/play.ts` (pty launch, `redact()`), into `src/game/play.ts` and `src/game/redact.ts`
+- `src/install_mod.ts` (`copyTree()`, the uninstall path, and the SHA-256 display; its `setup-*` discovery is replaced by `vendor/weidu/`), into `src/game/install_mod.ts`
+- `src/config.ts` (environment-variable overrides), into `src/shared/config.ts`
+- `src/lint.ts` (security invariants), now `src/lint/security.ts`
+- `src/iebinary.ts`, `src/resources.ts`, `src/opcodes.ts`, `src/protections.ts` (spell names and effect semantics for Phase 5), into `src/gamefiles/`
 - `mod/gamelog/gamelog.tp2` (anchor-count, `PATCH_FAIL`)
 - `docs/GOTCHAS.md` §1–9
 - `skills/security.md` (becomes the `security-audit` skill)

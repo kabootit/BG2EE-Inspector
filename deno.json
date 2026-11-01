@@ -1,10 +1,10 @@
 {
-  "//": "Every --allow-* flag is scoped; no task may hold a blanket grant (checked by lint:security). Requires Deno 2.9.8+ (src/deno_version.ts).",
+  "//": "Every --allow-* flag is scoped; no task may hold a blanket grant (checked by lint:security). Requires Deno 2.9.8+ (src/shared/deno_version.ts). Every `deno run` task points at an entry point in src/tasks/ (checked by test/structure_test.ts).",
   "tasks": {
     "check": "deno check src/ test/",
     "test": "deno test --quiet --allow-read=. test/",
-    "lint:docs": "deno run --allow-read=. src/lint_docs.ts",
-    "lint:security": "deno run --allow-read=. src/lint_security.ts",
+    "lint:docs": "deno run --allow-read=. src/tasks/lint_docs.ts",
+    "lint:security": "deno run --allow-read=. src/tasks/lint_security.ts",
     "lint": "deno fmt --check && deno lint && deno task check && deno task test && deno task lint:docs && deno task lint:security"
   },
   "compilerOptions": {

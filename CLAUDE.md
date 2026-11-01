@@ -11,7 +11,8 @@ walks engine memory and prints creature stats and active spells, with time left,
 - **Security first:** default-deny, scoped Deno flags, the native library stays read-only.
   [docs/rules/security-first.md](docs/rules/security-first.md)
 - **Install nothing without asking.** Every requirement is listed in `docs/requirements.md` (Step 1).
-  Deno **2.9.8** or later is required and checked by every task (`src/deno_version.ts`).
+  Deno **2.9.8** or later is required and checked by every task (`MIN_DENO` in
+  `src/shared/deno_version.ts`).
   [docs/rules/toolchain.md](docs/rules/toolchain.md)
 - **Git only when asked:** `git add`, `commit` and `push` only on an explicit request; show the message
   first; **no AI attribution anywhere.** [docs/rules/git.md](docs/rules/git.md)
@@ -57,8 +58,12 @@ The tasks available so far; more arrive with each step of the plan:
 ```text
 native/          the read-only dylib (C) and per-build address table (from Phase 0)
 mod/inspector/   the WeiDU component and in-game Lua (from Phase 3)
-src/             Deno tasks: linters now; doctor, build, install, play, verify later
-test/            Deno tests; test/lua and test/e2e later
+src/             Deno, grouped by concern; no loose files (test/structure_test.ts)
+  tasks/         one entry point per deno task: `await runTask(main)`; the only code that exits
+  shared/        deno_version.ts, task.ts (the runner), repo_files.ts
+  lint/          docs.ts, security.ts
+                 later: setup/, re/, game/, gamefiles/, model/, verify/ (see docs/architecture.md)
+test/            mirrors src/ (test/lint/docs_test.ts tests src/lint/docs.ts); test/lua, test/e2e later
 docs/            rules, ADRs, plans, delivery notes, specs; start at docs/README.md
 .claude/         committed settings (deny and ask lists) and skills
 ```

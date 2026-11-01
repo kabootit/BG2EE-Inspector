@@ -1,16 +1,15 @@
 /**
  * Security lint: the mechanical half of docs/rules/security-first.md.
  *
- *   deno task lint:security
+ * Run by `deno task lint:security` (src/tasks/lint_security.ts).
  *
  * Adapted from BG2EE-GameLog's src/lint.ts. Each check enforces one invariant;
  * the judgment half (is a new capability appropriate at all) is the
  * security-audit skill. Every check is a pure function with a failing probe in
- * test/lint_security_test.ts: a check that cannot go red reads as coverage it
+ * test/lint/security_test.ts: a check that cannot go red reads as coverage it
  * does not give.
  */
-import { requireDeno } from "./deno_version.ts";
-import { readRepoFile, walkRepo } from "./repo_files.ts";
+import { readRepoFile, walkRepo } from "../shared/repo_files.ts";
 
 export interface Finding {
   check: string;
@@ -284,17 +283,3 @@ export async function audit(): Promise<Finding[]> {
   out.push(...checkTestLocation(files));
   return out;
 }
-
-async function main() {
-  requireDeno();
-  const findings = await audit();
-  if (findings.length === 0) {
-    console.log("lint:security  all invariants hold. Judgment review: the security-audit skill");
-    return;
-  }
-  for (const f of findings) console.error(`  [${f.check}] ${f.file}  ${f.detail}`);
-  console.error(`\n${findings.length} security finding(s). Rules: docs/rules/security-first.md`);
-  Deno.exit(1);
-}
-
-if (import.meta.main) await main();

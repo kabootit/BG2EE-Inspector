@@ -14,7 +14,7 @@ import {
   loadDocs,
   parseFrontmatter,
   resolveLink,
-} from "../src/lint_docs.ts";
+} from "../../src/lint/docs.ts";
 
 // Probe strings are assembled at runtime so this file never trips the linters itself.
 const EM_DASH = String.fromCharCode(0x2014);

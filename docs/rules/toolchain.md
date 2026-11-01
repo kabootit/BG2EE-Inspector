@@ -14,9 +14,12 @@ something real: an apostrophe in `Baldur's Gate` breaking quoting, a zsh glob si
 - **Never Python, perl, npm, npx or shell scripts**, including for throwaway work.
 - **Imports:** relative files, `node:assert/strict` for tests, and `jsr:@std/*` with a pinned major
   version. Nothing else. `lint:security` checks every import.
-- **Deno version.** `MIN_DENO` in `src/deno_version.ts` is 2.9.8, and every task entry point calls
-  `requireDeno()`, so an older Deno fails with one clear line. Raise it there and in
-  `docs/requirements.md` together.
+- **Deno version.** `MIN_DENO` in `src/shared/deno_version.ts` is 2.9.8, and every task runs through
+  `runTask()` (`src/shared/task.ts`), which checks it first, so an older Deno fails with one clear line.
+  Raise it there and in `docs/requirements.md` together.
+- **Source layout.** `src/` is grouped by concern with no loose files, and only `src/tasks/` (plus the
+  runner) exits the process; see [docs/architecture.md](../architecture.md#code-organization).
+  `test/structure_test.ts` enforces it.
 - **Install nothing without asking**, one install at a time, naming the package, its source and why the
   existing tools are not enough. Anything found missing is added to `docs/requirements.md` and to
   `deno task doctor`.

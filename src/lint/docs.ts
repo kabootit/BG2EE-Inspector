@@ -1,7 +1,7 @@
 /**
  * Docs lint: the mechanical half of docs/rules/docs.md and docs/rules/writing-style.md.
  *
- *   deno task lint:docs
+ * Run by `deno task lint:docs` (src/tasks/lint_docs.ts).
  *
  * Everything decidable is checked here so review time goes to what is not
  * (see the docs-review skill): ADR format and registration, plan and note
@@ -9,10 +9,9 @@
  * languages, em dashes, and personal information.
  *
  * Every check is a pure function over in-memory text, so each one has a probe
- * in test/lint_docs_test.ts that shows it failing.
+ * in test/lint/docs_test.ts that shows it failing.
  */
-import { requireDeno } from "./deno_version.ts";
-import { readRepoFile, walkRepo } from "./repo_files.ts";
+import { readRepoFile, walkRepo } from "../shared/repo_files.ts";
 
 export interface Finding {
   rule: string;
@@ -471,20 +470,3 @@ export async function loadDocs(): Promise<{ docs: Doc[]; files: Set<string>; dir
   }
   return { docs, files: new Set(files), dirs: new Set(dirs) };
 }
-
-async function main() {
-  requireDeno();
-  const { docs, files, dirs } = await loadDocs();
-  const findings = lintDocs(docs, files, dirs);
-  if (findings.length === 0) {
-    console.log(`lint:docs  ${docs.length} markdown files, no findings`);
-    return;
-  }
-  for (const f of findings) console.error(`  [${f.rule}] ${f.file}:${f.line}  ${f.detail}`);
-  console.error(
-    `\n${findings.length} docs finding(s). Rules: docs/rules/docs.md, docs/rules/writing-style.md`,
-  );
-  Deno.exit(1);
-}
-
-if (import.meta.main) await main();

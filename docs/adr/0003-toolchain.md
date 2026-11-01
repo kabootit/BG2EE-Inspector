@@ -35,7 +35,8 @@ the development machine (2026-11-01):
 **C for the native library, built with the Xcode Command Line Tools (or full Xcode); Deno 2.9.8 or later
 for every task; no other tools.**
 
-- **Deno version:** `MIN_DENO` in `src/deno_version.ts`, checked by every task entry point.
+- **Deno version:** `MIN_DENO` in `src/shared/deno_version.ts`, checked by `runTask()` before every
+  task.
 - **Reverse engineering:** `xcrun llvm-objdump` plus a Deno Mach-O helper (`src/macho.ts`).
 - **Contributor-only download:** Lua 5.2.4 source, fetched by `deno task setup-dev` into gitignored
   `vendor/` with a pinned SHA-256. It is the reference for recognizing stripped Lua functions and builds
@@ -55,5 +56,6 @@ for every task; no other tools.**
 ## Consequences
 
 - Players need the Command Line Tools until prebuilt releases exist (TODO.md).
-- Raising the Deno minimum means updating `src/deno_version.ts` and `docs/requirements.md` together.
+- Raising the Deno minimum means updating `src/shared/deno_version.ts` and `docs/requirements.md`
+  together.
 - Re-evaluate if the Lua reference proves insufficient to identify the engine's Lua API.

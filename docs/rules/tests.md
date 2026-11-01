@@ -8,7 +8,7 @@ eyeballed once in a one-off command is lost the moment it scrolls away.
 
 ## How to apply
 
-- **Where:** `test/` mirrors the source it covers (`test/lint_docs_test.ts` tests `src/lint_docs.ts`).
+- **Where:** `test/` mirrors the source it covers (`test/lint/docs_test.ts` tests `src/lint/docs.ts`).
   Lua unit tests go in `test/lua/`; end-to-end fixtures in `test/e2e/`. `lint:security` flags any
   `*_test.ts` or `*_test.lua` outside `test/`.
 - **Probes for checks.** Every lint rule has a test showing it fail, built from strings assembled at run

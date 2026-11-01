@@ -6,7 +6,7 @@
  */
 
 /** The repo root, derived from this file's location rather than the working directory. */
-export const ROOT = decodeURIComponent(new URL("../", import.meta.url).pathname);
+export const ROOT = decodeURIComponent(new URL("../../", import.meta.url).pathname);
 
 /** Directories that are never linted: generated, downloaded, or local-only. */
 const SKIP_DIRS = new Set([".git", "vendor", "build", "logs", "node_modules", "test/e2e/saves"]);

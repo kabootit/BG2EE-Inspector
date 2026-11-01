@@ -34,7 +34,7 @@ flowchart TD
   subgraph REPO["BG2EE-Inspector repo"]
     N["native/ a7x.c, builds.h"]
     M["mod/inspector/ inspector.tp2, lib/a7x_*.lua"]
-    T["src/ Deno tasks: doctor, build, derive, install-mod, play, verify, e2e, lint"]
+    T["src/ Deno, by concern: tasks, shared, lint, setup, re, game, gamefiles, model, verify"]
     X["test/ Deno tests, test/lua, test/e2e"]
     D["docs/ rules, adr, plans, notes, specs"]
     E["examples/consumer-mod/"]
@@ -50,6 +50,31 @@ flowchart TD
   T -- "deno task e2e" --> SV
   V -. "used by" .-> T
 ```
+
+### src layout
+
+`src/` is grouped by concern, and a folder is created only when its first file arrives:
+
+| folder | holds | from |
+| --- | --- | --- |
+| `src/tasks/` | one thin entry point per `deno task`, each `await runTask(main)` | Step 0 |
+| `src/shared/` | `deno_version.ts`, `task.ts` (the runner), `repo_files.ts`; later `config.ts`, `sha256.ts` | Step 0 |
+| `src/lint/` | `docs.ts`, `security.ts` | Step 0 |
+| `src/setup/` | doctor checks, WeiDU and Lua downloads | Step 1 |
+| `src/re/` | Mach-O and arm64 helpers, `derive.ts` for `native/builds.h` | Phase 1 |
+| `src/game/` | launcher, redaction, WeiDU install, e2e save handling | Phase 0 onward |
+| `src/gamefiles/` | `.cre`, `.spl`, `dialog.tlk` readers adapted from BG2EE-GameLog | Phase 3 and 5 |
+| `src/model/` | schema-1 types and guard, captured-session parsing | Phase 3 and 4 |
+| `src/verify/` | assertions for `deno task verify` and `deno task e2e` | Phase 3 |
+
+The rules, enforced by `test/structure_test.ts`:
+
+- **No loose files** directly in `src/`.
+- **Only entry points exit.** `src/tasks/*` and the runner `src/shared/task.ts` are the only code that
+  calls `Deno.exit` or reads `Deno.args`, so every library module is safe to import from a test.
+- **One way in.** Every task entry point runs through `runTask()`, which checks the Deno version first,
+  and every `deno run` task in `deno.json` points at a file in `src/tasks/`.
+- **Tests mirror sources:** `test/lint/docs_test.ts` tests `src/lint/docs.ts`.
 
 ## Runtime layers
 

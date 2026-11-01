@@ -14,7 +14,7 @@ import {
   MPROTECT_MARKER,
   REQUIRED_ASK,
   REQUIRED_DENY,
-} from "../src/lint_security.ts";
+} from "../../src/lint/security.ts";
 
 // Probe strings are assembled at runtime so this file never trips the linters itself.
 const TRAILER = "Co-Authored" + "-By: Someone";
