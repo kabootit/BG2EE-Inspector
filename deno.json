@@ -2,7 +2,10 @@
   "//": "Every --allow-* flag is scoped; no task may hold a blanket grant (checked by lint:security). Requires Deno 2.9.8+ (src/shared/deno_version.ts). Every `deno run` task points at an entry point in src/tasks/ (checked by test/structure_test.ts).",
   "tasks": {
     "check": "deno check src/ test/",
-    "test": "deno test --quiet --allow-read=. test/",
+    "test": "deno test --quiet --allow-read=. --allow-env=HOME,BG2EE_GAME_DIR,BG2EE_BINARY,BG2EE_USER_DIR,BG2EE_WEIDU test/",
+    "doctor": "deno run --allow-env=HOME,BG2EE_GAME_DIR,BG2EE_BINARY,BG2EE_USER_DIR,BG2EE_WEIDU --allow-read=.,\"$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition\",\"$HOME/Documents/Baldur's Gate II - Enhanced Edition\" --allow-write=build --allow-run=/usr/bin/sw_vers,/usr/bin/plutil,/usr/bin/codesign,/usr/bin/xcode-select,/usr/bin/xcrun src/tasks/doctor.ts",
+    "setup-weidu": "deno run --allow-env=HOME,BG2EE_GAME_DIR,BG2EE_BINARY,BG2EE_USER_DIR,BG2EE_WEIDU --allow-read=. --allow-write=vendor --allow-net=github.com,objects.githubusercontent.com,release-assets.githubusercontent.com --allow-run=/usr/bin/ditto,/usr/bin/xattr src/tasks/setup_weidu.ts",
+    "setup-dev": "deno run --allow-env=HOME,BG2EE_GAME_DIR,BG2EE_BINARY,BG2EE_USER_DIR,BG2EE_WEIDU --allow-read=. --allow-write=vendor --allow-net=www.lua.org --allow-run=/usr/bin/tar src/tasks/setup_dev.ts",
     "lint:docs": "deno run --allow-read=. src/tasks/lint_docs.ts",
     "lint:security": "deno run --allow-read=. src/tasks/lint_security.ts",
     "lint": "deno fmt --check && deno lint && deno task check && deno task test && deno task lint:docs && deno task lint:security"
