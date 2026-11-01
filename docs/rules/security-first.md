@@ -10,7 +10,9 @@ if it grows a convenience grant. BG2EE-GameLog's audit found and closed exactly 
 ## How to apply
 
 - **Scoped Deno permissions.** Every `--allow-*` flag names its paths, hosts or binaries (`--allow-read=.`,
-  `--allow-run=ditto`); never bare, never `-A`. `lint:security` checks every task.
+  `--allow-run=/usr/bin/ditto`); never bare, never `-A`. Binaries are named by absolute path, in
+  `--allow-run` and in code (`BIN` in `src/shared/config.ts`), so a directory earlier in `PATH` cannot
+  stand in for them. `lint:security` checks every task.
 - **The native library is read-only.**
   - Reads go through `mach_vm_read_overwrite`, so a bad pointer returns an error instead of crashing.
   - No memory-write call (`mach_vm_write`, `vm_protect` and similar) and no access to other processes.

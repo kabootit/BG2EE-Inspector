@@ -135,6 +135,16 @@ export function checkPermissions(tasks: Record<string, string>): Finding[] {
         detail: `task "${task}" grants --allow-all`,
       });
     }
+    // A binary named without a path resolves through PATH, where another directory could shadow it.
+    for (const [, list] of command.matchAll(/--allow-run=(\S+)/g)) {
+      for (const bin of list.split(",").filter((b) => !b.startsWith("/"))) {
+        out.push({
+          check: "permissions",
+          file: "deno.json",
+          detail: `task "${task}" allows running "${bin}" by name; use its absolute path`,
+        });
+      }
+    }
     for (const m of command.matchAll(/--allow-[a-z-]+(?![=a-z-])/g)) {
       out.push({
         check: "permissions",

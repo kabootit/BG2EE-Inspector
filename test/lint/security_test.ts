@@ -52,7 +52,13 @@ Deno.test("permissions: no -A and no unscoped --allow-*", () => {
     "permissions",
     "permissions",
   ]);
-  deepStrictEqual(checkPermissions({ a: "deno run --allow-read=. --allow-run=ditto x.ts" }), []);
+  deepStrictEqual(checks(checkPermissions({ a: "deno run --allow-run=ditto x.ts" })), [
+    "permissions",
+  ]);
+  deepStrictEqual(
+    checkPermissions({ a: "deno run --allow-read=. --allow-run=/usr/bin/ditto,/usr/bin/tar x.ts" }),
+    [],
+  );
 });
 
 Deno.test("servers must bind loopback", () => {
