@@ -1,0 +1,125 @@
+---
+title: "Step 0, scaffold and conventions: Delivery Notes"
+description: "The repository scaffold, rules, ADR template and first four ADRs, plan copy, architecture diagrams, docs and security linters with probes, two Claude Code skills, and the committed deny list."
+---
+
+# Step 0, scaffold and conventions: Delivery Notes
+
+> Delivery record for Step 0 of the [foundation plan](../plans/2026-11-01-inspector-foundation.md).
+> [ADR-0004](../adr/0004-project-conventions.md) records why the conventions take this shape, and
+> [ADR-0003](../adr/0003-toolchain.md) the toolchain.
+
+## Status
+
+**Built, lint passing, committed and pushed** to the private GitHub repo `kabootit/BG2EE-Inspector`, on
+`main` and the marker branch `initial/setup` (see "Branches for this plan" in the plan).
+
+| Piece | State |
+| --- | --- |
+| Repository, `.gitignore`, MIT license, README, TODO | Done |
+| `CLAUDE.md`, `AGENTS.md`, `.claude/settings.json` | Done; deny and ask lists checked by hand in a Claude Code session started in this repo |
+| GitHub repo | Private; issues and wiki disabled with `gh`; pull requests to disable in the web settings |
+| Nine rules in `docs/rules/` | Done |
+| ADR index, template, ADRs 0001 to 0004 | Done; 0001 and 0002 are `proposed` until the Phase 0 and Phase 3 gates |
+| Plan copy and architecture diagrams | Done; diagrams not yet looked at in a rendered preview |
+| `lint:docs`, `lint:security`, Deno version guard, tests | Done; every rule has a failing probe |
+| Skills `docs-review` and `security-audit` | Done |
+
+## Plan summary
+
+Step 0 sets up the conventions before any feature work, so the project can be developed over time and
+published:
+
+- **Rules**, adapted from the Tranquil projects and BG2EE-GameLog, in one `docs/` folder with no sibling
+  repos.
+- **Plans saved in the project.**
+- **Delivery notes** for each step.
+- **ADRs** for each decision.
+- **Mechanical enforcement:** linters and a committed Claude Code deny list.
+
+## What was built
+
+### Repository root
+
+The top-level files and what each is for:
+
+| File | Purpose |
+| --- | --- |
+| `README.md` | What, why, installation (marked not yet runnable), attributions and prior art |
+| `TODO.md` | Mod compatibility untested, clean-machine install untested, the external UI mod, launching without Deno |
+| `CLAUDE.md`, `AGENTS.md` | Agent index ("Always" one-liners, "Read before" table) and a short pointer to it |
+| `.claude/settings.json` | Denies brew, npm, npx, pip, Python, curl and wget; asks before `git add`, `git commit`, `git push`, remote changes and `gh repo create` |
+| `.markdownlint.jsonc` | Tells the editor's markdownlint not to count frontmatter `title` as a second H1 (MD025) |
+| `deno.json` | Tasks `check`, `test`, `lint:docs`, `lint:security`, `lint`; every `--allow-*` scoped |
+| `LICENSE.md`, `.gitignore` | MIT; `vendor/`, `build/`, `logs/` and `test/e2e/saves/` ignored |
+
+### Docs
+
+The documentation added in `docs/`:
+
+| Path | Content |
+| --- | --- |
+| `docs/README.md` | Index; every page is reachable from here |
+| `docs/architecture.md` | Six Mermaid diagrams: roadmap, code organization, runtime layers, boot, inspect, game update |
+| `docs/rules/*.md` | working-together, git, writing-style, security-first, toolchain, minimal-surface, verify-derived-values, tests, docs |
+| `docs/adr/` | Index, template, 0001 (DYLD injection), 0002 (read-only bridge and Lua walker), 0003 (toolchain), 0004 (conventions) |
+| `docs/plans/2026-11-01-inspector-foundation.md` | The approved plan, with home paths removed and the Deno requirement corrected |
+
+### Code and tests
+
+The Deno sources and their tests:
+
+| Path | Content |
+| --- | --- |
+| `src/deno_version.ts` | `MIN_DENO = "2.9.8"` and `requireDeno()`, called by every task entry point |
+| `src/repo_files.ts` | Repo walker shared by both linters; repo-relative paths only |
+| `src/lint_docs.ts` | ADR format, sequence and registration; plan and note naming; reachability; dead links and anchors; fence languages; em dashes; personal information |
+| `src/lint_security.ts` | Imports and import map, scoped permissions, loopback binding, read-only `native/`, required deny and ask entries, AI attribution lines, home paths in code, test location |
+| `test/*_test.ts` | Probes for every rule, plus whole-repo runs that must report nothing |
+
+### Skills
+
+- `.claude/skills/docs-review/`: linter first, the five passes, severity scale, page-type templates.
+- `.claude/skills/security-audit/`: the judgment half of the security checks, extended for the native
+  library, launch path, downloads, game install, saves, public API and licensing.
+
+## Gotchas worth remembering
+
+- **The installed Deno was 2.8.1, not the 2.9.6 in BG2EE-GameLog's README.** It was then upgraded to
+  2.9.8, which is now the project minimum, enforced by `requireDeno()` and tested in
+  `test/deno_version_test.ts`.
+- **No downloads in Step 0.** Tests use the built-in `node:assert/strict` instead of `jsr:@std/assert`, so
+  nothing had to be fetched and there is no lock file yet.
+- **`deno fmt` would reformat markdown tables**, so `fmt` and `lint` are scoped to `src/` and `test/`.
+- **The editor's markdownlint wants spaced table separators** (`| --- |`, rule MD060); the docs use that
+  style.
+- **Push moved from deny to ask.** The first deny list blocked `git push` and remote changes outright,
+  which would also block a push that was explicitly requested. They now prompt instead.
+- **Probe strings are built at run time** (`String.fromCharCode(0x2014)`, split paths) so the test files
+  do not trip the linters they test.
+
+## Verification
+
+Commands run on 2026-11-01:
+
+- `deno task lint`: fmt check, `deno lint`, type-check, 24 tests (24 passed), `lint:docs` and
+  `lint:security` with no findings.
+- **Every rule was shown failing** by its probe: an em dash, a home path, an email address, a missing or
+  unknown fence language, a dead link, a dead anchor, an unlisted ADR, a broken ADR sequence, bad ADR
+  frontmatter and heading, a misnamed note and plan, an unreachable page, `-A` and unscoped flags, an
+  import map, an npm import, a non-loopback server, a native write call, an unmarked and a second
+  `mprotect`, a missing deny entry, an AI attribution trailer and footer, a home path in code, and a test
+  outside `test/`.
+
+- **Checked by hand (2026-11-01):** the diagrams in `docs/architecture.md` render in VS Code's preview,
+  and the Claude Code settings behave as intended in a session started in this repo.
+
+Still to check by hand:
+
+1. With push moved to the ask list, confirm in a session started in this repo that `git push` prompts
+   rather than being refused.
+
+## Follow-ups
+
+- Step 1: `docs/requirements.md`, `deno task doctor`, `deno task setup-weidu`, `deno task setup-dev`.
+- Disable pull requests in the GitHub repo's web settings; `gh` has no flag for it.

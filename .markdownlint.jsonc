@@ -1,0 +1,6 @@
+{
+  // ADRs and delivery notes carry a frontmatter title alongside their H1; don't count it as a second H1.
+  "MD025": { "front_matter_title": "" },
+  // Long lines are normal in tables and links.
+  "MD013": false
+}

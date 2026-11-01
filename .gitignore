@@ -1,0 +1,13 @@
+# Downloaded by setup tasks; never committed (see docs/requirements.md)
+vendor/
+
+# Build output
+build/
+
+# Captured game sessions; may contain account ids or paths before redaction review
+logs/
+
+# Local end-to-end fixture saves: game-derived data and party names, never committed
+test/e2e/saves/
+
+.DS_Store
