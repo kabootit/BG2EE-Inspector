@@ -10,8 +10,8 @@ description: "docs/requirements.md, deno task doctor, and the two pinned setup t
 
 ## Status
 
-**Built; every requirement met on the development machine.** Not committed yet: commits wait for
-review of each message.
+**Built, every requirement met on the development machine, committed and pushed** on `main` and the
+marker branch `initial/02-requirements`, as three focused commits that each pass lint on their own.
 
 | Piece | State |
 | --- | --- |
