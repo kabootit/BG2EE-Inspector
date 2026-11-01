@@ -20,7 +20,7 @@ each pass lint on their own.
 | `deno task build` | Done; arm64, ad-hoc signed, warnings as errors |
 | `deno task play` | Done; pty launch, redacted session log, load check; `--no-inject` for the control run |
 | Injection gate | Passed on 2026-11-01 |
-| Five minutes of play with the library loaded | Not yet; the injected run lasted about 1.5 minutes |
+| Five minutes of play with the library loaded | Done; 10 minutes, including an area change |
 
 ## Plan summary
 
@@ -98,12 +98,14 @@ Commands run on 2026-11-01:
   - `deno task play`: `A7X loaded into BaldursGateIIEnhancedEdition pid=…`, then a clean exit with code
     0; 222 lines captured. The log goes past the main menu: game globals are set and the resource folders
     are rescanned eight more times than in the control run, consistent with a save being loaded.
-  - Both session logs: no home path and no Steam id; the engine's Steam id line reads `<steam-id>`.
+  - `deno task play`, a longer session: 10 minutes of play with the library loaded, including an area
+    change, with no difference from normal play; 1,316 lines captured. The log shows combat (globals
+    marking a troll and a zombie dead) and quest progress (`KELDORNMETPLAYER`), and no errors beyond the
+    baseline ones above. The engine does not log area transitions, so the area change was confirmed by
+    the player, not by the log.
+  - All three session logs: no home path and no Steam id; the engine's Steam id line reads `<steam-id>`.
 
-Still to check by hand:
-
-1. Play five minutes or more with the library loaded, through an area change, and confirm the game
-   behaves as without it.
+Nothing is left to check by hand for this phase.
 
 ## Follow-ups
 
