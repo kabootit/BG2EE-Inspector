@@ -5,11 +5,11 @@
  * `--no-inject` is the control run: the same launch without the library.
  */
 import { stamp } from "../game/capture.ts";
-import { launchCommand, summarize } from "../game/launch.ts";
+import { isLoadMarker, launchCommand, summarize } from "../game/launch.ts";
 import { captureSession } from "../game/session.ts";
 import { verifyDylib } from "../build/dylib.ts";
 import { realSystem } from "../setup/system.ts";
-import { DYLIB_PATH, GAME_BINARY, LOADED_MARKER, LOGS_DIR } from "../shared/config.ts";
+import { DYLIB_PATH, GAME_BINARY, LOGS_DIR } from "../shared/config.ts";
 import { runTask } from "../shared/task.ts";
 
 const KNOWN_FLAGS = new Set(["--no-inject"]);
@@ -45,17 +45,22 @@ await runTask(async () => {
   console.log(`play: session log logs/${logPath.split("/").pop()}`);
   console.log("play: quit the game to finish.\n");
 
+  // Only the marker lines are kept; everything else goes straight to the log.
+  const markers: string[] = [];
   try {
-    const { lines, exitCode } = await captureSession(
+    const { lineCount, exitCode } = await captureSession(
       launchCommand({ binary: GAME_BINARY, dylib: DYLIB_PATH, inject }),
       home,
       async (line) => {
         await log.write(encoder.encode(`${line}\n`));
-        if (line.includes(LOADED_MARKER)) console.log(`  ${line}`);
+        if (isLoadMarker(line)) {
+          markers.push(line);
+          console.log(`  ${line}`);
+        }
       },
     );
-    const summary = summarize(lines, gameProcess);
-    console.log(`\nplay: game exited with code ${exitCode}; ${summary.lines} lines captured`);
+    const summary = summarize(markers, gameProcess);
+    console.log(`\nplay: game exited with code ${exitCode}; ${lineCount} lines captured`);
     if (!inject) {
       console.log(`play: control run; library markers seen: ${summary.loaded.length} (expected 0)`);
       return summary.loaded.length === 0 ? 0 : 1;

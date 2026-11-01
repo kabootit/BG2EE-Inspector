@@ -27,18 +27,19 @@ export function launchCommand(opts: LaunchOptions): Launch {
 }
 
 export interface SessionSummary {
-  lines: number;
   /** Marker lines from the dylib, e.g. "A7X loaded into BaldursGateIIEnhancedEdition pid=123". */
   loaded: string[];
   /** Whether a marker names the game, not a launcher process. */
   loadedIntoGame: boolean;
 }
 
-/** What a captured session says about the injection. */
-export function summarize(lines: string[], gameProcess: string): SessionSummary {
-  const loaded = lines.filter((l) => l.includes(LOADED_MARKER));
+/** Whether a captured line is the dylib's load marker. */
+export const isLoadMarker = (line: string): boolean => line.includes(LOADED_MARKER);
+
+/** What a session's marker lines say about the injection. */
+export function summarize(markers: string[], gameProcess: string): SessionSummary {
+  const loaded = markers.filter(isLoadMarker);
   return {
-    lines: lines.length,
     loaded,
     loadedIntoGame: loaded.some((l) => l.includes(`${LOADED_MARKER}${gameProcess} `)),
   };

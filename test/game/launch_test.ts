@@ -1,5 +1,5 @@
 import { deepStrictEqual, strictEqual } from "node:assert/strict";
-import { launchCommand, summarize } from "../../src/game/launch.ts";
+import { isLoadMarker, launchCommand, summarize } from "../../src/game/launch.ts";
 import { BIN } from "../../src/shared/config.ts";
 
 const GAME = "/Games/BG2.app/Contents/MacOS/BaldursGateIIEnhancedEdition";
@@ -20,9 +20,10 @@ Deno.test("the control launch is the same command without the library", () => {
 
 Deno.test("a session shows the library loaded only when a marker names the game", () => {
   const game = "BaldursGateIIEnhancedEdition";
-  const loaded = summarize(["start", `A7X loaded into ${game} pid=42`, "end"], game);
-  strictEqual(loaded.loadedIntoGame, true);
-  strictEqual(loaded.lines, 3);
+  const marker = `A7X loaded into ${game} pid=42`;
+  strictEqual(isLoadMarker(marker), true);
+  strictEqual(isLoadMarker("start"), false);
+  deepStrictEqual(summarize([marker], game), { loaded: [marker], loadedIntoGame: true });
   strictEqual(summarize(["A7X loaded into env pid=7"], game).loadedIntoGame, false);
   deepStrictEqual(summarize(["nothing"], game).loaded, []);
 });
