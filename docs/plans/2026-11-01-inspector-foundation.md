@@ -474,7 +474,7 @@ Each file has the same shape:
   - the design
   - `## Verification`
   - `## Order of work`, ending with "ask before any commit or remote".
-- **Delivery notes.** After each discrete effort (Step 0, Step 1, each Phase), write `docs/notes/YYYY-MM-DD-<topic>.md` (dated like plans so the folder sorts by time; the topic is the step's `initial/<summary>` name, e.g. `2026-11-01-setup.md`):
+- **Delivery notes.** After each discrete effort (Step 0, Step 1, each Phase), write `docs/notes/YYYY-MM-DD-<topic>.md` (dated like plans so the folder sorts by time; the topic is the summary part of the step's `initial/NN-<summary>` branch, e.g. `2026-11-01-setup.md` for `initial/01-setup`):
   - frontmatter `title` and `description`
   - a `>` lede linking the ADR and the plan
   - `## Status` with a `| Piece | State |` table
@@ -539,18 +539,18 @@ The deny list is a backstop for the written rules, not a sandbox. Claude Code ma
 
 ### Branches for this plan
 
-During this plan only, each step and phase is also pushed to `origin` as a marker branch named `initial/<summary>`, and `main` is pushed alongside it. Each branch points at the commit that completes its step. This is not a standing rule: after the first release, work simply lands on `main` (see `docs/rules/git.md`).
+During this plan only, each step and phase is also pushed to `origin` as a marker branch named `initial/NN-<summary>`, and `main` is pushed alongside it. The two-digit number keeps the branches in plan order when listed. Each branch points at the commit that completes its step. This is not a standing rule: after the first release, work simply lands on `main` (see `docs/rules/git.md`).
 
 | step or phase | branch |
 | --- | --- |
-| Step 0: scaffold and conventions | `initial/setup` |
-| Step 1: requirements, doctor, setup tasks | `initial/requirements` |
-| Phase 0: injection smoke test | `initial/injection` |
-| Phase 1: reverse engineering, address table | `initial/reverse-engineering` |
-| Phase 2: bridge dylib | `initial/bridge` |
-| Phase 3: struct walker and harness | `initial/walker` |
-| Phase 4: data API, hotkey and console output | `initial/output` |
-| Phase 5: active spells and countdowns | `initial/spells` |
+| Step 0: scaffold and conventions | `initial/01-setup` |
+| Step 1: requirements, doctor, setup tasks | `initial/02-requirements` |
+| Phase 0: injection smoke test | `initial/03-injection` |
+| Phase 1: reverse engineering, address table | `initial/04-reverse-engineering` |
+| Phase 2: bridge dylib | `initial/05-bridge` |
+| Phase 3: struct walker and harness | `initial/06-walker` |
+| Phase 4: data API, hotkey and console output | `initial/07-output` |
+| Phase 5: active spells and countdowns | `initial/08-spells` |
 
 The GitHub repo `kabootit/BG2EE-Inspector` starts **private**, with issues and the wiki disabled. `gh` has no flag for disabling pull requests, so that is done in the repository's web settings.
 
@@ -562,7 +562,7 @@ The GitHub repo `kabootit/BG2EE-Inspector` starts **private**, with issues and t
 4. Write `lint_docs.ts` and `lint_security.ts`, with tests in `test/`.
 5. Write the two skills.
 6. Write the delivery note `docs/notes/2026-11-01-setup.md`.
-7. When asked: commit, create the private GitHub repo, and push `main` and `initial/setup`.
+7. When asked: commit, create the private GitHub repo, and push `main` and `initial/01-setup`.
 
 No commit until asked.
 

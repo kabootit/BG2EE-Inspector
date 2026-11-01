@@ -38,7 +38,8 @@ Written in plan mode, saved on approval.
 
 Written after each step or phase; it says what was built and where, while the ADR says why. The date
 prefix makes the folder sort by time, like `docs/plans/`; use the date the note is written, and a short
-topic (for this plan, the `initial/<summary>` branch name, e.g. `2026-11-01-setup.md`).
+topic (for the foundation plan, the summary part of the `initial/NN-<summary>` branch, e.g.
+`2026-11-01-setup.md` for `initial/01-setup`).
 
 - Frontmatter `title` and `description`.
 - H1, then a `>` lede linking the ADR and the plan.

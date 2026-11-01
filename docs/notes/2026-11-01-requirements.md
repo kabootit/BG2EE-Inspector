@@ -104,6 +104,6 @@ Still to check by hand:
 
 ## Follow-ups
 
-- Phase 0: the injection smoke test, which adds `deno task build` and `deno task play` (`initial/injection`).
+- Phase 0: the injection smoke test, which adds `deno task build` and `deno task play` (`initial/03-injection`).
 - `doctor` gains the hotkey-conflict check (the player's keymap in `Baldur.lua`) in Phase 4, when the
   hotkey exists.
