@@ -43,6 +43,10 @@ export const LUA_DIR = `${VENDOR_DIR}/lua-5.2.4`;
 /** Build output (gitignored). */
 export const BUILD_DIR = `${ROOT}build`;
 
+/** The inspector's native library: its one C source and the built dylib. */
+export const DYLIB_SOURCE = `${ROOT}native/a7x.c`;
+export const DYLIB_PATH = `${BUILD_DIR}/a7x.dylib`;
+
 /**
  * System binaries, by absolute path so a directory earlier in PATH cannot stand in for them. The
  * same paths are the --allow-run lists in deno.json.

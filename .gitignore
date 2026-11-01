@@ -2,7 +2,7 @@
 vendor/
 
 # Build output
-build/
+/build/
 
 # Captured game sessions; may contain account ids or paths before redaction review
 logs/

@@ -23,6 +23,7 @@ import {
 import { denoVersionProblem } from "../shared/deno_version.ts";
 import { sha256Hex } from "../shared/sha256.ts";
 import { machoArchs } from "../re/macho.ts";
+import { buildDylib } from "../build/dylib.ts";
 import type { System } from "./system.ts";
 
 export type Status = "ok" | "warn" | "fail";
@@ -187,28 +188,9 @@ export async function checkBuild(sys: System): Promise<Check> {
   const dir = `${BUILD_DIR}/doctor`;
   await sys.makeDir(dir);
   await sys.writeText(`${dir}/smoke.c`, SMOKE_SOURCE);
-  const built = await sys.run(BIN.xcrun, [
-    "clang",
-    "-arch",
-    "arm64",
-    "-dynamiclib",
-    "-O2",
-    "-o",
-    `${dir}/smoke.dylib`,
-    `${dir}/smoke.c`,
-  ]);
-  if (built.code !== 0) {
-    return check(name, "players", "fail", `clang failed: ${built.stderr.trim()}`);
-  }
-  const bytes = await sys.readBytes(`${dir}/smoke.dylib`);
-  const archs = bytes ? machoArchs(bytes) : [];
-  const sig = await sys.run(BIN.codesign, ["-dv", `${dir}/smoke.dylib`]);
-  const adhoc = /Signature=adhoc/.test(sig.stderr + sig.stdout);
-  if (!archs.includes("arm64")) {
-    return check(name, "players", "fail", `built ${archs.join(", ") || "nothing"}`);
-  }
-  if (!adhoc) return check(name, "players", "fail", "the linker did not ad-hoc sign the library");
-  return check(name, "players", "ok", "arm64, Signature=adhoc");
+  // The same flags and checks as `deno task build`, so a pass here means the real build will work.
+  const result = await buildDylib(sys, `${dir}/smoke.c`, `${dir}/smoke.dylib`);
+  return check(name, "players", result.ok ? "ok" : "fail", result.detail);
 }
 
 /** WeiDU, identified by SHA-256 and Mach-O header, never by running it. */
