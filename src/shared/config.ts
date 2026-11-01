@@ -47,6 +47,12 @@ export const BUILD_DIR = `${ROOT}build`;
 export const DYLIB_SOURCE = `${ROOT}native/a7x.c`;
 export const DYLIB_PATH = `${BUILD_DIR}/a7x.dylib`;
 
+/** Captured game sessions (gitignored), one file per `deno task play`. */
+export const LOGS_DIR = `${ROOT}logs`;
+
+/** The line the dylib's constructor writes once it is loaded (native/a7x.c). */
+export const LOADED_MARKER = "A7X loaded into ";
+
 /**
  * System binaries, by absolute path so a directory earlier in PATH cannot stand in for them. The
  * same paths are the --allow-run lists in deno.json.
@@ -54,7 +60,9 @@ export const DYLIB_PATH = `${BUILD_DIR}/a7x.dylib`;
 export const BIN = {
   codesign: "/usr/bin/codesign",
   ditto: "/usr/bin/ditto",
+  env: "/usr/bin/env",
   plutil: "/usr/bin/plutil",
+  script: "/usr/bin/script",
   swVers: "/usr/bin/sw_vers",
   tar: "/usr/bin/tar",
   xattr: "/usr/bin/xattr",
