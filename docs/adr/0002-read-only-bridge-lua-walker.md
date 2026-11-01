@@ -70,6 +70,10 @@ Lua; output on request as a data API and message-window text.**
 
 ## Options considered
 
+- **Read-only C bridge with a per-build address table, Lua walker with named fields, on-request text and
+  data API** (chosen): the smallest native surface the hardened runtime allows, the per-version-address
+  model both mature tools use, and the Lua-centric shape EEex started from, with EEex's later lesson
+  about named fields applied.
 - **Runtime pattern scanning in the dylib**: not taken; both mature tools use per-version addresses, and
   patterns are a tool for re-deriving them, not for every launch.
 - **Generated typed bindings** (EEex's model): not taken; it needs code generation from headers that
