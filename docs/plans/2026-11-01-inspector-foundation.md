@@ -1,7 +1,8 @@
 # Plan: BG2EE-Inspector foundation, in-game creature stats on macOS
 
 > **Status:** approved 2026-11-01. Step 0 (scaffold and conventions) is recorded in the
-> [Step 0 delivery note](../notes/2026-11-01-setup.md). Decisions are recorded in the
+> [Step 0 delivery note](../notes/2026-11-01-setup.md), and Step 1 (requirements) in the
+> [Step 1 delivery note](../notes/2026-11-01-requirements.md). Decisions are recorded in the
 > [ADRs](../adr/README.md), and diagrams also appear in [docs/architecture.md](../architecture.md).
 > Edited in place until pushed, per [working-together.md](../rules/working-together.md).
 

@@ -5,6 +5,7 @@ apply to all work in the repo.
 
 ## Overview
 
+- [Requirements](requirements.md): what to install first, and how `deno task doctor` checks it.
 - [Architecture](architecture.md): diagrams of the roadmap, code organization, runtime layers, boot
   sequence, inspect workflow and game-update workflow.
 - [Foundation plan](plans/2026-11-01-inspector-foundation.md): the approved plan for the first release,
@@ -34,4 +35,5 @@ How work is done on this project. [CLAUDE.md](../CLAUDE.md) summarizes them.
 
 - Plans: [2026-11-01 foundation](plans/2026-11-01-inspector-foundation.md).
 - Delivery notes, named `YYYY-MM-DD-<topic>.md` so they sort by time:
-  [2026-11-01 Step 0, setup](notes/2026-11-01-setup.md).
+  [2026-11-01 Step 0, setup](notes/2026-11-01-setup.md),
+  [2026-11-01 Step 1, requirements](notes/2026-11-01-requirements.md).

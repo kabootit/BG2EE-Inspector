@@ -20,9 +20,9 @@ with two code-signing entitlements, `allow-dyld-environment-variables` and
 
 ## Installation
 
-Not runnable yet: these tasks arrive in Step 1 and the phases after it.
+Steps 1 to 3 work today; steps 4 to 6 arrive in the phases after Step 1.
 
-1. Install the requirements in `docs/requirements.md` (Step 1), including **Deno 2.9.8** or later.
+1. Install the [requirements](docs/requirements.md), including **Deno 2.9.8** or later.
 2. `deno task setup-weidu`: fetch the pinned WeiDU release.
 3. `deno task doctor`: check every requirement.
 4. `deno task build`: build the read-only library.

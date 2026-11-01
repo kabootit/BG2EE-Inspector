@@ -10,7 +10,8 @@ walks engine memory and prints creature stats and active spells, with time left,
 
 - **Security first:** default-deny, scoped Deno flags, the native library stays read-only.
   [docs/rules/security-first.md](docs/rules/security-first.md)
-- **Install nothing without asking.** Every requirement is listed in `docs/requirements.md` (Step 1).
+- **Install nothing without asking.** Every requirement is listed in
+  [docs/requirements.md](docs/requirements.md) and checked by `deno task doctor`.
   Deno **2.9.8** or later is required and checked by every task (`MIN_DENO` in
   `src/shared/deno_version.ts`).
   [docs/rules/toolchain.md](docs/rules/toolchain.md)
@@ -47,6 +48,9 @@ The tasks available so far; more arrive with each step of the plan:
 
 | task | what it does |
 | --- | --- |
+| `deno task doctor` | check every requirement in docs/requirements.md; reads the game, never runs it or WeiDU |
+| `deno task setup-weidu` | download WeiDU v251 arm64 into `vendor/weidu/`, checked against GitHub's digest |
+| `deno task setup-dev` | download the Lua 5.2.4 source into `vendor/` (contributors only) |
 | `deno task lint` | fmt check, lint, type-check, tests, `lint:docs`, `lint:security`. Run before every commit |
 | `deno task lint:docs` | the mechanical docs rules |
 | `deno task lint:security` | the mechanical security invariants |
@@ -60,9 +64,11 @@ native/          the read-only dylib (C) and per-build address table (from Phase
 mod/inspector/   the WeiDU component and in-game Lua (from Phase 3)
 src/             Deno, grouped by concern; no loose files (test/structure_test.ts)
   tasks/         one entry point per deno task: `await runTask(main)`; the only code that exits
-  shared/        deno_version.ts, task.ts (the runner), repo_files.ts
+  shared/        deno_version.ts, task.ts (the runner), repo_files.ts, config.ts, sha256.ts
   lint/          docs.ts, security.ts
-                 later: setup/, re/, game/, gamefiles/, model/, verify/ (see docs/architecture.md)
+  setup/         doctor.ts, install.ts, download.ts, system.ts (the machine, injectable for tests)
+  re/            macho.ts (Mach-O architectures for now)
+                 later: game/, gamefiles/, model/, verify/ (see docs/architecture.md)
 test/            mirrors src/ (test/lint/docs_test.ts tests src/lint/docs.ts); test/lua, test/e2e later
 docs/            rules, ADRs, plans, delivery notes, specs; start at docs/README.md
 .claude/         committed settings (deny and ask lists) and skills
