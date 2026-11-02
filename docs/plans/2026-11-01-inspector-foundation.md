@@ -549,10 +549,11 @@ During this plan only, each step and phase is also pushed to `origin` as a marke
 | Step 1: requirements, doctor, setup tasks | `initial/02-requirements` |
 | Phase 0: injection smoke test | `initial/03-injection` |
 | Phase 1: reverse engineering, address table | `initial/04-reverse-engineering` |
-| Phase 2: bridge dylib | `initial/05-bridge` |
-| Phase 3: struct walker and harness | `initial/06-walker` |
-| Phase 4: data API, hotkey and console output | `initial/07-output` |
-| Phase 5: active spells and countdowns | `initial/08-spells` |
+| Hook gate: the interposing probe in the game (ADR-0005) | `initial/05-hook-gate` |
+| Phase 2: bridge dylib | `initial/06-bridge` |
+| Phase 3: struct walker and harness | `initial/07-walker` |
+| Phase 4: data API, hotkey and console output | `initial/08-output` |
+| Phase 5: active spells and countdowns | `initial/09-spells` |
 
 The GitHub repo `kabootit/BG2EE-Inspector` starts **private**, with issues and the wiki disabled. `gh` has no flag for disabling pull requests, so that is done in the repository's web settings.
 
