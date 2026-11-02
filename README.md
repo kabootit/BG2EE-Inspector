@@ -57,4 +57,5 @@ Documentation starts at [docs/README.md](docs/README.md).
   `setup-dev`, never redistributed.
 - [BG2EE-GameLog](https://github.com/kabootit/BG2EE-GameLog): the launch, capture, WeiDU-patching,
   game-file-reading and security tooling this project adapts.
-- Project conventions are adapted from the Tranquil projects' development rules.
+- Project conventions are adapted from the [Tranquil projects'](https://github.com/tranquillabs)
+  development rules.
