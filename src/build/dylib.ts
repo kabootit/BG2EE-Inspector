@@ -9,7 +9,10 @@ import { BIN } from "../shared/config.ts";
 import { machoArchs } from "../re/macho.ts";
 import type { System } from "../setup/system.ts";
 
-/** The clang arguments for an arm64 dylib from one C source. */
+/**
+ * The clang arguments for an arm64 dylib from one C source. OpenGL is linked so the library can
+ * call the real glClear it interposes (ADR-0005); the game already loads the framework.
+ */
 export function compileArgs(source: string, output: string): string[] {
   return [
     "clang",
@@ -21,6 +24,8 @@ export function compileArgs(source: string, output: string): string[] {
     "-Wall",
     "-Wextra",
     "-Werror",
+    "-framework",
+    "OpenGL",
     "-o",
     output,
     source,

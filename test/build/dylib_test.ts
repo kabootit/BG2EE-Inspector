@@ -13,6 +13,14 @@ Deno.test("compile arguments build an arm64 dylib with warnings as errors", () =
   deepStrictEqual(args.slice(args.indexOf("-arch"), args.indexOf("-arch") + 2), ["-arch", "arm64"]);
 });
 
+Deno.test("the library links OpenGL, to call the real glClear it interposes", () => {
+  const args = compileArgs("a.c", "a.dylib");
+  deepStrictEqual(args.slice(args.indexOf("-framework"), args.indexOf("-framework") + 2), [
+    "-framework",
+    "OpenGL",
+  ]);
+});
+
 Deno.test("a clang failure is reported with its output", async () => {
   const sys = fakeSystem(
     {},

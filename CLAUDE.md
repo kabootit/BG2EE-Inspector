@@ -62,7 +62,7 @@ The tasks available so far; more arrive with each step of the plan:
 ## Layout
 
 ```text
-native/          the read-only dylib (C); the per-build address table arrives in Phase 1
+native/          the read-only dylib (C) and builds.h, the per-build address table
 mod/inspector/   the WeiDU component and in-game Lua (from Phase 3)
 src/             Deno, grouped by concern; no loose files (test/structure_test.ts)
   tasks/         one entry point per deno task: `await runTask(main)`; the only code that exits
