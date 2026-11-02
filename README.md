@@ -55,7 +55,14 @@ Documentation starts at [docs/README.md](docs/README.md).
 - [WeiDU](https://github.com/WeiDUorg/weidu): the mod installer.
 - [Lua 5.2.4](https://www.lua.org/): the reference build for identifying engine functions; downloaded by
   `setup-dev`, never redistributed.
-- [BG2EE-GameLog](https://github.com/kabootit/BG2EE-GameLog): the launch, capture, WeiDU-patching,
-  game-file-reading and security tooling this project adapts.
+- [BG2EE-GameLog](https://github.com/kabootit/BG2EE-GameLog): findings this project builds on rather
+  than rediscovering, and tooling it adapts.
+  - **Findings:** no creature state is reachable from the game's Lua, settled from the full binding
+    registry (the reason for a native library); the 146 `Infinity_*` functions, `e` as
+    `g_pBaldurChitin`, and the restricted Lua standard library; `Infinity_Log` reaching stdout, captured
+    line by line through `script`; engine calls being unsafe while `ui.menu` loads; `Baldur.lua` being
+    rewritten on exit.
+  - **Tooling:** the launch and capture, WeiDU patching, game-file reading, the security lint and audit,
+    and the rule to verify derived values.
 - Project conventions are adapted from the [Tranquil projects'](https://github.com/tranquillabs)
   development rules.
