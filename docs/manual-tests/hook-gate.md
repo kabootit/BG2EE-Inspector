@@ -16,7 +16,8 @@ should look and play exactly as usual. Why this matters, and what happens if it 
 ## Before you start
 
 - **The game is closed.** `play` starts it.
-- **The repo is on the commit under test**, with a clean `git status`.
+- **The repo is on the commit under test**, with a clean `git status`. `git log -1 --oneline` names
+  it; that is the commit the Runs row records.
 - **A save to load.** Any save works. The probe changes nothing, and the session needs no saving.
 - **About 15 minutes**, 10 of them playing.
 
