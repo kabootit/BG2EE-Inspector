@@ -55,8 +55,11 @@ export const FORBIDDEN_NATIVE = [
   "ptrace",
 ];
 
-/** The one sanctioned mprotect: the luaL_Reg pointer swap (ADR-0002). */
-export const MPROTECT_MARKER = "a7x-allow-mprotect: luaL_Reg swap";
+/**
+ * The only functions the library may interpose (ADR-0005). Each one replaces a function for the
+ * whole game process, so adding one is a design change, not an implementation detail.
+ */
+export const ALLOWED_INTERPOSE = ["glClear"];
 
 /** Built-in modules that may be imported without a version pin. */
 const BUILTINS = new Set(["node:assert/strict"]);
@@ -173,32 +176,52 @@ export function checkBindAddress(file: string, text: string): Finding[] {
 
 // --- native ----------------------------------------------------------------
 
-/** The dylib has no write path, and mprotect appears only at the marked luaL_Reg site. */
+/**
+ * The dylib has no write path and no mprotect at all, and interposes only allowlisted functions:
+ * one __interpose section, through the A7X_INTERPOSE macro (ADR-0005).
+ */
 export function checkNative(sources: Array<{ file: string; text: string }>): Finding[] {
   const out: Finding[] = [];
-  let mprotectSites = 0;
+  let interposeSections = 0;
   for (const { file, text } of sources) {
     for (const [i, line] of text.split("\n").entries()) {
+      const at = `line ${i + 1}`;
       for (const name of FORBIDDEN_NATIVE) {
         if (new RegExp(`\\b${name}\\b`).test(line)) {
-          out.push({ check: "native-read-only", file, detail: `line ${i + 1} uses ${name}` });
+          out.push({ check: "native-read-only", file, detail: `${at} uses ${name}` });
         }
       }
       if (/\bmprotect\s*\(/.test(line)) {
-        if (line.includes(MPROTECT_MARKER)) mprotectSites++;
-        else {out.push({
-            check: "native-read-only",
+        out.push({ check: "native-read-only", file, detail: `${at} uses mprotect` });
+      }
+      if (/section\s*\(\s*"__DATA\s*,\s*__interpose\b/.test(line)) {
+        interposeSections++;
+        // Inside the macro's body every line continues with a backslash; anywhere else it bypasses
+        // the allowlist below.
+        if (!line.trimEnd().endsWith("\\")) {
+          out.push({
+            check: "native-interpose",
             file,
-            detail: `line ${i + 1}: unmarked mprotect`,
-          });}
+            detail: `${at} declares __interpose outside the A7X_INTERPOSE macro`,
+          });
+        }
+      }
+      const use = line.match(/^\s*A7X_INTERPOSE\s*\(\s*\w+\s*,\s*(\w+)\s*\)/);
+      if (use && !ALLOWED_INTERPOSE.includes(use[1])) {
+        out.push({
+          check: "native-interpose",
+          file,
+          detail: `${at} interposes ${use[1]}, which is not in ALLOWED_INTERPOSE`,
+        });
       }
     }
   }
-  if (mprotectSites > 1) {
+  if (interposeSections > 1) {
     out.push({
-      check: "native-read-only",
+      check: "native-interpose",
       file: "native/",
-      detail: `${mprotectSites} mprotect sites; only one is sanctioned`,
+      detail:
+        `${interposeSections} __interpose sections; only the A7X_INTERPOSE macro may declare one`,
     });
   }
   return out;

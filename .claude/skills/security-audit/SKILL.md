@@ -35,9 +35,11 @@ restore.
 
 ### The native library
 
-- Read every change to `native/`. Is there any way to write memory, change page protections beyond the
-  one marked `luaL_Reg` swap, start threads, open files or sockets, or reach another process? Any of
-  these is a design change for an ADR, not an implementation detail.
+- Read every change to `native/`. Is there any way to write memory, change page protections at all,
+  interpose a function outside `ALLOWED_INTERPOSE`, start threads, open files or sockets, or reach
+  another process? Any of these is a design change for an ADR, not an implementation detail.
+- Does the interposed replacement always call the real function, on every path, including an unknown
+  build?
 - Does every read go through `mach_vm_read_overwrite`? A raw pointer dereference can crash the game.
 - Does an unknown build, or a failed byte check, register nothing? Test it by flipping one expected byte.
 

@@ -16,7 +16,8 @@ if it grows a convenience grant. BG2EE-GameLog's audit found and closed exactly 
 - **The native library is read-only.**
   - Reads go through `mach_vm_read_overwrite`, so a bad pointer returns an error instead of crashing.
   - No memory-write call (`mach_vm_write`, `vm_protect` and similar) and no access to other processes.
-  - `mprotect` appears exactly once, at the marked `luaL_Reg` pointer swap (ADR-0002).
+  - No `mprotect` at all. The one hook is dyld interposing, limited to the functions in
+    `ALLOWED_INTERPOSE` and declared only through the `A7X_INTERPOSE` macro (ADR-0005).
   - `lint:security` checks `native/` for all of this.
 - **Raw reads stay private.** The native functions are hidden from other mods once the inspector loads;
   external mods get only the public data API (Phase 4).

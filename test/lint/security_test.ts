@@ -1,5 +1,6 @@
 import { deepStrictEqual, strictEqual } from "node:assert/strict";
 import {
+  ALLOWED_INTERPOSE,
   audit,
   checkAttribution,
   checkBindAddress,
@@ -11,7 +12,6 @@ import {
   checkTestLocation,
   importAllowed,
   importsIn,
-  MPROTECT_MARKER,
   REQUIRED_ASK,
   REQUIRED_DENY,
 } from "../../src/lint/security.ts";
@@ -69,18 +69,38 @@ Deno.test("servers must bind loopback", () => {
   );
 });
 
-Deno.test("native code has no write path and one marked mprotect", () => {
+Deno.test("native code has no write path and no mprotect", () => {
   deepStrictEqual(checks(checkNative([{ file: "native/a.c", text: WRITE_CALL }])), [
     "native-read-only",
   ]);
   deepStrictEqual(checks(checkNative([{ file: "native/a.c", text: "mprotect(p, n, f);" }])), [
     "native-read-only",
   ]);
-  const marked = `mprotect(p, n, f); /* ${MPROTECT_MARKER} */`;
-  deepStrictEqual(checkNative([{ file: "native/a.c", text: marked }]), []);
-  deepStrictEqual(checks(checkNative([{ file: "native/a.c", text: `${marked}\n${marked}` }])), [
-    "native-read-only",
-  ]);
+});
+
+// The macro as native/a7x.c defines it, cut to the lines the check reads.
+const MACRO = [
+  "#define A7X_INTERPOSE(replacement, original) \\",
+  '        __attribute__((section("__DATA,__interpose,interposing"))) = { \\',
+  "        (const void *)&replacement, (const void *)&original};",
+].join("\n");
+
+Deno.test("native code interposes only allowlisted functions, through the macro", () => {
+  const allowed = ALLOWED_INTERPOSE[0];
+  deepStrictEqual(
+    checkNative([{ file: "native/a.c", text: `${MACRO}\nA7X_INTERPOSE(mine, ${allowed})` }]),
+    [],
+  );
+  deepStrictEqual(
+    checks(checkNative([{ file: "native/a.c", text: `${MACRO}\nA7X_INTERPOSE(mine, open)` }])),
+    ["native-interpose"],
+  );
+  const raw = 'static const void *p[2] __attribute__((section("__DATA, __interpose"))) = {a, b};';
+  deepStrictEqual(checks(checkNative([{ file: "native/a.c", text: raw }])), ["native-interpose"]);
+  deepStrictEqual(
+    checks(checkNative([{ file: "native/a.c", text: MACRO }, { file: "native/b.c", text: MACRO }])),
+    ["native-interpose"],
+  );
 });
 
 Deno.test("Claude settings must keep the deny and ask entries", () => {
