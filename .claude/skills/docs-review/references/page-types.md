@@ -1,6 +1,6 @@
 # Page types
 
-The five shapes used in this repo, and the template for each. Identify the type before applying Pass 1's
+The six shapes used in this repo, and the template for each. Identify the type before applying Pass 1's
 type-mismatch check.
 
 ## Guide
@@ -45,8 +45,26 @@ topic (for the foundation plan, the summary part of the `initial/NN-<summary>` b
 - H1, then a `>` lede linking the ADR and the plan.
 - `## Status` with a bold state and a `| Piece | State |` table.
 - `## Plan summary`, `## What was built` (file tables), `## Gotchas worth remembering`.
-- `## Verification`: what was run, with counts, then a numbered "Still to check by hand" list.
+- `## Verification`: what was run, with counts, then a numbered "Still to check by hand" list that
+  links a manual test rather than repeating its steps.
 - `## Follow-ups`. No closer.
+
+## Manual test (`docs/manual-tests/<slug>.md`)
+
+A manual test run by a person at the game, written once and run again. Undated; linked from
+`docs/manual-tests/README.md`.
+
+- Frontmatter `type: manual-test`, `title`, `description`, `duration` (the whole run, and the part in the
+  game).
+- H1 `# Manual test: <title>`, then a paragraph: what the run shows, why it matters, and a link to the ADR
+  or plan section it serves.
+- `## Before you start`: the state needed (game closed, commit, save, settings) and the time.
+- `## Steps`: numbered, each with how long it takes and what it exercises; commands in `sh` fences.
+- `## What to watch for`: what makes the tester stop, and what to report.
+- `## Pass criteria`: where the evidence is (a log, a command's output) and a table of what must appear.
+- `## Runs`: one row per execution, with the date, the commit, the result and the delivery note. The
+  manual test is not edited to describe a run; the note does that.
+- A delivery note's "Still to check by hand" links the manual test instead of repeating its steps.
 
 ## Rule (`docs/rules/<topic>.md`)
 

@@ -31,6 +31,11 @@ How work is done on this project. [CLAUDE.md](../CLAUDE.md) summarizes them.
 | [tests.md](rules/tests.md) | tests in `test/`, probes for every check |
 | [docs.md](rules/docs.md) | page types, ADRs, plans, delivery notes, diagrams |
 
+## Manual tests
+
+Manual tests run at the game, step by step, each with its record of runs:
+[manual tests index](manual-tests/README.md).
+
 ## Plans and delivery notes
 
 - Plans: [2026-11-01 foundation](plans/2026-11-01-inspector-foundation.md).

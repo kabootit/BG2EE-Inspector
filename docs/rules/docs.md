@@ -41,6 +41,17 @@ After each discrete effort (each step or phase), write `docs/notes/YYYY-MM-DD-<t
 plans, so the folder sorts by time; `lint:docs` checks the name) with frontmatter
 `title` and `description`: a lede linking the ADR and the plan, Status (a piece-by-piece table), Plan
 summary, What was built, Gotchas worth remembering, Verification (what was run, with counts, and a
-numbered "still to check by hand" list), and Follow-ups. It never claims more verification than happened.
+numbered "still to check by hand" list, which links the manual test when there is one), and Follow-ups. It
+never claims more verification than happened.
+
+## Manual tests
+
+A manual test longer than a few steps is written up in `docs/manual-tests/<slug>.md` and linked from
+[docs/manual-tests/README.md](../manual-tests/README.md). It is undated, because it is run again after
+fixes and game updates. Frontmatter `type: manual-test`, `title`, `description` and `duration`; the H1
+`# Manual test: <title>`; then Before you start, Steps (each with how long it takes and what it shows),
+What to watch for, Pass criteria (what output decides the result, and where to read it), and Runs, a
+table that gains a row per execution: date, commit, result and the delivery note holding the evidence.
+`lint:docs` checks the name, frontmatter, heading, sections and registration.
 
 Related: [writing-style.md](writing-style.md), [working-together.md](working-together.md).

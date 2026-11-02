@@ -4,6 +4,7 @@ import {
   checkEmDash,
   checkFences,
   checkLinks,
+  checkManualTests,
   checkNotes,
   checkPersonalInfo,
   checkPlans,
@@ -12,6 +13,7 @@ import {
   headingSlugs,
   lintDocs,
   loadDocs,
+  MANUAL_TEST_SECTIONS,
   parseFrontmatter,
   resolveLink,
 } from "../../src/lint/docs.ts";
@@ -152,6 +154,70 @@ Deno.test("notes and plans follow their naming and front matter", () => {
     "plan-heading",
   ]);
   deepStrictEqual(checkPlans([{ path: "docs/plans/2026-11-01-x.md", text: "# Plan: X\n" }]), []);
+});
+
+function manualTest(slug: string, fm: Record<string, string>, h1: string, sections: string[]): Doc {
+  const lines = Object.entries(fm).map(([k, v]) => `${k}: ${v}`);
+  return {
+    path: `docs/manual-tests/${slug}.md`,
+    text: `---\n${lines.join("\n")}\n---\n\n# ${h1}\n\n${
+      sections.map((s) => `## ${s}\n`).join("\n")
+    }`,
+  };
+}
+
+const MANUAL_TEST_FM = {
+  type: "manual-test",
+  title: "Hook gate",
+  description: "Why",
+  duration: "about 15 minutes",
+};
+const MANUAL_TEST_INDEX: Doc = {
+  path: "docs/manual-tests/README.md",
+  text: "# Manual tests\n\n- [Hook gate](hook-gate.md)\n",
+};
+
+Deno.test("manual tests: name, frontmatter, heading, sections and registration", () => {
+  const good = manualTest(
+    "hook-gate",
+    MANUAL_TEST_FM,
+    "Manual test: Hook gate",
+    MANUAL_TEST_SECTIONS,
+  );
+  deepStrictEqual(checkManualTests([MANUAL_TEST_INDEX, good]), []);
+
+  const dated = { ...good, path: "docs/manual-tests/2026-11-01-hook-gate.md" };
+  deepStrictEqual(rules(checkManualTests([MANUAL_TEST_INDEX, dated])), [
+    "manual-test-name",
+    "manual-test-unlisted",
+  ]);
+  const { duration: _, ...noDuration } = MANUAL_TEST_FM;
+  deepStrictEqual(
+    rules(checkManualTests([
+      MANUAL_TEST_INDEX,
+      manualTest("hook-gate", noDuration, "Manual test: Hook gate", MANUAL_TEST_SECTIONS),
+    ])),
+    ["manual-test-frontmatter"],
+  );
+  deepStrictEqual(
+    rules(checkManualTests([
+      MANUAL_TEST_INDEX,
+      manualTest("hook-gate", MANUAL_TEST_FM, "Hook gate", MANUAL_TEST_SECTIONS),
+    ])),
+    ["manual-test-heading"],
+  );
+  deepStrictEqual(
+    rules(checkManualTests([
+      MANUAL_TEST_INDEX,
+      manualTest(
+        "hook-gate",
+        MANUAL_TEST_FM,
+        "Manual test: Hook gate",
+        MANUAL_TEST_SECTIONS.slice(0, 4),
+      ),
+    ])),
+    ["manual-test-section"],
+  );
 });
 
 Deno.test("every docs page must be reachable from docs/README.md", () => {

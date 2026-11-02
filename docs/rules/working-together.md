@@ -9,9 +9,12 @@ settings change (BG2EE-GameLog, gotcha 8c).
 
 ## How to apply
 
-- **Manual testing first.** After a change, list the exact in-game steps to check it, then stop. Commands
-  that open the game window (`deno task play`, `deno task e2e`) run only when asked, and the request is
-  answered by saying the window will open.
+- **Manual testing first.** After a change, give the exact in-game steps to check it, then stop. A test
+  longer than a few steps is written as a manual test in `docs/manual-tests/` (see [docs.md](docs.md)) and
+  linked, with its duration, instead of being typed into the conversation: it is run again after every
+  fix and game update, and its Runs table keeps the record. Commands that open the game window
+  (`deno task play`, `deno task e2e`) run only when asked, and the request is answered by saying the
+  window will open.
 - **Test tool behavior before designing on it.** When a design depends on how a tool or the engine
   behaves (what a console method does, whether a key reaches `ui.menu`, how an archive is laid out), test
   it first and record the result in the plan or `docs/re-notes.md`. Docs alone are not enough: the

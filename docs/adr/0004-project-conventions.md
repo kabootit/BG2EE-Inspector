@@ -32,7 +32,7 @@ An open-source repo has to be self-contained: outside readers cannot reach a sib
 ## Decision
 
 **All conventions live in this repo: rules in `docs/rules/`, ADRs in `docs/adr/`, plans in `docs/plans/`,
-delivery notes in `docs/notes/`, skills in `.claude/skills/`. Mechanical rules are enforced by linters and
+delivery notes in `docs/notes/`, manual tests in `docs/manual-tests/`, skills in `.claude/skills/`. Mechanical rules are enforced by linters and
 a committed Claude Code settings file. The license is MIT.**
 
 - **Taken from Tranquil:**
@@ -51,6 +51,9 @@ a committed Claude Code settings file. The license is MIT.**
   disabled, so there is no contributing guide. It starts private and becomes public when ready.
 - **Plans are saved in the project,** unlike Tranquil's out-of-repo plans folder, so the reasoning travels
   with the code.
+- **Manual tests are pages of their own** (added at the hook gate, the first test too long for a chat message):
+  undated pages in `docs/manual-tests/`, each with a Runs table, because the same test is run again after
+  fixes and game updates. Delivery notes link them instead of repeating the steps.
 
 ## Options considered
 

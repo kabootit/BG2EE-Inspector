@@ -18,7 +18,7 @@ walks engine memory and prints creature stats and active spells, with time left,
 - **Git only when asked:** `git add`, `commit` and `push` only on an explicit request; show the message
   first; **no AI attribution anywhere.** [docs/rules/git.md](docs/rules/git.md)
 - **Make the change, say what to test in-game, and wait.** Never launch, quit or restart the game unless
-  asked. [docs/rules/working-together.md](docs/rules/working-together.md)
+  asked. Manual tests longer than a few steps are written in `docs/manual-tests/`. [docs/rules/working-together.md](docs/rules/working-together.md)
 - **Verify before stating:** a derived value is checked against an observable before it is reported as
   fact. [docs/rules/verify-derived-values.md](docs/rules/verify-derived-values.md)
 - **No em dashes, impersonal, plain and specific.** [docs/rules/writing-style.md](docs/rules/writing-style.md)

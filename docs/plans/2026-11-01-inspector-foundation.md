@@ -344,6 +344,7 @@ BG2EE-Inspector/
     notes/             YYYY-MM-DD-<topic>.md (delivery notes, dated so they sort by time)
     architecture.md    diagrams 1-5 (roadmap, code organization, runtime layers, boot, inspect)
     re-notes.md, findings.md, gotchas.md, security.md, data-model.md, api.md, testing.md
+    manual-tests/      step-by-step manual tests (added at the hook gate, ADR-0004)
   native/              a7x.c, builds.h (per-build address table)
   test/e2e/            fixtures.json (committed); saves/ (gitignored, local fixture saves)
   examples/consumer-mod/  minimal external mod proving the public A7X API (not installed by default)
@@ -858,7 +859,7 @@ The Phase 3 and 5 gates need repeatable game situations: a known creature, a kno
 - **Scope:**
   - Local and macOS only. It needs the game and a GUI session, so there's no CI.
   - Launching the game is an explicit, human-invoked action. Under `working-together.md`, Claude runs `deno task e2e` only when asked, and says beforehand that the game window will open.
-- **The manual checklist** lives in `docs/testing.md`: the save to use, the console steps and the expected output. Each delivery note's "still to check by hand" list points there.
+- **The manual checklist** lives in `docs/manual-tests/` (changed from `docs/testing.md` at the hook gate, ADR-0004), one page per test: the save to use, the console steps and the expected output. Each delivery note's "still to check by hand" list points there.
 
 ### Phase 4: In-game output (hotkey and console; no UI panel)
 

@@ -145,21 +145,13 @@ Run on 2026-11-01:
 
 ### Still to check by hand
 
-The hook gate (ADR-0005). The game is launched only on request.
-
-1. `deno task build`, then `deno task play`.
-2. Load a save, change area at least once, play a few minutes, and quit from the game's menu.
-3. `grep 'A7X' logs/session-<stamp>.log` on the new log. Expected:
-   - `A7X loaded into BaldursGateIIEnhancedEdition pid=…` and `A7X build 2.7.3 arm64 matched`;
-   - `A7X probe: first glClear at …, main thread yes`, and no `off the main thread` line;
-   - `A7X probe: lua_State set at …`;
-   - `A7X probe: N glClear calls in Ts, …` lines at roughly one a minute (3600 calls at 60 frames per
-     second), and "Lua running during" well below N.
-4. The game played normally throughout.
+1. The hook gate (ADR-0005): run the [hook gate manual test](../manual-tests/hook-gate.md), which has the
+   steps, timings and pass criteria. The game is launched only on request.
 
 ## Follow-ups
 
-- **Run the hook gate** above; record the result here and mark ADR-0005 active or re-evaluate it.
+- **Run the hook gate** above; record the result in its own delivery note and the manual test's Runs
+  table, then mark ADR-0005 active or re-evaluate it.
 - **Then registration** (Phase 2): replace the probe's reporting with one registration of the
   `A7X_*` functions through the game's `lua_pushcclosure` and `lua_setglobal`, plus the expected-byte
   checks at those two addresses.

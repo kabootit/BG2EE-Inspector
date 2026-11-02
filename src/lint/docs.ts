@@ -5,8 +5,9 @@
  *
  * Everything decidable is checked here so review time goes to what is not
  * (see the docs-review skill): ADR format and registration, plan and note
- * naming, reachability from docs/README.md, dead links and anchors, fence
- * languages, em dashes, and personal information.
+ * naming, manual-test shape and registration, reachability from
+ * docs/README.md, dead links and anchors, fence languages, em dashes, and
+ * personal information.
  *
  * Every check is a pure function over in-memory text, so each one has a probe
  * in test/lint/docs_test.ts that shows it failing.
@@ -401,6 +402,64 @@ export function checkPlans(docs: Doc[]): Finding[] {
   return out;
 }
 
+/** The sections every manual test has, in the order the template gives them. */
+export const MANUAL_TEST_SECTIONS = [
+  "Before you start",
+  "Steps",
+  "What to watch for",
+  "Pass criteria",
+  "Runs",
+];
+
+/**
+ * Manual tests: `docs/manual-tests/<slug>.md`, undated because they are re-run;
+ * frontmatter type, title, description and duration; an H1 "Manual test: <title>"; the
+ * template's sections; and a link from docs/manual-tests/README.md.
+ */
+export function checkManualTests(docs: Doc[]): Finding[] {
+  const out: Finding[] = [];
+  const index = docs.find((d) => d.path === "docs/manual-tests/README.md");
+  for (
+    const doc of docs.filter((d) =>
+      d.path.startsWith("docs/manual-tests/") && !d.path.endsWith("/README.md")
+    )
+  ) {
+    const finding = (rule: string, detail: string, line = 1) =>
+      out.push({ rule, file: doc.path, line, detail });
+    if (!/^docs\/manual-tests\/(?!\d{4}-\d{2}-\d{2}-)[a-z0-9-]+\.md$/.test(doc.path)) {
+      finding(
+        "manual-test-name",
+        "manual tests are named <slug>.md, lowercase with hyphens, no date",
+      );
+    }
+    const fm = parseFrontmatter(doc.text);
+    if (fm?.type !== "manual-test") finding("manual-test-frontmatter", "type must be manual-test");
+    for (const key of ["title", "description", "duration"]) {
+      if (!fm?.[key]) finding("manual-test-frontmatter", `${key} is required`);
+    }
+    const h1 = firstHeading(doc.text);
+    const expected = `Manual test: ${fm?.title ?? ""}`;
+    if (!h1 || h1.text !== expected) {
+      finding("manual-test-heading", `H1 must be "# ${expected}"`, h1?.line ?? 1);
+    }
+    const inside = codeLines(doc.text);
+    const sections = doc.text.split("\n").filter((l, i) => !inside[i] && l.startsWith("## "))
+      .map((l) => l.slice(3).trim());
+    for (const name of MANUAL_TEST_SECTIONS.filter((s) => !sections.includes(s))) {
+      finding("manual-test-section", `missing "## ${name}"`);
+    }
+    if (
+      index &&
+      !extractLinks(index.text).some((l) =>
+        resolveLink(index.path, l.target.split("#")[0]) === doc.path
+      )
+    ) {
+      finding("manual-test-unlisted", "not linked from docs/manual-tests/README.md");
+    }
+  }
+  return out;
+}
+
 /** Every docs/ page is reachable by links from docs/README.md, which README.md links. */
 export function checkReachable(docs: Doc[]): Finding[] {
   const out: Finding[] = [];
@@ -456,6 +515,7 @@ export function lintDocs(docs: Doc[], files: Set<string>, dirs: Set<string>): Fi
     ...checkAdrs(docs),
     ...checkNotes(docs),
     ...checkPlans(docs),
+    ...checkManualTests(docs),
     ...checkReachable(docs),
   );
   return findings;
