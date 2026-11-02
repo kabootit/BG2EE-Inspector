@@ -40,4 +40,5 @@ How work is done on this project. [CLAUDE.md](../CLAUDE.md) summarizes them.
   [2026-11-01 Mach-O reader, functional style](notes/2026-11-01-macho-functional-style.md),
   [2026-11-01 Phase 0, injection](notes/2026-11-01-injection.md),
   [2026-11-01 game session shutdown and memory](notes/2026-11-01-session-shutdown.md),
-  [2026-11-01 node:assert versus the Deno standard library](notes/2026-11-01-node-assert-and-std.md).
+  [2026-11-01 node:assert versus the Deno standard library](notes/2026-11-01-node-assert-and-std.md),
+  [2026-11-01 the interposing hook and its probe](notes/2026-11-01-interposing-hook.md).

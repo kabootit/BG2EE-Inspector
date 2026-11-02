@@ -17,6 +17,8 @@ date: 2026-11-01
   it then reaches the game's Lua.
 - [ADR-0002](0002-read-only-bridge-lua-walker.md): the read-only bridge. Its hook, a swapped
   `luaL_Reg` pointer, is replaced by this decision; the rest of it stands.
+- [Delivery note](../notes/2026-11-01-interposing-hook.md): the binary evidence, the probe library
+  and how it was checked.
 - [Foundation plan](../plans/2026-11-01-inspector-foundation.md), Phases 1 and 2.
 - Apple's dyld source, `include/mach-o/dyld-interposing.h`[^dyld-interposing]: the interposing tuple
   and section, as Apple's own macro declares them.
