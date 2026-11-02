@@ -9,3 +9,4 @@ added to this list; `lint:docs` fails on an ADR that is not linked here or break
 | [0002](0002-read-only-bridge-lua-walker.md) | A read-only native bridge, struct walking in Lua, data-first output | proposed (Phase 3 gate) |
 | [0003](0003-toolchain.md) | C with the Command Line Tools, Deno orchestration, Lua 5.2.4 as reference | active |
 | [0004](0004-project-conventions.md) | One `docs/` folder, enforced rules, MIT | active |
+| [0005](0005-dyld-interposing-hook.md) | Reach the game's Lua by interposing `glClear` through dyld | proposed (hook gate) |

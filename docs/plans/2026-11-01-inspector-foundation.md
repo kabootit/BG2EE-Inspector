@@ -33,7 +33,7 @@ BG2EE-GameLog has already **settled** that the game's Lua sandbox cannot reach n
   - **Install state:** clean and unmodded. `WeiDU.log` is empty and `override/` doesn't exist.
 - **The game allows injected libraries.** It uses the hardened runtime but ships with the entitlements `com.apple.security.cs.allow-dyld-environment-variables` and `com.apple.security.cs.disable-library-validation`. So `DYLD_INSERT_LIBRARIES` with our own ad-hoc-signed arm64 dylib should load, without re-signing or patching anything on disk.
 - **The binary is stripped.** Only Steam and libjingle symbols remain. Lua is linked in statically with no exported names, and the binary identifies it only as "Lua 5.2", with no patch level. Addresses have to be derived by analysing the binary (string references, call targets, data tables). They're then stored in a per-build address table, as EEex (`function_names.db`) and RadarOverlay (hardcoded offsets) do on Windows.
-- **Code pages can't be written**, because the hardened runtime forbids it. Inline function hooks are out. Hooks have to swap **data pointers** only, such as entries in the `Infinity_*` `luaL_Reg` table.
+- **Code pages can't be written**, because the hardened runtime forbids it. Inline function hooks are out. Hooks have to swap **data pointers** only. Phase 1 found no `Infinity_*` `luaL_Reg` table to swap an entry in; the hook became dyld interposing of `glClear` ([ADR-0005](../adr/0005-dyld-interposing-hook.md)).
 - **An external memory reader can't work.** Under the hardened runtime, `task_for_pid` is denied even to root. Only code inside the game process (the dylib) can read its memory.
 - **Struct layouts for this exact version exist.** Bubb13/InfinityLoader contains `EEex-v2.7.3.0` and `LuaBindings-v2.7.3.0`, generated engine struct definitions for 2.7.3 on Windows x64. Field order should match. Offsets need re-checking for LP64 vs LLP64 (`long`), clang vs MSVC layout, and MFC containers.
 
@@ -105,7 +105,7 @@ flowchart TD
     ENG["Engine C++: CInfGame, CGameSprite, CGameEffect"]
     LUAVM["Engine's embedded Lua 5.2 state"]
     subgraph NAT["a7x.dylib, native, read-only"]
-      CT["constructor: LC_UUID lookup, verify bytes, swap one luaL_Reg pointer"]
+      CT["constructor: LC_UUID lookup; interposed glClear registers once, then passes through"]
       RD["A7X_native: Read, ReadBlock, Root via mach_vm_read_overwrite"]
     end
     subgraph LUA["Inspector Lua, in override/"]
@@ -145,19 +145,20 @@ sequenceDiagram
   P->>S: script -q /dev/null env DYLD_INSERT_LIBRARIES=a7x.dylib game
   S->>DY: exec game with DYLD_INSERT_LIBRARIES
   DY->>A: load and run constructor, before main
+  DY->>DY: bind the game's glClear calls to a7x_glClear, from the interpose section
   A->>A: read LC_UUID, find builds.h entry, add ASLR slide
   A->>A: verify expected bytes at every address
   alt unknown build or mismatch
-    A-->>G: log A7X disabled, register nothing
-  else ok
-    A->>G: mprotect luaL_Reg page, swap Infinity_Log entry for wrapper
+    A-->>G: log A7X disabled, glClear only passes through
   end
-  G->>G: main, register Infinity_* functions into Lua
+  G->>G: main, create the Lua state, register Infinity_* functions
   G->>L: load ui.menu, Infinity_DoFile a7x lua files
-  L->>G: Infinity_Log("A7X:INIT")
-  G->>A: wrapper intercepts the magic string
-  A->>L: register A7X_native table
-  L->>L: a7x_api captures A7X_native as locals, sets the global to nil
+  Note over L: A7X_native may not exist yet: status() is no_native
+  G->>A: glClear, once a frame on the main thread
+  A->>A: Lua state set and idle? if not, wait for the next frame
+  A->>L: register A7X_native table with the game's lua_pushcclosure and lua_setglobal
+  A->>G: from now on, every call passes straight to the real glClear
+  L->>L: on first use, a7x_api captures A7X_native as locals, sets the global to nil
   Note over L: A7X.status() is loading until a game is loaded, then ok
 ```
 
@@ -463,7 +464,7 @@ Each file has the same shape:
   - `0002-read-only-bridge-lua-walker.md`: a tiny read-only C surface, data-pointer hooks only, struct walking in Lua, and data-first output (a data API plus message-window text, UI later). Options considered include a UI panel first, and shift-click, which isn't possible.
   - `0003-toolchain.md`: C with the CLT, Deno orchestration, Lua 5.2.4 as a dev reference, and no Java or Homebrew.
   - `0004-project-conventions.md`: one `docs/` folder, the deny list, commit policy, MIT, and what was taken from Tranquil and GameLog (and what wasn't).
-  - `0005-data-model.md` (written at Phase 4): Lua tables in-process and JSON lines at the boundary, one versioned spec, an encode-only encoder written in the project. Also the **public API for external mods**: one `A7X` global, semver, `status()` fallbacks, pull-only, private native layer, and the stable tp2 dependency. Options considered for the API: a callback/event registry (deferred), and exposing raw reads to other mods (not taken). Options considered: a vendored JSON library (`rxi/json.lua`, MIT), not taken because of minimal surface and no dependencies; Lua-literal serialization, not taken because Deno can't parse it; JSON everywhere, not taken because of the per-frame encode and decode cost.
+  - `0006-data-model.md` (written at Phase 4; number 0005 went to the Phase 1 hook decision, [ADR-0005](../adr/0005-dyld-interposing-hook.md)): Lua tables in-process and JSON lines at the boundary, one versioned spec, an encode-only encoder written in the project. Also the **public API for external mods**: one `A7X` global, semver, `status()` fallbacks, pull-only, private native layer, and the stable tp2 dependency. Options considered for the API: a callback/event registry (deferred), and exposing raw reads to other mods (not taken). Options considered: a vendored JSON library (`rxi/json.lua`, MIT), not taken because of minimal surface and no dependencies; Lua-literal serialization, not taken because Deno can't parse it; JSON everywhere, not taken because of the per-frame encode and decode cost.
 
 ### Plans and delivery notes
 
@@ -501,7 +502,7 @@ Each file has the same shape:
   - every Deno task uses scoped `--allow-*` flags (no `-A`, no bare flags)
   - servers bind `127.0.0.1`
   - imports limited to pinned `jsr:@std`
-  - `native/` contains no write primitives (`mach_vm_write`, `vm_write`), and `mprotect` appears only at the one documented `luaL_Reg` site
+  - `native/` contains no write primitives (`mach_vm_write`, `vm_write`), and no `mprotect` at all; interposing only for allowlisted functions, through one macro (changed by ADR-0005)
   - `.claude/settings.json` still contains the required deny entries
 - **C** builds with `-std=c17 -Wall -Wextra -Werror`.
 - **Lua** has no linter, since luacheck would be an install. Its correctness is covered by in-game checks and `A7XCHECK` validation.
@@ -658,7 +659,7 @@ These are facts read from the projects' repos on 2026-11-01. The EEex forum-thre
 | --- | --- | --- | --- |
 | Getting into the process | loader exe launches the game and **patches code in memory** (`Hardcoded_WinMainPatchLocation`) | **external process**, `ReadProcessMemory` | `DYLD_INSERT_LIBRARIES` dylib. Code patching and external reads are both blocked by the hardened runtime |
 | Locating engine code and data | `loader/v2.7.3.0/bg2ee/function_names.db`: **absolute addresses per exe version** (symbol name per address). Only 7 byte patterns (`pattern_dbs/v2.7.3.0.db`, fixed bytes plus `ADD` offset) for loader bootstrap | **hardcoded module-base offsets per version** (`0x68D438` for 2.6, `0x68F910`/`0x695910` for 2.7) | was: runtime pattern scan. **Changed**, see below |
-| Engine Lua state | `LuaPatchMode=INTERNAL` uses the game's own Lua 5.2 state, located by a pattern (`Hardcoded_InternalLuaState`) | not used | the game's own state, reached through the swapped `Infinity_Log` entry |
+| Engine Lua state | `LuaPatchMode=INTERNAL` uses the game's own Lua 5.2 state, located by a pattern (`Hardcoded_InternalLuaState`) | not used | the game's own state, reached from an interposed `glClear` (ADR-0005) |
 | Struct access from Lua | **generated typed userdata bindings** (`sprite.m_derivedStats`) | raw offset reads in C# | raw reads plus a Lua offsets table (RadarOverlay's model). Typed bindings would mean codegen and a much larger native surface |
 | Creature enumeration | engine functions | **scans the global `CGameObjectArray`**: 16-byte slots (index, pointer), `65535` = empty; party has EA `2`, allies `4`, neutrals `128` | was: visible-area object list. **Changed** to the global object array, filtered by area and EA |
 | Effects | engine bindings | sprite's timed-effect `CPtrList` (Win x64 `+0x4A00`), separate equipped list (`+0x49B0`); `CGameEffect` duration `+0x20`, duration type `+0x1C`, source resref `+0x8C`; game time `CInfGame+0x3FA0`; list walk capped at 900 nodes | same fields, re-derived on the arm64 binary. **Adopted:** bounded list walks |
@@ -679,7 +680,7 @@ These are facts read from the projects' repos on 2026-11-01. The EEex forum-thre
 
 - **Refuted: "Unix binaries can never be fully stripped", so use `dlsym`/DWARF instead of patterns** (p29, 2020). The 2.7.3 arm64 binary keeps 719 symbols, all Steam and libjingle, with no engine or Lua names. That route is closed for this build. It may have held for older macOS builds.
 - **Refuted: ASLR makes fixed offsets "pretty much impossible"** (p29). An in-process dylib reads the slide directly (`_dyld_get_image_vmaddr_slide`), so image-relative offsets work.
-- **Confirmed: a macOS loader needs the five steps fearless listed** (p18): get in, locate functions and globals, hook a Lua entry point, allocate, run init code. This plan covers them with DYLD, the address table, the `Infinity_Log` swap, no allocation, and a constructor.
+- **Confirmed: a macOS loader needs the five steps fearless listed** (p18): get in, locate functions and globals, hook a Lua entry point, allocate, run init code. This plan covers them with DYLD, the address table, an interposed `glClear` (ADR-0005), no allocation, and a constructor.
 
 **What this validates:**
 
@@ -690,7 +691,7 @@ These are facts read from the projects' repos on 2026-11-01. The EEex forum-thre
 **What changes in this plan:**
 
 1. **An address table keyed by build instead of a runtime pattern scan.**
-   - `native/builds.h` maps each supported build's **`LC_UUID`** (read for free from the in-memory Mach-O header via `_dyld_get_image_header(0)`) to image-relative offsets: the `luaL_Reg` entry, the Lua API functions, and `g_pBaldurChitin`. The ASLR slide is added at load.
+   - `native/builds.h` maps each supported build's **`LC_UUID`** (read for free from the in-memory Mach-O header via `_dyld_get_image_header(0)`) to image-relative offsets: the `lua_State*` global, the Lua API functions, and `g_pBaldurChitin`. The ASLR slide is added at load.
    - Each address is checked at load against a few expected bytes. An unknown UUID or any mismatch means `A7X disabled` and nothing registered.
    - `src/re/macho.ts` and pattern searching move to dev tooling (`deno task derive`), which re-derives the table after a game update.
    - `doctor` still pins the SHA-256.
@@ -722,8 +723,8 @@ deno task play
   -> game process (arm64)
                                                              |- a7x.dylib  (C, arm64, read-only bridge)
                                                              |    ctor: LC_UUID -> address table, verify bytes, fail closed,
-                                                             |    swap Infinity_Log ptr in luaL_Reg
-                                                             |    on "A7X:INIT" -> register A7X_* Lua fns
+                                                             |    interposed glClear: once Lua is idle on the main thread,
+                                                             |    register A7X_* Lua fns, then pass every call through
                                                              '- Lua (override/*.lua, via ui.menu patch)
                                                                   struct + effect walker, offsets table
                                                                   -> data API (A7X.get / A7X.list -> Lua tables)
@@ -765,7 +766,7 @@ Tools:
 
 Record everything in `docs/re-notes.md`: address, the expected bytes used for the load-time check, how it was found, and how it was verified. `deno task derive` (built on `src/macho.ts`) prints the `native/builds.h` entry for a binary, so the table is regenerated, not hand-edited, after a game update.
 
-1. **The `Infinity_*` `luaL_Reg` array:** scan for pointers to the `"Infinity_Log"` string.
+1. **The `Infinity_*` `luaL_Reg` array:** scan for pointers to the `"Infinity_Log"` string. Done: there is no such array; the functions are registered in code, and the hook changed to dyld interposing ([ADR-0005](../adr/0005-dyld-interposing-hook.md)).
 2. **The Lua C API** (`lua_pushcclosure`, `lua_setglobal`, `lua_tolstring`, `lua_pushnumber`, `lua_pushinteger`, `lua_pushlstring`, `lua_pushnil`, `luaL_checkinteger`/`checklstring`): follow the call targets out of known `Infinity_*` implementations and the error-string references. Confirm each one against the stock 5.2.4 build.
 3. **`g_pBaldurChitin`:** find it through the compiled-in tolua bootstrap that binds `e`.
 4. **The struct chain**, from InfinityLoader's `EEex-v2.7.3.0` headers (read on GitHub; nothing executed): `CBaldurChitin -> CInfGame -> global CGameObjectArray -> CGameSprite -> CDerivedStats`, plus the sprite's area pointer (for filtering) and:
@@ -785,7 +786,7 @@ Record everything in `docs/re-notes.md`: address, the expected bytes used for th
   3. checks the expected bytes at every address.
 
   On an unknown UUID or any mismatch it registers nothing and logs `A7X disabled: <reason>`; it never crashes.
-- **Hook by swapping a data pointer.** The constructor runs before `main`, `mprotect`s the `luaL_Reg` page, and swaps the `Infinity_Log` entry for a wrapper. The wrapper forwards every call except `A7X:INIT`, on which it registers the `A7X_*` functions.
+- **Hook by dyld interposing** ([ADR-0005](../adr/0005-dyld-interposing-hook.md), replacing the planned `luaL_Reg` swap, which Phase 1 showed impossible). The library interposes `glClear`. Once the probe passes the hook gate, the replacement registers the `A7X_*` functions with the game's own `lua_pushcclosure` and `lua_setglobal` on the first main-thread call with Lua idle, and otherwise passes every call through.
 - **Respect GameLog's gotcha 1:** no engine accessor runs at UI-load time.
 
 ### Phase 3: Lua struct walker plus ground-truth validation (gate before showing enemy data)
@@ -863,7 +864,7 @@ The Phase 3 and 5 gates need repeatable game situations: a known creature, a kno
 
 The data is useful without a UI and stays reusable by one later. What the stock 2.7.3 `ui.menu` offers was checked read-only in `data/Patch2.bif`.
 
-**Data architecture** (ADR-0005, `docs/data-model.md`):
+**Data architecture** (ADR-0006, `docs/data-model.md`):
 
 Lua has no built-in JSON; its native data structure is the table. So:
 
@@ -915,7 +916,7 @@ Both use **one model**, defined once and versioned:
 
 **Testing Lua outside the game:** `deno task test:lua` builds a stock `lua` interpreter from the `vendor/lua-5.2.4/` source (a contributor requirement already, compiled with the CLT `clang`). It runs `test/lua/*_test.lua` against the encoder, the formatter, and the walker fed a fake memory map. The Lua code otherwise has no linter, and this gives it unit tests with nothing new installed. `docs/requirements.md` notes that the contributor Lua source is now used for this too.
 
-**Integration contract for other mods** (`docs/api.md`, part of ADR-0005):
+**Integration contract for other mods** (`docs/api.md`, part of ADR-0006):
 
 A UI, or any other consumer, is a **separate mod** in its own repo with its own WeiDU installer. It depends on this project only through a published, read-only Lua API.
 

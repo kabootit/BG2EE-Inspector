@@ -88,7 +88,7 @@ flowchart TD
     ENG["Engine C++: CInfGame, CGameSprite, CGameEffect"]
     LUAVM["Engine's embedded Lua 5.2 state"]
     subgraph NAT["a7x.dylib, native, read-only"]
-      CT["constructor: LC_UUID lookup, verify bytes, swap one luaL_Reg pointer"]
+      CT["constructor: LC_UUID lookup; interposed glClear registers once, then passes through"]
       RD["A7X_native: Read, ReadBlock, Root via mach_vm_read_overwrite"]
     end
     subgraph LUA["Inspector Lua, in override/"]
@@ -132,19 +132,20 @@ sequenceDiagram
   P->>S: script -q /dev/null env DYLD_INSERT_LIBRARIES=a7x.dylib game
   S->>DY: exec game with DYLD_INSERT_LIBRARIES
   DY->>A: load and run constructor, before main
+  DY->>DY: bind the game's glClear calls to a7x_glClear, from the interpose section
   A->>A: read LC_UUID, find builds.h entry, add ASLR slide
   A->>A: verify expected bytes at every address
   alt unknown build or mismatch
-    A-->>G: log A7X disabled, register nothing
-  else ok
-    A->>G: mprotect luaL_Reg page, swap Infinity_Log entry for wrapper
+    A-->>G: log A7X disabled, glClear only passes through
   end
-  G->>G: main, register Infinity_* functions into Lua
+  G->>G: main, create the Lua state, register Infinity_* functions
   G->>L: load ui.menu, Infinity_DoFile a7x lua files
-  L->>G: Infinity_Log("A7X:INIT")
-  G->>A: wrapper intercepts the magic string
-  A->>L: register A7X_native table
-  L->>L: a7x_api captures A7X_native as locals, sets the global to nil
+  Note over L: A7X_native may not exist yet: status() is no_native
+  G->>A: glClear, once a frame on the main thread
+  A->>A: Lua state set and idle? if not, wait for the next frame
+  A->>L: register A7X_native table with the game's lua_pushcclosure and lua_setglobal
+  A->>G: from now on, every call passes straight to the real glClear
+  L->>L: on first use, a7x_api captures A7X_native as locals, sets the global to nil
   Note over L: A7X.status() is loading until a game is loaded, then ok
 ```
 

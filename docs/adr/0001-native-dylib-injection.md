@@ -50,7 +50,8 @@ launched through the game's own executable.**
   is SIP-protected and dyld strips `DYLD_*` variables from protected processes. Verified in Phase 0:
   the library loads into the game this way, and the same variable set on `script` itself is stripped
   ([delivery note](../notes/2026-11-01-injection.md)).
-- The library hooks nothing by patching code. Its single hook swaps one data pointer (ADR-0002).
+- The library hooks nothing by patching code. Its single hook is one imported function interposed by
+  dyld at load time ([ADR-0005](0005-dyld-interposing-hook.md)).
 
 ## Options considered
 

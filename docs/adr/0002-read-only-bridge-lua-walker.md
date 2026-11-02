@@ -2,7 +2,7 @@
 type: ADR
 id: "0002"
 title: "A read-only native bridge, struct walking in Lua, data-first output"
-description: "The dylib exposes only bounded memory reads through one swapped luaL_Reg pointer and a per-build address table; all struct walking is Lua with named fields; output is a data API plus message-window text, with any UI left to external mods."
+description: "The dylib exposes only bounded memory reads, registered through one interposed import (ADR-0005), with a per-build address table; all struct walking is Lua with named fields; output is a data API plus message-window text, with any UI left to external mods."
 status: proposed
 date: 2026-11-01
 ---
@@ -26,8 +26,9 @@ date: 2026-11-01
   runtime pattern scans.
 - **Offsets break across versions.** EEex later replaced raw offsets with named-field bindings for
   exactly this reason (p41).
-- **macOS constraints.** The hardened runtime forbids writing code pages, so the only hook available is
-  swapping a data pointer.
+- **macOS constraints.** The hardened runtime forbids writing code pages, so no hook can patch code.
+  Phase 1 also found that the game registers its `Infinity_*` functions in code, with no `luaL_Reg`
+  table to swap a pointer in; [ADR-0005](0005-dyld-interposing-hook.md) records the hook used instead.
 
 ## Decision
 
@@ -39,9 +40,9 @@ Lua; output on request as a data API and message-window text.**
 - **Address table, not pattern scanning.** `native/builds.h` maps the build's `LC_UUID` (read from the
   in-memory Mach-O header) to image-relative offsets. The ASLR slide is added at load, and expected bytes
   are checked at every address. An unknown build or any mismatch disables the inspector.
-- **One hook.** The constructor `mprotect`s the `luaL_Reg` page and swaps the `Infinity_Log` entry for a
-  wrapper that forwards everything except `A7X:INIT`, on which it registers the native read functions.
-  This is the single sanctioned `mprotect`, enforced by `lint:security`.
+- **One hook**, decided in [ADR-0005](0005-dyld-interposing-hook.md): dyld interposes `glClear`, and the
+  replacement registers the native read functions once Lua is idle on the main thread, then only passes
+  calls through. No `mprotect` anywhere, enforced by `lint:security`.
 - **Reads only**, through `mach_vm_read_overwrite`, so a bad pointer returns `nil` instead of crashing.
 
 ### Lua walker
