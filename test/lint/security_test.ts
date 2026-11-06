@@ -1,5 +1,6 @@
 import { deepStrictEqual, strictEqual } from "node:assert/strict";
 import {
+  ALLOWED_ENGINE_CALLS,
   ALLOWED_INTERPOSE,
   audit,
   checkAttribution,
@@ -101,6 +102,22 @@ Deno.test("native code interposes only allowlisted functions, through the macro"
     checks(checkNative([{ file: "native/a.c", text: MACRO }, { file: "native/b.c", text: MACRO }])),
     ["native-interpose"],
   );
+});
+
+Deno.test("native code names only allowlisted engine functions", () => {
+  const allowed = ALLOWED_ENGINE_CALLS.map((fn) => `    A7X_FN_${fn},`).join("\n");
+  deepStrictEqual(
+    checkNative([{ file: "native/builds.h", text: `${allowed}\n    A7X_FN_COUNT` }]),
+    [],
+  );
+  // A function outside the list, whether declared in the enum or only used in the C code.
+  const extra = "A7X_FN_" + "luaL_loadstring";
+  deepStrictEqual(checks(checkNative([{ file: "native/builds.h", text: `    ${extra},` }])), [
+    "native-engine-call",
+  ]);
+  deepStrictEqual(checks(checkNative([{ file: "native/a.c", text: `call(${extra});` }])), [
+    "native-engine-call",
+  ]);
 });
 
 Deno.test("Claude settings must keep the deny and ask entries", () => {

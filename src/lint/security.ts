@@ -61,6 +61,26 @@ export const FORBIDDEN_NATIVE = [
  */
 export const ALLOWED_INTERPOSE = ["glClear"];
 
+/**
+ * The only engine functions the library may call, by their `enum a7x_fn` names in builds.h
+ * (ADR-0005). They are the game's own Lua 5.2 API: enough to register the A7X_native table under
+ * pcall and to read arguments and push results. None of them reads or writes engine state beyond the
+ * Lua stack and that one global, so adding one is a design change for an ADR.
+ */
+export const ALLOWED_ENGINE_CALLS = [
+  "lua_checkstack",
+  "lua_settop",
+  "lua_tointegerx",
+  "lua_tolstring",
+  "lua_pushinteger",
+  "lua_pushlstring",
+  "lua_pushcclosure",
+  "lua_createtable",
+  "lua_setglobal",
+  "lua_setfield",
+  "lua_pcallk",
+];
+
 /** Built-in modules that may be imported without a version pin. */
 const BUILTINS = new Set(["node:assert/strict"]);
 
@@ -177,8 +197,9 @@ export function checkBindAddress(file: string, text: string): Finding[] {
 // --- native ----------------------------------------------------------------
 
 /**
- * The dylib has no write path and no mprotect at all, and interposes only allowlisted functions:
- * one __interpose section, through the A7X_INTERPOSE macro (ADR-0005).
+ * The dylib has no write path and no mprotect at all, interposes only allowlisted functions (one
+ * __interpose section, through the A7X_INTERPOSE macro), and calls only allowlisted engine
+ * functions, named through builds.h's A7X_FN_ enum (ADR-0005).
  */
 export function checkNative(sources: Array<{ file: string; text: string }>): Finding[] {
   const out: Finding[] = [];
@@ -213,6 +234,15 @@ export function checkNative(sources: Array<{ file: string; text: string }>): Fin
           file,
           detail: `${at} interposes ${use[1]}, which is not in ALLOWED_INTERPOSE`,
         });
+      }
+      for (const [, fn] of line.matchAll(/\bA7X_FN_(\w+)/g)) {
+        if (fn !== "COUNT" && !ALLOWED_ENGINE_CALLS.includes(fn)) {
+          out.push({
+            check: "native-engine-call",
+            file,
+            detail: `${at} names engine function ${fn}, which is not in ALLOWED_ENGINE_CALLS`,
+          });
+        }
       }
     }
   }
