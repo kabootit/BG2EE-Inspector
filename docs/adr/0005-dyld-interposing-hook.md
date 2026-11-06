@@ -3,13 +3,13 @@ type: ADR
 id: "0005"
 title: "Reach the game's Lua by interposing glClear through dyld"
 description: "The game registers its Infinity_* functions in code, so the planned luaL_Reg pointer swap has nothing to swap. The library instead asks dyld to route the game's glClear calls through a replacement, which registers the A7X_* functions once Lua is idle on the main thread and otherwise passes every call through. A hack, chosen because every alternative is impossible, unsafe or more invasive; gated on an in-game probe."
-status: proposed
+status: active
 date: 2026-11-01
 ---
 
 # ADR-0005: Reach the game's Lua by interposing glClear through dyld
 
-**Status:** Proposed (active once the hook gate below passes in the game) · **Date:** 2026-11-01
+**Status:** Active (the hook gate below passed in the game on 2026-11-06) · **Date:** 2026-11-01
 
 ## References
 
@@ -19,6 +19,7 @@ date: 2026-11-01
   `luaL_Reg` pointer, is replaced by this decision; the rest of it stands.
 - [Delivery note](../notes/2026-11-01-interposing-hook.md): the binary evidence, the probe library
   and how it was checked.
+- [Hook gate note](../notes/2026-11-06-hook-gate.md): the gate's first run in the game, and its result.
 - [Foundation plan](../plans/2026-11-01-inspector-foundation.md), Phases 1 and 2.
 - Apple's dyld source, `include/mach-o/dyld-interposing.h`[^dyld-interposing]: the interposing tuple
   and section, as Apple's own macro declares them.
@@ -177,7 +178,8 @@ session of normal play, including loading a save and an area change, shows:
 1. `A7X build 2.7.3 arm64 matched`;
 2. the first `glClear` call on the main thread, and no report of a call off it;
 3. the `lua_State` global becoming non-null;
-4. periodic counts at roughly the frame rate (3600 calls a minute at 60 frames per second);
+4. periodic counts at roughly the frame rate (the game draws at most `Maximum Frame Rate` frames a
+   second, set in `Baldur.lua` and 30 by default, so about 1800 calls a minute);
 5. idle-Lua calls: the count of calls that found Lua running is below the total, so an idle frame
    exists to register on.
 

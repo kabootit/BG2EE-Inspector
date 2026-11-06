@@ -24,7 +24,8 @@ should look and play exactly as usual. Why this matters, and what happens if it 
 ## Steps
 
 Run from the repo folder. The times matter more than the exact actions: the probe writes a count line
-about once a minute, so each minute in a step is one data point for it.
+every 3600 calls, about every two minutes at the game's default 30 frames per second. A step that
+stopped drawing frames would show up as a longer gap between two count lines.
 
 1. **Build and launch.**
 
@@ -67,7 +68,7 @@ The run passes when every line below appears, and the game played normally:
 | 1. Known build | `A7X build 2.7.3 arm64 matched` | present |
 | 2. Main thread | `A7X probe: first glClear at …, main thread yes` | present, with no `off the main thread` line anywhere |
 | 3. Lua starts | `A7X probe: lua_State set at …` | present |
-| 4. Every frame | `A7X probe: N glClear calls in Ts, Lua running during M` | about one a minute while the game is on screen: N rises by about 3600 a minute at 60 frames per second |
+| 4. Every frame | `A7X probe: N glClear calls in Ts, Lua running during M` | about every two minutes, with even gaps: N rises by about 1800 a minute, as the game draws at most `Maximum Frame Rate` frames a second (`Baldur.lua`, 30 by default) |
 | 5. Idle Lua | the same count lines | M below N, so idle frames exist to register on |
 
 The count lines also answer two questions that are not pass conditions: whether the main menu and a
@@ -75,5 +76,9 @@ paused game still draw frames (steps 2 and 5).
 
 ## Runs
 
-No runs yet. Each run adds a row: the date, the commit it ran against, the result, and a link to the
-delivery note that records it.
+Each run adds a row: the date, the commit it ran against, the result, and a link to the delivery note
+that records it.
+
+| Date | Commit | Result | Delivery note |
+| --- | --- | --- | --- |
+| 2026-11-06 | `09dc2f8` | Passed, all five conditions; condition 4 judged against the 30 frames-per-second cap | [Hook gate](../notes/2026-11-06-hook-gate.md) |
