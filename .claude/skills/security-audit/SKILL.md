@@ -36,12 +36,20 @@ restore.
 ### The native library
 
 - Read every change to `native/`. Is there any way to write memory, change page protections at all,
-  interpose a function outside `ALLOWED_INTERPOSE`, start threads, open files or sockets, or reach
-  another process? Any of these is a design change for an ADR, not an implementation detail.
+  interpose a function outside `ALLOWED_INTERPOSE`, call engine code outside `ALLOWED_ENGINE_CALLS`
+  (including through an address built some other way than `builds.h`), start threads, open files or
+  sockets, or reach another process? Any of these is a design change for an ADR, not an
+  implementation detail.
+- Is every call into the engine's Lua made on the main thread, with Lua idle, and every registration
+  under `lua_pcallk`, so a Lua error comes back as a code instead of unwinding through the library?
+- Do the functions registered into Lua only read? Every argument is checked, a bad one returns nil, and
+  none of them calls `lua_error`.
 - Does the interposed replacement always call the real function, on every path, including an unknown
   build?
 - Does every read go through `mach_vm_read_overwrite`? A raw pointer dereference can crash the game.
-- Does an unknown build, or a failed byte check, register nothing? Test it by flipping one expected byte.
+- Does an unknown build, or a failed site check, register nothing? `test/re/builds_test.ts` checks the
+  table against the installed binary; for the library itself, change one hash in a scratch copy of
+  `builds.h`, build, and confirm the stand-in or the game logs `A7X disabled`.
 
 ### Launch path
 

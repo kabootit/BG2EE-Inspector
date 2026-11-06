@@ -18,11 +18,13 @@ if it grows a convenience grant. BG2EE-GameLog's audit found and closed exactly 
   - No memory-write call (`mach_vm_write`, `vm_protect` and similar) and no access to other processes.
   - No `mprotect` at all. The one hook is dyld interposing, limited to the functions in
     `ALLOWED_INTERPOSE` and declared only through the `A7X_INTERPOSE` macro (ADR-0005).
+  - The only engine code it calls is the game's own Lua API functions in `ALLOWED_ENGINE_CALLS`, named
+    through `builds.h`'s `A7X_FN_` enum, each one hash-checked before the first call (ADR-0005).
   - `lint:security` checks `native/` for all of this.
 - **Raw reads stay private.** The native functions are hidden from other mods once the inspector loads;
   external mods get only the public data API (Phase 4).
-- **Fail closed.** An unknown game build, or any address whose expected bytes do not match, disables the
-  inspector rather than guessing.
+- **Fail closed.** An unknown game build, any site whose bytes do not hash as `builds.h` expects, or a
+  failed read while deciding whether Lua is idle, disables the inspector rather than guessing.
 - **Bind loopback only** for any local server, and **redact** the Steam account id and home paths at the
   point of capture, never as a cleanup pass.
 - **Ask before executing anything not shipped here.** Downloaded files are checked against a pinned

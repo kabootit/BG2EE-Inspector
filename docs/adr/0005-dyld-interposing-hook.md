@@ -96,11 +96,12 @@ changed. With no table, there is no data pointer for the planned hook to swap.
 
 **The library interposes `glClear`. The replacement passes every call straight to the real
 `glClear`. Once, on the first call made on the main thread with the engine's Lua state created and
-idle, it also registers the `A7X_*` functions by calling the game's own `lua_pushcclosure` and
-`lua_setglobal`.**
+idle, it also registers the `A7X_native` table of read functions through the game's own Lua API,
+under the game's own `lua_pcallk`.**
 
-The decision is staged. First, the library ships as a **probe** that interposes `glClear` and only
-reports what it sees. Registration is added only after the probe passes the gate below in the game.
+The decision was staged. First, the library shipped as a **probe** that interposed `glClear` and only
+reported what it saw. It passed the gate below in the game on 2026-11-06, and Phase 2 added
+registration.
 
 ### How interposing works
 
@@ -163,12 +164,24 @@ It is, and the reasons are worth stating rather than hiding:
   a design change for an ADR.
 - **Always pass through.** Every call reaches the real `glClear`, whatever else happens, including
   when the build is unknown.
-- **Fail closed.** The constructor matches the game's `LC_UUID` against `native/builds.h`. On no
-  match it reads no game memory and will register nothing.
-- **Register only when it is safe, and only once.** Only on the main thread (`pthread_main_np`),
-  only once the `lua_State*` global is non-null, and only while `L->ci` points at `L->base_ci`,
-  which in Lua 5.2 means no Lua or C function is executing on that state. After registering, the
-  replacement is a counter and a pass-through.
+- **Fail closed.** The constructor matches the game's `LC_UUID` against `native/builds.h`, then
+  hashes every engine function the library calls, and the code that anchors each global it reads.
+  On any mismatch it reads no game memory and will register nothing. A failed read while deciding
+  whether Lua is idle also disables it: it means the layout is not what `builds.h` says.
+- **Call only the game's own Lua API, from an allowlist.** Eleven Lua 5.2 API functions
+  (`ALLOWED_ENGINE_CALLS` in `lint:security`; the evidence for each is in
+  [docs/re-notes.md](../re-notes.md)), so there is one Lua runtime, not two.
+- **Register only when it is safe.** Only on the main thread (`pthread_main_np`), only once the
+  `lua_State*` global is non-null, and only while `L->ci` points at `L->base_ci`, which in Lua 5.2
+  means no Lua or C function is executing on that state. Busy Lua waits for the next frame.
+- **Register under protection.** `lua_checkstack` first, then a light C function (no allocation)
+  run through `lua_pcallk` creates the table and sets the global. Creating it can run the garbage
+  collector, and with it a finalizer that raises an error; unprotected, Lua would call its panic
+  handler and end the game. Under `lua_pcallk` the error comes back as a status, is logged and
+  popped, and the bridge disables itself.
+- **Register once per state.** After registering, the replacement re-reads the `lua_State*` global
+  each frame and registers again only if it holds a different state; otherwise it is a counter and a
+  pass-through.
 
 ### The hook gate
 
@@ -224,9 +237,8 @@ re-evaluated before Phase 2 builds on it.
   as ADR-0002 describes; until then `A7X.status()` reports `no_native`. ADR-0002's plan registered
   on a call made from that Lua, so it never had this gap.
 - **The library links OpenGL**, to call the real `glClear`; the game already loads the framework.
-- **A frame-loop cost, once registered:** one counter and a pass-through per frame. The probe also
-  reads one pointer per frame through `mach_vm_read_overwrite`, which goes once registration
-  replaces it.
+- **A frame-loop cost, once registered:** one counter, one pointer read through
+  `mach_vm_read_overwrite` (to notice a new `lua_State`) and a pass-through per frame.
 - **Re-evaluate** if the gate fails; if a game update drops OpenGL (a move to Metal would remove
   `glClear` from the imports, and the library would then simply never register, leaving the game
   unaffected); or if a macOS release stops honouring interposing for inserted libraries.

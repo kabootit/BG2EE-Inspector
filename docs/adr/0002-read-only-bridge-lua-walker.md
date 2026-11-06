@@ -38,12 +38,23 @@ Lua; output on request as a data API and message-window text.**
 ### Native bridge
 
 - **Address table, not pattern scanning.** `native/builds.h` maps the build's `LC_UUID` (read from the
-  in-memory Mach-O header) to image-relative offsets. The ASLR slide is added at load, and expected bytes
-  are checked at every address. An unknown build or any mismatch disables the inspector.
+  in-memory Mach-O header) to image-relative offsets. The ASLR slide is added at load, and every engine
+  function the library calls, and the code that anchors each global, is hash-checked first. An unknown
+  build or any mismatch disables the inspector.
 - **One hook**, decided in [ADR-0005](0005-dyld-interposing-hook.md): dyld interposes `glClear`, and the
   replacement registers the native read functions once Lua is idle on the main thread, then only passes
   calls through. No `mprotect` anywhere, enforced by `lint:security`.
 - **Reads only**, through `mach_vm_read_overwrite`, so a bad pointer returns `nil` instead of crashing.
+- **The native API** is one table, `A7X_native`. A bad argument or a failed read returns `nil`; none
+  of the functions raises a Lua error:
+  - `Version()`: the native API version (1) and the build name;
+  - `Root()`: the address of the object in `g_pBaldurChitin`, the one behind the game's Lua `e`;
+  - `Read(addr, kind)`: `u8`, `i8`, `u16`, `i16`, `u32`, `i32` or `ptr` as an integer, or
+    `cstr`, up to 256 bytes to the first NUL;
+  - `ReadBlock(addr, len)`: exactly `len` bytes, 1 to 4096, as a string.
+
+  Addresses are integers from 1 to 2^53, which a Lua 5.2 number holds exactly. Until `a7x_api.lua`
+  exists (Phase 4) to capture the table and clear the global, `A7X_native` stays visible to all Lua.
 
 ### Lua walker
 

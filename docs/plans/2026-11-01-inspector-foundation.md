@@ -156,7 +156,7 @@ sequenceDiagram
   Note over L: A7X_native may not exist yet: status() is no_native
   G->>A: glClear, once a frame on the main thread
   A->>A: Lua state set and idle? if not, wait for the next frame
-  A->>L: register A7X_native table with the game's lua_pushcclosure and lua_setglobal
+  A->>L: register the A7X_native table with the game's own Lua API, under its lua_pcallk
   A->>G: from now on, every call passes straight to the real glClear
   L->>L: on first use, a7x_api captures A7X_native as locals, sets the global to nil
   Note over L: A7X.status() is loading until a game is loaded, then ok
@@ -738,10 +738,12 @@ The native surface is deliberately tiny and **read-only**. All struct walking li
 
 Native API, registered into a temporary `A7X_native` global. `a7x_api.lua` captures it as private locals, then sets the global to `nil`, so other mods never see raw reads (see "Integration contract"):
 
-- `A7X_Version()`
-- `A7X_Root()`: address of `g_pBaldurChitin` (the object behind Lua's `e`)
-- `A7X_Read(addr, kind)`: kind is `u8/i8/u16/i16/u32/i32/ptr/cstr`
-- `A7X_ReadBlock(addr, len)`
+- `A7X_native.Version()`
+- `A7X_native.Root()`: address of `g_pBaldurChitin` (the object behind Lua's `e`)
+- `A7X_native.Read(addr, kind)`: kind is `u8/i8/u16/i16/u32/i32/ptr/cstr`
+- `A7X_native.ReadBlock(addr, len)`
+
+Exact behaviour, including what returns `nil`: ADR-0002.
 
 Every read goes through `mach_vm_read_overwrite(mach_task_self(), ...)`, so a bad pointer returns `nil` instead of segfaulting the game.
 
@@ -769,8 +771,8 @@ Tools:
 Record everything in `docs/re-notes.md`: address, the expected bytes used for the load-time check, how it was found, and how it was verified. `deno task derive` (built on `src/macho.ts`) prints the `native/builds.h` entry for a binary, so the table is regenerated, not hand-edited, after a game update.
 
 1. **The `Infinity_*` `luaL_Reg` array:** scan for pointers to the `"Infinity_Log"` string. Done: there is no such array; the functions are registered in code, and the hook changed to dyld interposing ([ADR-0005](../adr/0005-dyld-interposing-hook.md)).
-2. **The Lua C API** (`lua_pushcclosure`, `lua_setglobal`, `lua_tolstring`, `lua_pushnumber`, `lua_pushinteger`, `lua_pushlstring`, `lua_pushnil`, `luaL_checkinteger`/`checklstring`): follow the call targets out of known `Infinity_*` implementations and the error-string references. Confirm each one against the stock 5.2.4 build.
-3. **`g_pBaldurChitin`:** find it through the compiled-in tolua bootstrap that binds `e`.
+2. **The Lua C API** (`lua_pushcclosure`, `lua_setglobal`, `lua_tolstring`, `lua_pushnumber`, `lua_pushinteger`, `lua_pushlstring`, `lua_pushnil`, `luaL_checkinteger`/`checklstring`): follow the call targets out of known `Infinity_*` implementations and the error-string references. Confirm each one against the stock 5.2.4 build. Done in Phase 2, for the eleven functions the bridge calls: matched by size and instruction against the reference build, and recorded in [docs/re-notes.md](../re-notes.md).
+3. **`g_pBaldurChitin`:** find it through the compiled-in tolua bootstrap that binds `e`. Done in Phase 2: the tolua getter bound under the name `"g_pBaldurChitin"` (docs/re-notes.md).
 4. **The struct chain**, from InfinityLoader's `EEex-v2.7.3.0` headers (read on GitHub; nothing executed): `CBaldurChitin -> CInfGame -> global CGameObjectArray -> CGameSprite -> CDerivedStats`, plus the sprite's area pointer (for filtering) and:
    - EA
    - the timed-effect list (`CGameEffect`: opcode, duration type, expiry, source resref)
@@ -783,12 +785,14 @@ Record everything in `docs/re-notes.md`: address, the expected bytes used for th
 ### Phase 2: The bridge dylib
 
 - **Fail closed on the address table.** `native/builds.h` maps the 2.7.3 build's `LC_UUID` to image-relative offsets. At load the dylib:
-  1. reads `LC_UUID` from `_dyld_get_image_header(0)`;
-  2. looks up the entry and adds the ASLR slide (`_dyld_get_image_vmaddr_slide(0)`);
-  3. checks the expected bytes at every address.
+  1. reads `LC_UUID` from the main executable's header among the loaded images;
+  2. looks up the entry; offsets are relative to that header, which already includes the ASLR slide;
+  3. hashes every function it calls and the code anchoring each global (FNV-1a over whole functions: a
+     short prefix is not distinctive, since `lua_tointegerx` and `lua_setfield` share their first
+     32 bytes).
 
   On an unknown UUID or any mismatch it registers nothing and logs `A7X disabled: <reason>`; it never crashes.
-- **Hook by dyld interposing** ([ADR-0005](../adr/0005-dyld-interposing-hook.md), replacing the planned `luaL_Reg` swap, which Phase 1 showed impossible). The library interposes `glClear`. Once the probe passes the hook gate, the replacement registers the `A7X_*` functions with the game's own `lua_pushcclosure` and `lua_setglobal` on the first main-thread call with Lua idle, and otherwise passes every call through.
+- **Hook by dyld interposing** ([ADR-0005](../adr/0005-dyld-interposing-hook.md), replacing the planned `luaL_Reg` swap, which Phase 1 showed impossible). The library interposes `glClear`. Since the probe passed the hook gate (2026-11-06), the replacement registers the `A7X_native` table through the game's own Lua API, under `lua_pcallk`, on the first main-thread call with Lua idle, and otherwise passes every call through.
 - **Respect GameLog's gotcha 1:** no engine accessor runs at UI-load time.
 
 ### Phase 3: Lua struct walker plus ground-truth validation (gate before showing enemy data)
@@ -1050,7 +1054,7 @@ GameLog paths on the left; where each lands here follows the "src layout" table.
   - With `DEVELOPER_DIR=/Library/Developer/CommandLineTools`, `doctor` and `build` both pass, and `codesign -dv` on the dylib shows `Signature=adhoc` and arm64.
   - A mismatched `BG2EE_BINARY` makes doctor report the problem.
 - **Phase 0:** `deno task play` shows `A7X loaded`, and the game stays playable for 5+ minutes. Control: the same launch without the variable.
-- **Phase 2:** the log shows the `LC_UUID` matched and every address's expected bytes verified. Flipping one expected byte in `builds.h` produces `A7X disabled`. In the console, `A7X_Version()` returns a value, `A7X_Read(A7X_Root(), "ptr")` is non-nil, and `A7X_Read(0x10, "u32")` returns `nil` without crashing. A copy of the binary with a different SHA-256 gets `A7X disabled`.
+- **Phase 2:** `test/re/builds_test.ts` matches every `builds.h` site against the installed binary, and reports a changed one. In the game, the bridge manual test (`docs/manual-tests/bridge.md`): the log shows the build matched with every site checked and `A7X_native` registered; in the console, `A7X_native.Version()` returns a value, `A7X_native.Read(A7X_native.Root(), "ptr")` is non-nil, and `A7X_native.Read(16, "u32")` returns `nil` without crashing.
 - **Phase 3:**
   - `A7XT.check()` in the console, then `deno task verify`, shows walker values equal to `characters[]` for every party member and field, across several saves, buffs and level-ups.
   - `A7XT.spawn` fixtures match their `.cre` files.

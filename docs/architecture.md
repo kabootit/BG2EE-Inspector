@@ -143,7 +143,7 @@ sequenceDiagram
   Note over L: A7X_native may not exist yet: status() is no_native
   G->>A: glClear, once a frame on the main thread
   A->>A: Lua state set and idle? if not, wait for the next frame
-  A->>L: register A7X_native table with the game's lua_pushcclosure and lua_setglobal
+  A->>L: register the A7X_native table with the game's own Lua API, under its lua_pcallk
   A->>G: from now on, every call passes straight to the real glClear
   L->>L: on first use, a7x_api captures A7X_native as locals, sets the global to nil
   Note over L: A7X.status() is loading until a game is loaded, then ok
