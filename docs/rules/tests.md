@@ -15,7 +15,9 @@ eyeballed once in a one-off command is lost the moment it scrolls away.
   time so the test file does not trip the linter itself.
 - **Real data.** Cases come from captured sessions and the game's own files where possible.
 - **Never shipped.** The WeiDU component copies only `mod/inspector/`; `test/` is never installed into the
-  game.
+  game. The one exception is a script a manual test copies into `override/` by hand for its session and
+  removes at its end, both as steps of that test (`test/lua/a7xt.lua`, for the
+  [bridge test](../manual-tests/bridge.md)).
 - **Run** `deno task test`, or `deno task lint` for everything.
 
 Related: [toolchain.md](toolchain.md), [verify-derived-values.md](verify-derived-values.md).
