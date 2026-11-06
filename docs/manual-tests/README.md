@@ -30,3 +30,4 @@ The manual tests so far:
 | Manual test | Proves | Duration |
 | --- | --- | --- |
 | [Hook gate](hook-gate.md) | the interposed `glClear` runs every frame on the main thread, with idle Lua to register on (ADR-0005) | about 15 minutes |
+| [Bridge](bridge.md) | the library registers `A7X_native` and its read functions answer from the game's Lua (Phase 2) | about 10 minutes |
