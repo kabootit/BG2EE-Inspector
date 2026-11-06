@@ -1,11 +1,12 @@
 /**
  * `deno task play [--no-inject]`: launch the game with the inspector's library loaded, capture what
- * it prints to logs/session-<stamp>.log (redacted), and report whether the library loaded.
+ * it prints to logs/session-<stamp>.log (redacted), show the library's own lines as they arrive, and
+ * report whether the library loaded.
  *
  * `--no-inject` is the control run: the same launch without the library.
  */
 import { stamp } from "../game/capture.ts";
-import { isLoadMarker, launchCommand, summarize } from "../game/launch.ts";
+import { isLibraryLine, isLoadMarker, launchCommand, summarize } from "../game/launch.ts";
 import { captureSession } from "../game/session.ts";
 import { verifyDylib } from "../build/dylib.ts";
 import { realSystem } from "../setup/system.ts";
@@ -45,7 +46,8 @@ await runTask(async () => {
   console.log(`play: session log logs/${logPath.split("/").pop()}`);
   console.log("play: quit the game to finish.\n");
 
-  // Only the marker lines are kept; everything else goes straight to the log.
+  // The library's lines are shown as they arrive, and only the load markers are kept; everything
+  // else goes straight to the log.
   const markers: string[] = [];
   try {
     const { lineCount, exitCode } = await captureSession(
@@ -53,10 +55,8 @@ await runTask(async () => {
       home,
       async (line) => {
         await log.write(encoder.encode(`${line}\n`));
-        if (isLoadMarker(line)) {
-          markers.push(line);
-          console.log(`  ${line}`);
-        }
+        if (isLibraryLine(line)) console.log(`  ${line}`);
+        if (isLoadMarker(line)) markers.push(line);
       },
     );
     const summary = summarize(markers, gameProcess);

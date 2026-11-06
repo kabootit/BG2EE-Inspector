@@ -36,6 +36,10 @@ export interface SessionSummary {
 /** Whether a captured line is the dylib's load marker. */
 export const isLoadMarker = (line: string): boolean => line.includes(LOADED_MARKER);
 
+/** Whether a captured line comes from the dylib: the load marker, or any line it starts with "A7X ". */
+export const isLibraryLine = (line: string): boolean =>
+  isLoadMarker(line) || line.startsWith("A7X ");
+
 /** What a session's marker lines say about the injection. */
 export function summarize(markers: string[], gameProcess: string): SessionSummary {
   const loaded = markers.filter(isLoadMarker);
