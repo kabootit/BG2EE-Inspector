@@ -27,6 +27,10 @@ covers it.
 
 ## Later
 
+- **`deno task derive`: deferred until a second build.** `native/builds.h` is written by hand and
+  checked by `test/re/builds_test.ts`; `docs/re-notes.md` has the recipe for a new build. Automating
+  the recipe in `src/re/` is worth it once a game update gives it something to derive.
+
 - **UI panel: a separate external mod, not part of this project.** A world-screen `menu` in its own repo,
   built only on the public `A7X` API (`docs/api.md`, Phase 4) and declared with
   `REQUIRE_PREDICATE MOD_IS_INSTALLED`. `examples/consumer-mod/` is its starting point.

@@ -8,6 +8,8 @@ apply to all work in the repo.
 - [Requirements](requirements.md): what to install first, and how `deno task doctor` checks it.
 - [Architecture](architecture.md): diagrams of the roadmap, code organization, runtime layers, boot
   sequence, inspect workflow and game-update workflow.
+- [Reverse-engineering notes](re-notes.md): every engine address the native library uses, how it was
+  found and checked, and how to find it again after a game update.
 - [Foundation plan](plans/2026-11-01-inspector-foundation.md): the approved plan for the first release,
   with its research and decisions.
 

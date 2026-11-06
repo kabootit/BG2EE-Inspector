@@ -1,5 +1,14 @@
 import { deepStrictEqual, strictEqual } from "node:assert/strict";
-import { fatEntryOffsets, machoArchs, readHeader } from "../../src/re/macho.ts";
+import {
+  archSlice,
+  fatEntryOffsets,
+  imageUuid,
+  loadCommands,
+  machoArchs,
+  readHeader,
+  segment,
+} from "../../src/re/macho.ts";
+import { machoImage, universal } from "./macho_fixture.ts";
 import { ARM64, fatMacho, thinMacho, X86_64 } from "../setup/fake_system.ts";
 
 Deno.test("a thin Mach-O names its one architecture", () => {
@@ -65,4 +74,42 @@ Deno.test("the pinned WeiDU binary, when installed, is arm64", async () => {
   } catch (error) {
     if (!(error instanceof Deno.errors.NotFound)) throw error; // not installed on this machine
   }
+});
+
+Deno.test("archSlice returns a thin file whole, and a fat entry's range", () => {
+  const arm = machoImage();
+  strictEqual(archSlice(arm, "arm64"), arm);
+  strictEqual(archSlice(arm, "x86_64"), undefined);
+  const fat = universal([[X86_64, new Uint8Array(40)], [ARM64, arm]]);
+  deepStrictEqual(archSlice(fat, "arm64"), arm);
+  strictEqual(archSlice(new Uint8Array(3), "arm64"), undefined);
+});
+
+Deno.test("archSlice treats a fat entry reaching past the file as absent", () => {
+  const fat = universal([[ARM64, machoImage()]]);
+  new DataView(fat.buffer).setUint32(8 + 12, fat.length, false); // size larger than what is left
+  strictEqual(archSlice(fat, "arm64"), undefined);
+});
+
+Deno.test("loadCommands, imageUuid and segment read a thin image", () => {
+  const image = machoImage({ uuid: Uint8Array.from({ length: 16 }, (_, i) => 0xa0 + i) });
+  deepStrictEqual(loadCommands(image).map((c) => c.cmd), [0x1b, 0x19]);
+  strictEqual(imageUuid(image), "A0A1A2A3-A4A5-A6A7-A8A9-AAABACADAEAF");
+  deepStrictEqual(segment(image, "__TEXT"), {
+    vmaddr: 0x100000000,
+    vmsize: image.length,
+    fileoff: 0,
+    filesize: image.length,
+  });
+  strictEqual(segment(image, "__DATA"), undefined);
+});
+
+Deno.test("loadCommands is bounded by the bytes, not by ncmds", () => {
+  const image = machoImage();
+  new DataView(image.buffer).setUint32(16, 0xffffffff, true); // claims 2^32-1 commands
+  deepStrictEqual(loadCommands(image).map((c) => c.cmd), [0x1b, 0x19]);
+  new DataView(image.buffer).setUint32(36, 4, true); // LC_UUID shorter than a command header
+  deepStrictEqual(loadCommands(image), []);
+  strictEqual(imageUuid(image), undefined);
+  deepStrictEqual(loadCommands(thinMacho(ARM64).subarray(0, 16)), []);
 });

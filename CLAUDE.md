@@ -69,7 +69,7 @@ src/             Deno, grouped by concern; no loose files (test/structure_test.t
   shared/        deno_version.ts, task.ts (the runner), repo_files.ts, config.ts, sha256.ts
   lint/          docs.ts, security.ts
   setup/         doctor.ts, install.ts, download.ts, system.ts (the machine, injectable for tests)
-  re/            macho.ts (Mach-O architectures for now)
+  re/            macho.ts (architectures, slices, load commands), builds.ts (builds.h against the game)
   build/         dylib.ts (build and check the library, shared by build and doctor)
   game/          capture.ts, launch.ts, session.ts (the play launcher)
                  later: gamefiles/, model/, verify/ (see docs/architecture.md)
