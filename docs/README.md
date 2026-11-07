@@ -40,7 +40,8 @@ Manual tests run at the game, step by step, each with its record of runs:
 
 ## Plans and delivery notes
 
-- Plans: [2026-11-01 foundation](plans/2026-11-01-inspector-foundation.md).
+- Plans, named `YYYY-MM-DD-<topic>.md`: [2026-11-01 foundation](plans/2026-11-01-inspector-foundation.md),
+  [2026-11-06 Phase 2, the bridge](plans/2026-11-06-bridge.md).
 - Delivery notes, named `YYYY-MM-DD-<topic>.md` so they sort by time:
   [2026-11-01 Step 0, setup](notes/2026-11-01-setup.md),
   [2026-11-01 Step 1, requirements](notes/2026-11-01-requirements.md),
