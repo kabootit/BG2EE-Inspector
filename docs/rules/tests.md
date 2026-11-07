@@ -9,7 +9,8 @@ eyeballed once in a one-off command is lost the moment it scrolls away.
 ## How to apply
 
 - **Where:** `test/` mirrors the source it covers (`test/lint/docs_test.ts` tests `src/lint/docs.ts`).
-  Lua unit tests go in `test/lua/`; end-to-end fixtures in `test/e2e/`. `lint:security` flags any
+  Lua tests go in `test/lua/` (run with stock Lua 5.2.4 built from `vendor/`), C tests of
+  `native/` in `test/native/`, end-to-end fixtures in `test/e2e/`. `lint:security` flags any
   `*_test.ts` or `*_test.lua` outside `test/`.
 - **Probes for checks.** Every lint rule has a test showing it fail, built from strings assembled at run
   time so the test file does not trip the linter itself.
@@ -18,6 +19,8 @@ eyeballed once in a one-off command is lost the moment it scrolls away.
   game. The one exception is a script a manual test copies into `override/` by hand for its session and
   removes at its end, both as steps of that test (`test/lua/a7xt.lua`, for the
   [bridge test](../manual-tests/bridge.md)).
-- **Run** `deno task test`, or `deno task lint` for everything.
+- **Run** `deno task test`, `deno task test:native` and `deno task test:lua`, or `deno task lint` for
+  everything. The last two compile with the Command Line Tools into `build/`, and `test:lua` needs
+  the Lua source from `deno task setup-dev`.
 
 Related: [toolchain.md](toolchain.md), [verify-derived-values.md](verify-derived-values.md).

@@ -147,6 +147,10 @@ export function checkImportMap(config: Record<string, unknown>): Finding[] {
 
 // --- permissions -----------------------------------------------------------
 
+/** An --allow-run entry that cannot resolve through PATH: absolute, or a repo build output. */
+export const runPathAllowed = (bin: string) =>
+  bin.startsWith("/") || (/^\.\/build\/[\w./-]+$/.test(bin) && !bin.includes(".."));
+
 /** No -A, and every --allow-* flag scoped with =value. */
 export function checkPermissions(tasks: Record<string, string>): Finding[] {
   const out: Finding[] = [];
@@ -159,12 +163,15 @@ export function checkPermissions(tasks: Record<string, string>): Finding[] {
       });
     }
     // A binary named without a path resolves through PATH, where another directory could shadow it.
+    // An absolute path cannot be shadowed, and neither can a binary this repo builds, named by its
+    // repo-relative path under ./build/ (absolute repo paths would put a home directory in deno.json).
     for (const [, list] of command.matchAll(/--allow-run=(\S+)/g)) {
-      for (const bin of list.split(",").filter((b) => !b.startsWith("/"))) {
+      for (const bin of list.split(",").filter((b) => !runPathAllowed(b))) {
         out.push({
           check: "permissions",
           file: "deno.json",
-          detail: `task "${task}" allows running "${bin}" by name; use its absolute path`,
+          detail:
+            `task "${task}" allows running "${bin}" by name; use its absolute path, or ./build/ for a binary built here`,
         });
       }
     }

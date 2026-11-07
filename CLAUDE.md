@@ -54,10 +54,12 @@ The tasks available so far; more arrive with each step of the plan:
 | `deno task build` | build `build/a7x.dylib` (arm64, ad-hoc signed) from `native/` |
 | `deno task play` | launch the game with the library, log redacted output to `logs/`; `--no-inject` for a control run. Only when asked |
 | `deno task re <command>` | reverse-engineering tools on the installed game's arm64 slice: `starts`, `xrefs`, `annotate`, `compare`, `stats`, `hash` ([docs/re-notes.md](docs/re-notes.md)) |
-| `deno task lint` | fmt check, lint, type-check, tests, `lint:docs`, `lint:security`. Run before every commit |
+| `deno task lint` | fmt check, lint, type-check, the Deno, native and Lua tests, `lint:docs`, `lint:security`. Run before every commit |
 | `deno task lint:docs` | the mechanical docs rules |
 | `deno task lint:security` | the mechanical security invariants |
 | `deno task test` | the test suite in `test/` |
+| `deno task test:native` | compile and run `test/native/*_test.c` (the bridge with a fake Lua API, the `lua_State` layout) |
+| `deno task test:lua` | build stock Lua 5.2.4 from `vendor/` and run `test/lua/*_test.lua` |
 | `deno task check` | type-check |
 
 ## Layout
@@ -72,10 +74,10 @@ src/             Deno, grouped by concern; no loose files (test/structure_test.t
   setup/         doctor.ts, install.ts, download.ts, system.ts (the machine, injectable for tests)
   re/            macho.ts (slices, load commands, sections, function starts), arm64.ts (instruction
                  decoding, cross-references, stat tables), objdump.ts, builds.ts (builds.h against the game)
-  build/         dylib.ts (build and check the library, shared by build and doctor)
+  build/         dylib.ts (build and check the library, shared by build and doctor), lua.ts (the test interpreter)
   game/          capture.ts, launch.ts, session.ts (the play launcher)
                  later: gamefiles/, model/, verify/ (see docs/architecture.md)
-test/            mirrors src/ (test/lint/docs_test.ts tests src/lint/docs.ts); test/lua, test/e2e later
+test/            mirrors src/ (test/lint/docs_test.ts tests src/lint/docs.ts); test/native (C), test/lua (Lua); test/e2e later
 docs/            rules, ADRs, plans, delivery notes, specs; start at docs/README.md
 .claude/         committed settings (deny and ask lists) and skills
 ```

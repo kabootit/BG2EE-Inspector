@@ -62,6 +62,18 @@ Deno.test("permissions: no -A and no unscoped --allow-*", () => {
   );
 });
 
+Deno.test("a binary built here may be named by its ./build/ path, and nothing else relative", () => {
+  deepStrictEqual(
+    checkPermissions({ a: "deno run --allow-run=./build/lua,/usr/bin/xcrun x.ts" }),
+    [],
+  );
+  for (const bin of ["./vendor/weidu/weidu", "./build/../x", "build/lua", "./build/"]) {
+    deepStrictEqual(checks(checkPermissions({ a: `deno run --allow-run=${bin} x.ts` })), [
+      "permissions",
+    ], bin);
+  }
+});
+
 Deno.test("servers must bind loopback", () => {
   deepStrictEqual(checks(checkBindAddress("s.ts", "Deno.serve({ port: 1 }, h)")), ["bind-address"]);
   deepStrictEqual(
