@@ -2,7 +2,7 @@
 
 > **Status:** approved 2026-11-06. Edited in place until pushed, per
 > [working-together.md](../rules/working-together.md). The project's own terms (gate, walker, site,
-> anchor and others) are defined in [docs/README.md](../README.md).
+> anchor and others) are defined in [docs/README.md](../README.md#terms).
 
 ## Context
 

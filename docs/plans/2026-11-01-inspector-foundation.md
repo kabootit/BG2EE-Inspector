@@ -58,6 +58,9 @@ These are Mermaid diagrams, which GitHub renders natively and VS Code previews t
 
 ### 1. Roadmap: steps, phases and gates
 
+Each diamond is a gate: a pass/fail check that must pass before the next phase builds on a result
+([Terms](../README.md#terms)).
+
 ```mermaid
 flowchart TD
   S0["Step 0: scaffold and conventions"] --> S1["Step 1: requirements, doctor, setup-weidu, setup-dev"]

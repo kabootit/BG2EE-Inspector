@@ -8,7 +8,8 @@ these diagrams are in [ADR-0001](adr/0001-native-dylib-injection.md) and
 
 ## Roadmap
 
-The steps and phases of the first release. Each diamond is a gate that must pass before work continues.
+The steps and phases of the first release. Each diamond is a [gate](README.md#terms): a pass/fail
+check that must pass before work continues.
 
 ```mermaid
 flowchart TD
