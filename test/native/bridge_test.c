@@ -3,7 +3,7 @@
  *
  * The library's source is included, so its static functions can be called directly; the game's
  * Lua API is replaced by fakes over a small value stack. Checked: every Read kind with sign
- * extension, cstr at an unmapped page, ReadBlock bounds, bad arguments, Version, Root,
+ * extension, cstr at an unmapped page, ReadBlock bounds, bad arguments, Version, Root, Objects,
  * and each registration state. Given the game's arm64 slice as its argument, it also hashes every
  * builds.h site over the file, with a flipped byte in a function and in an anchor.
  *
@@ -272,6 +272,8 @@ static void version_and_root(void) {
     root_slot = 0;
     reset();
     CHECK(native_root(NULL) == 0);
+    reset();
+    CHECK(native_objects(NULL) == 1 && last_integer() == (lua_Integer)(game_base + build->object_array));
 }
 
 static void registration(void) {

@@ -99,10 +99,10 @@ The run passes when every line below appears as described, for both runs of the 
 
 | Check | Log line | Pass when |
 | --- | --- | --- |
-| Build and sites | `A7X build 2.7.3 arm64 matched, 13 sites checked, image at 0x…` | present |
+| Build and sites | `A7X build 2.7.3 arm64 matched, N sites checked, image at 0x…` | present; N is every site in `builds.h` (13 at Phase 2, 14 from Phase 3) |
 | Registration | `A7X registered A7X_native at …s, glClear call …` | present once; no `lua_State changed` line |
 | The table | `A7XT 1 native table` | `table` |
-| `Version` | `A7XT 1 version 1 2.7.3 arm64` | exactly this |
+| `Version` | `A7XT 1 version <n> 2.7.3 arm64` | `<n>` is the native API version: 1 at Phase 2, 2 from Phase 3 |
 | `Root` | `A7XT 1 root 0x…` | an address, not `nil` |
 | `Read` of a pointer | `A7XT 1 vtable 0x…` | an address, not `nil`; the same in run 2 |
 | `Read` of a string | `A7XT 1 cstr string` | `string` |
@@ -138,3 +138,4 @@ version of the test it was judged by; the delivery notes hold the exact lines ea
 | Date | Commit | What changed | Runs before it were judged against |
 | --- | --- | --- | --- |
 | 2026-11-06 | `20cfac2` | Steps: the four functions are called by `test/lua/a7xt.lua`, loaded with `Infinity_DoFile`, in a loaded game, instead of typed console lines at the main menu | the first run tried the typed steps |
+| 2026-11-06 | the Phase 3 commit that adds `A7X_native.Objects()` (`initial/07-walker`) | Pass criteria: the build line counts every site (14 from Phase 3) and `Version` reports the current native API version (2 from Phase 3) | 13 sites and version 1, the Phase 2 values |

@@ -51,8 +51,9 @@ struct a7x_build {
     uint8_t uuid[16];
     uint64_t lua_state;     /* the engine's lua_State* global */
     uint64_t baldur_chitin; /* g_pBaldurChitin, the object behind the game's Lua global `e` */
+    uint64_t object_array;  /* the engine's static object table: 16-byte slots, bounds just before */
     struct a7x_site fns[A7X_FN_COUNT];
-    struct a7x_site anchors[2]; /* the code that loads lua_state, and the code that loads baldur_chitin */
+    struct a7x_site anchors[3]; /* the code that loads each global above, in order */
 };
 
 static const struct a7x_build A7X_BUILDS[] = {
@@ -61,6 +62,7 @@ static const struct a7x_build A7X_BUILDS[] = {
         .uuid = {0x54, 0x79, 0x9B, 0x31, 0xC2, 0xBF, 0x36, 0xE9, 0x96, 0x85, 0x65, 0xF8, 0xEC, 0x3C, 0xA5, 0x8F},
         .lua_state = 0x35d7478,
         .baldur_chitin = 0x35d70d0,
+        .object_array = 0x35d8360,
         .fns = {
             [A7X_FN_lua_checkstack] = {"lua_checkstack", 0x5499cc, 0xd8, 0x24718df8414925d3ULL},
             [A7X_FN_lua_settop] = {"lua_settop", 0x549b80, 0xb8, 0x334739f0b5710589ULL},
@@ -77,6 +79,7 @@ static const struct a7x_build A7X_BUILDS[] = {
         .anchors = {
             {"Infinity_* registration (lua_State global)", 0x335440, 0x20, 0x08680401eaf0b437ULL},
             {"tolua g_pBaldurChitin getter", 0x2140c, 0x2c, 0x014deb0222041c68ULL},
+            {"object lookup (object array and its bounds)", 0x1ae26c, 0x74, 0x35f5045512ce64b9ULL},
         },
     },
 };

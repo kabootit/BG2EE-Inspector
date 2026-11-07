@@ -47,8 +47,10 @@ Lua; output on request as a data API and message-window text.**
 - **Reads only**, through `mach_vm_read_overwrite`, so a bad pointer returns `nil` instead of crashing.
 - **The native API** is one table, `A7X_native`. A bad argument or a failed read returns `nil`; none
   of the functions raises a Lua error:
-  - `Version()`: the native API version (1) and the build name;
+  - `Version()`: the native API version (2 since Phase 3 added `Objects`) and the build name;
   - `Root()`: the address of the object in `g_pBaldurChitin`, the one behind the game's Lua `e`;
+  - `Objects()`: the address of the engine's object array, a static table in the game image, from
+    which the walker looks creatures up by id;
   - `Read(addr, kind)`: `u8`, `i8`, `u16`, `i16`, `u32`, `i32` or `ptr` as an integer, or
     `cstr`, up to 256 bytes to the first NUL;
   - `ReadBlock(addr, len)`: exactly `len` bytes, 1 to 4096, as a string.

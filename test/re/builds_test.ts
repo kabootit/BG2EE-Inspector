@@ -12,7 +12,7 @@ Deno.test("fnv1a64 matches the published FNV-1a 64-bit vectors", () => {
   strictEqual(fnv1a64(text("foobar")), 0x85944171f73967e8n);
 });
 
-Deno.test("builds.h parses to one build with a site per engine function and two anchors", () => {
+Deno.test("builds.h parses to one build with a site per engine function and three anchors", () => {
   const builds = parseBuilds(BUILDS_H);
   deepStrictEqual(builds.map((b) => [b.name, b.uuid]), [
     ["2.7.3 arm64", "54799B31-C2BF-36E9-9685-65F8EC3CA58F"],
@@ -21,7 +21,7 @@ Deno.test("builds.h parses to one build with a site per engine function and two 
   strictEqual(enumNames.length, 11);
   const names = builds[0].sites.map((s) => s.name);
   deepStrictEqual(names.slice(0, enumNames.length), enumNames);
-  strictEqual(names.length, enumNames.length + 2);
+  strictEqual(names.length, enumNames.length + 3);
 });
 
 /** A one-build entry whose single site covers `size` bytes of the fixture's code. */

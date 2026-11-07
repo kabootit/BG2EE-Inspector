@@ -8,8 +8,10 @@
  * A7X_native, into the game's Lua, using the game's own Lua API functions from
  * builds.h:
  *
- *   A7X_native.Version()          -> 1, "<build name>"
+ *   A7X_native.Version()          -> 2, "<build name>"
  *   A7X_native.Root()             -> the address of g_pBaldurChitin's object, or nil
+ *   A7X_native.Objects()          -> the address of the engine's object array (its bounds are
+ *                                    the 16 bytes before it; layout in docs/re-notes.md)
  *   A7X_native.Read(addr, kind)   -> kind u8 i8 u16 i16 u32 i32 ptr: an integer;
  *                                    cstr: up to 256 bytes to the first NUL; or nil
  *   A7X_native.ReadBlock(addr, n) -> a string of exactly n bytes (1 to 4096), or nil
@@ -56,7 +58,7 @@
             (const void *)&replacement, (const void *)&original};
 
 /* The native API version Version() reports; bumped when the A7X_native functions change. */
-#define A7X_NATIVE_VERSION 1
+#define A7X_NATIVE_VERSION 2
 
 /* Lua 5.2's C API types, as the game was built: lua_Number is double, lua_Integer ptrdiff_t. */
 typedef struct lua_State lua_State;
@@ -231,6 +233,12 @@ static int native_root(lua_State *L) {
     return 1;
 }
 
+/* The object array is a static table in the game image, so its address needs no read. */
+static int native_objects(lua_State *L) {
+    lua.pushinteger(L, (lua_Integer)(game_base + build->object_array));
+    return 1;
+}
+
 /* Up to 256 bytes to the first NUL, read a page at a time so a string ending near an unmapped
  * page is still returned. Nothing when the first byte cannot be read. */
 static int read_cstr(lua_State *L, uintptr_t at) {
@@ -307,6 +315,7 @@ static const struct {
 } NATIVE_FUNCTIONS[] = {
     {"Version", native_version},
     {"Root", native_root},
+    {"Objects", native_objects},
     {"Read", native_read},
     {"ReadBlock", native_read_block},
 };
