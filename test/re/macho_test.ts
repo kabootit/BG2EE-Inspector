@@ -1,14 +1,18 @@
 import { deepStrictEqual, strictEqual } from "node:assert/strict";
 import {
   archSlice,
+  cstringAt,
   fatEntryOffsets,
+  functionStarts,
   imageUuid,
   loadCommands,
   machoArchs,
   readHeader,
+  section,
+  sections,
   segment,
 } from "../../src/re/macho.ts";
-import { machoImage, universal } from "./macho_fixture.ts";
+import { machoImage, richImage, universal } from "./macho_fixture.ts";
 import { ARM64, fatMacho, thinMacho, X86_64 } from "../setup/fake_system.ts";
 
 Deno.test("a thin Mach-O names its one architecture", () => {
@@ -112,4 +116,26 @@ Deno.test("loadCommands is bounded by the bytes, not by ncmds", () => {
   deepStrictEqual(loadCommands(image), []);
   strictEqual(imageUuid(image), undefined);
   deepStrictEqual(loadCommands(thinMacho(ARM64).subarray(0, 16)), []);
+});
+
+Deno.test("sections and function starts come from the load commands", () => {
+  const { bytes, cstringVa } = richImage(new Uint8Array(32), ["AC"], [0x100001000, 0x100001010]);
+  deepStrictEqual(sections(bytes).map((s) => `${s.segname},${s.sectname}`), [
+    "__TEXT,__text",
+    "__TEXT,__cstring",
+  ]);
+  deepStrictEqual(section(bytes, "__TEXT", "__cstring")?.addr, cstringVa);
+  deepStrictEqual(functionStarts(bytes), [0x100001000, 0x100001010]);
+  strictEqual(cstringAt(bytes, cstringVa), "AC");
+  strictEqual(cstringAt(bytes, 0x100001000), undefined); // code, not a string
+});
+
+Deno.test("a section count past its load command is cut, and starts stop at the data's end", () => {
+  const { bytes } = richImage(new Uint8Array(32), ["AC"], [0x100001000, 0x100001010]);
+  new DataView(bytes.buffer).setUint32(32 + 64, 1000, true); // nsects claims 1000
+  strictEqual(sections(bytes).length, 2);
+  const view = new DataView(bytes.buffer);
+  const fs = 32 + 72 + 160;
+  view.setUint32(fs + 12, 1, true); // only the first ULEB byte of the data
+  deepStrictEqual(functionStarts(bytes).length <= 1, true);
 });

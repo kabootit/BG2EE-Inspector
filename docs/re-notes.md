@@ -90,48 +90,37 @@ arm64, measured with `offsetof` on the vendored source:
 ## Redoing this after a game update
 
 A new build gets a new `LC_UUID`, so the library disables itself until `builds.h` has an entry for it.
-To add one, from the repo folder with the new game installed (`<game binary>` is the executable inside
-the app bundle, `<dir>` any scratch folder):
+`deno task re` reads the installed game's arm64 slice and does each step below; addresses can be given
+image-relative (`0x5499cc`) or absolute (`0x1005499cc`), and output is image-relative, as in
+`builds.h`. Its subcommands, in the order the steps use them:
 
-1. **Extract the slice and list function starts.**
+| Command | Prints |
+| --- | --- |
+| `deno task re starts [from] [to]` | function starts, from the slice's `LC_FUNCTION_STARTS` |
+| `deno task re xrefs <string>` | where the string sits in `__cstring`, and every `adrp` that loads its address |
+| `deno task re annotate <start> [end]` | the disassembly to the next function start, with each loaded string and each call to a `builds.h` function named |
+| `deno task re compare <symbol> <start> [end]` | the game function against the same symbol in stock `lapi.c` built at `-O2`: instruction counts and differing lines |
+| `deno task re stats <getter>` | a `GetAtOffset`-style getter's table: each stat id with its offset, width and signedness |
+| `deno task re hash <start> [size]` | a `builds.h` site line: offset, size (by default to the next function start) and FNV-1a hash |
 
-   ```sh
-   lipo -thin arm64 -output <dir>/game-arm64 "<game binary>"
-   xcrun dyld_info -function_starts <dir>/game-arm64 > <dir>/starts.txt
-   xcrun dwarfdump --uuid <dir>/game-arm64
-   ```
+`compare` needs the Lua source (`deno task setup-dev`). The steps:
 
-   `llvm-objdump --start-address` disassembles the whole file when given a universal binary, so always
-   work on the thin slice.
-2. **Build the reference.**
-
-   ```sh
-   xcrun clang -arch arm64 -O2 -c vendor/lua-5.2.4/src/lapi.c -o <dir>/lapi.o
-   ```
-
-   `deno task setup-dev` fetches the source if `vendor/lua-5.2.4/` is missing.
-3. **Find `Infinity_Log`'s C function again.** The string `"Infinity_Log"` is in `__cstring`; the
-   registration function loads it with `adrp`/`add` just before a call to `lua_setglobal`, after loading
-   the C function's address the same way before a call to `lua_pushcclosure`. Its calls give
-   `lua_tolstring`, `lua_pcallk` and `lua_settop`, and the registration function gives
-   `lua_pushcclosure`, `lua_setglobal` and the `lua_State*` global.
-4. **Place the rest by size.** Starting from those, walk the function starts in `lapi.c` order and match
-   each gap against the reference's symbol sizes (`nm -n <dir>/lapi.o`). Confirm each candidate by
-   comparing
-
-   ```sh
-   xcrun llvm-objdump -d --no-show-raw-insn --disassemble-symbols=_lua_setfield <dir>/lapi.o
-   xcrun llvm-objdump -d --no-show-raw-insn --start-address=<start> --stop-address=<end> <dir>/game-arm64
-   ```
-
-   Relocated loads (`ldr` from the GOT in the object file, `add` in the linked game) and instruction
-   order may differ; anything else is a reason to look closer.
-5. **Find `g_pBaldurChitin`** from the string `"g_pBaldurChitin"`: the tolua binding passes it next to
-   the getter's address, and the getter loads the global.
-6. **Write the entry** in `native/builds.h` with each offset and size and any hash, then run
-   `deno task test`. The builds test names every site whose hash differs and prints the hash it found;
-   check that each finding is only the placeholder hash, copy the hashes in, and run it again until it
-   passes. Then the in-game manual tests for the bridge decide whether the entry is right.
+1. **Find `Infinity_Log`'s registration.** `deno task re xrefs Infinity_Log` gives the `adrp` that
+   loads the name, inside the registration function. `annotate` that function: before the name it
+   loads the C function's address and calls `lua_pushcclosure`; after it, `lua_setglobal`; and every
+   call passes `[x21]`, loaded from the `lua_State*` global. `annotate` the C function for
+   `lua_tolstring`, `lua_pcallk` and `lua_settop`.
+2. **Place the rest by size.** List the starts around those functions with `starts`, walk them in
+   `lapi.c` order, and match each gap against the reference's symbol sizes (`nm -n` on
+   `build/re/lapi.o`, which `compare` builds). Confirm each candidate with `compare`: relocated loads
+   (`ldr` from the GOT in the object file, `add` in the linked game) and instruction order may differ;
+   anything else is a reason to look closer. Functions nothing calls are missing from the game, so a
+   gap that matches no size is one of those.
+3. **Find `g_pBaldurChitin`** with `xrefs g_pBaldurChitin`: the tolua binding passes the name next to
+   the getter's address, and `annotate` on the getter shows the global it loads.
+4. **Write the entry** in `native/builds.h`, one `hash` line per site, then run `deno task test`: the
+   builds test re-hashes every site in the installed binary and names any that differ. Then the
+   in-game manual tests for the bridge decide whether the entry is right.
 
 ## Not covered yet
 

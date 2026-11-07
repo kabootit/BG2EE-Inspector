@@ -154,3 +154,81 @@ export function segment(slice: Uint8Array, segname: string): Segment | undefined
   const u64 = (off: number) => Number(view.getBigUint64(lc.at + off, true));
   return { vmaddr: u64(24), vmsize: u64(32), fileoff: u64(40), filesize: u64(48) };
 }
+
+/** One section of a segment: where it is in memory and in the file. */
+export type Section = {
+  segname: string;
+  sectname: string;
+  addr: number;
+  size: number;
+  offset: number;
+};
+
+const LC_FUNCTION_STARTS = 0x26;
+const SEGMENT_64_HEADER = 72;
+const SECTION_64_SIZE = 80;
+
+const fixedString = (bytes: Uint8Array) => new TextDecoder().decode(bytes).replace(/\0.*$/s, "");
+
+/** Every section of every LC_SEGMENT_64, in load-command order; a count past the command is cut. */
+export function sections(slice: Uint8Array): Section[] {
+  const view = new DataView(slice.buffer, slice.byteOffset, slice.byteLength);
+  return loadCommands(slice).filter((c) => c.cmd === LC_SEGMENT_64 && c.size >= SEGMENT_64_HEADER)
+    .flatMap((c) => {
+      const fit = Math.floor((c.size - SEGMENT_64_HEADER) / SECTION_64_SIZE);
+      const count = Math.min(view.getUint32(c.at + 64, true), fit);
+      return Array.from({ length: count }, (_, i) => {
+        const at = c.at + SEGMENT_64_HEADER + i * SECTION_64_SIZE;
+        return {
+          sectname: fixedString(slice.subarray(at, at + 16)),
+          segname: fixedString(slice.subarray(at + 16, at + 32)),
+          addr: Number(view.getBigUint64(at + 32, true)),
+          size: Number(view.getBigUint64(at + 40, true)),
+          offset: view.getUint32(at + 48, true),
+        };
+      });
+    });
+}
+
+/** The named section, or undefined. */
+export const section = (slice: Uint8Array, segname: string, sectname: string) =>
+  sections(slice).find((s) => s.segname === segname && s.sectname === sectname);
+
+/**
+ * Function start addresses from LC_FUNCTION_STARTS: ULEB128 deltas, the first from the start of
+ * __TEXT, ending at a zero delta or the end of the data. The data range is bounded by the slice.
+ */
+export function functionStarts(slice: Uint8Array): number[] {
+  const view = new DataView(slice.buffer, slice.byteOffset, slice.byteLength);
+  const lc = loadCommands(slice).find((c) => c.cmd === LC_FUNCTION_STARTS && c.size >= 16);
+  const text = segment(slice, "__TEXT");
+  if (!lc || !text) return [];
+  const start = view.getUint32(lc.at + 8, true);
+  const end = Math.min(start + view.getUint32(lc.at + 12, true), slice.length);
+  const starts: number[] = [];
+  let address = text.vmaddr;
+  for (let at = start; at < end;) {
+    let delta = 0;
+    let shift = 0;
+    let byte: number;
+    do {
+      if (at >= end) return starts;
+      byte = slice[at++];
+      delta += (byte & 0x7f) * 2 ** shift;
+      shift += 7;
+    } while (byte & 0x80);
+    if (delta === 0) break;
+    address += delta;
+    starts.push(address);
+  }
+  return starts;
+}
+
+/** The NUL-terminated string at `addr` when it lies in __TEXT,__cstring, else undefined. */
+export function cstringAt(slice: Uint8Array, addr: number): string | undefined {
+  const cs = section(slice, "__TEXT", "__cstring");
+  if (!cs || addr < cs.addr || addr >= cs.addr + cs.size) return undefined;
+  const from = cs.offset + (addr - cs.addr);
+  const end = slice.indexOf(0, from);
+  return new TextDecoder().decode(slice.subarray(from, end < 0 ? cs.offset + cs.size : end));
+}

@@ -53,6 +53,7 @@ The tasks available so far; more arrive with each step of the plan:
 | `deno task setup-dev` | download the Lua 5.2.4 source into `vendor/` (contributors only) |
 | `deno task build` | build `build/a7x.dylib` (arm64, ad-hoc signed) from `native/` |
 | `deno task play` | launch the game with the library, log redacted output to `logs/`; `--no-inject` for a control run. Only when asked |
+| `deno task re <command>` | reverse-engineering tools on the installed game's arm64 slice: `starts`, `xrefs`, `annotate`, `compare`, `stats`, `hash` ([docs/re-notes.md](docs/re-notes.md)) |
 | `deno task lint` | fmt check, lint, type-check, tests, `lint:docs`, `lint:security`. Run before every commit |
 | `deno task lint:docs` | the mechanical docs rules |
 | `deno task lint:security` | the mechanical security invariants |
@@ -69,7 +70,8 @@ src/             Deno, grouped by concern; no loose files (test/structure_test.t
   shared/        deno_version.ts, task.ts (the runner), repo_files.ts, config.ts, sha256.ts
   lint/          docs.ts, security.ts
   setup/         doctor.ts, install.ts, download.ts, system.ts (the machine, injectable for tests)
-  re/            macho.ts (architectures, slices, load commands), builds.ts (builds.h against the game)
+  re/            macho.ts (slices, load commands, sections, function starts), arm64.ts (instruction
+                 decoding, cross-references, stat tables), objdump.ts, builds.ts (builds.h against the game)
   build/         dylib.ts (build and check the library, shared by build and doctor)
   game/          capture.ts, launch.ts, session.ts (the play launcher)
                  later: gamefiles/, model/, verify/ (see docs/architecture.md)

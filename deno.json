@@ -8,6 +8,7 @@
     "setup-dev": "deno run --allow-env=HOME,BG2EE_GAME_DIR,BG2EE_BINARY,BG2EE_USER_DIR,BG2EE_WEIDU --allow-read=. --allow-write=vendor --allow-net=www.lua.org --allow-run=/usr/bin/tar src/tasks/setup_dev.ts",
     "build": "deno run --allow-env=HOME,BG2EE_GAME_DIR,BG2EE_BINARY,BG2EE_USER_DIR,BG2EE_WEIDU --allow-read=. --allow-write=build --allow-run=/usr/bin/xcrun,/usr/bin/codesign src/tasks/build.ts",
     "play": "deno run --allow-env=HOME,BG2EE_GAME_DIR,BG2EE_BINARY,BG2EE_USER_DIR,BG2EE_WEIDU --allow-read=.,\"$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition\" --allow-write=logs --allow-run=/usr/bin/script,/usr/bin/codesign src/tasks/play.ts",
+    "re": "deno run --allow-env=HOME,BG2EE_GAME_DIR,BG2EE_BINARY,BG2EE_USER_DIR,BG2EE_WEIDU --allow-read=.,\"$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition\" --allow-write=build --allow-run=/usr/bin/xcrun src/tasks/re.ts",
     "lint:docs": "deno run --allow-read=. src/tasks/lint_docs.ts",
     "lint:security": "deno run --allow-read=. src/tasks/lint_security.ts",
     "lint": "deno fmt --check && deno lint && deno task check && deno task test && deno task lint:docs && deno task lint:security"
