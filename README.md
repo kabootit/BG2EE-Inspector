@@ -20,8 +20,8 @@ with two code-signing entitlements, `allow-dyld-environment-variables` and
 
 ## Installation
 
-Steps 1 to 4 and 6 work today, though the library only announces that it loaded; step 5 arrives in a
-later phase.
+Steps 1 to 4 and 6 work today, though the library so far only registers its read functions into the
+game's Lua and shows nothing in the game; step 5 arrives in a later phase.
 
 1. Install the [requirements](docs/requirements.md), including **Deno 2.9.8** or later.
 2. `deno task setup-weidu`: fetch the pinned WeiDU release.

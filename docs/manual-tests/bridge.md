@@ -121,5 +121,11 @@ the right object; if not, the delivery note says so and Phase 3 looks closer.
 
 ## Runs
 
-No runs yet. Each run adds a row: the date, the commit it ran against, the result, and a link to the
-delivery note that records it.
+Each run adds a row: the date, the commit it ran against, the result, and a link to the delivery note
+that records it.
+
+| Date | Commit | Result | Delivery note |
+| --- | --- | --- | --- |
+| 2026-11-06 | `37cccc3` | Incomplete: the console opens only in a loaded game and takes no pasted text, so the typed steps could not be followed; the build check and registration passed | [Bridge](../notes/2026-11-06-bridge.md) |
+| 2026-11-06 | `37cccc3`, revised test uncommitted | Incomplete: run 1 passed every check after loading a save; the party died before the area change | [Bridge](../notes/2026-11-06-bridge.md) |
+| 2026-11-06 | `20cfac2` | Passed: both runs of the script, after loading and after an area change | [Bridge](../notes/2026-11-06-bridge.md) |

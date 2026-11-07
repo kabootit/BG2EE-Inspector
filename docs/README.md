@@ -49,4 +49,5 @@ Manual tests run at the game, step by step, each with its record of runs:
   [2026-11-01 game session shutdown and memory](notes/2026-11-01-session-shutdown.md),
   [2026-11-01 node:assert versus the Deno standard library](notes/2026-11-01-node-assert-and-std.md),
   [2026-11-01 the interposing hook and its probe](notes/2026-11-01-interposing-hook.md),
-  [2026-11-06 the hook gate](notes/2026-11-06-hook-gate.md).
+  [2026-11-06 the hook gate](notes/2026-11-06-hook-gate.md),
+  [2026-11-06 Phase 2, the bridge](notes/2026-11-06-bridge.md).
