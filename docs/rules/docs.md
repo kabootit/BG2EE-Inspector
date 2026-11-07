@@ -52,6 +52,9 @@ fixes and game updates. Frontmatter `type: manual-test`, `title`, `description` 
 `# Manual test: <title>`; then Before you start, Steps (each with how long it takes and what it shows),
 What to watch for, Pass criteria (what output decides the result, and where to read it), and Runs, a
 table that gains a row per execution: date, commit, result and the delivery note holding the evidence.
-`lint:docs` checks the name, frontmatter, heading, sections and registration.
+A page always describes the current code: a change to its steps or pass criteria updates it in the same
+commit and adds a row to its Changes to this test table, and Runs rows are never edited
+([docs/manual-tests/README.md](../manual-tests/README.md#when-a-test-changes)). `lint:docs` checks the
+name, frontmatter, heading, sections and registration.
 
 Related: [writing-style.md](writing-style.md), [working-together.md](working-together.md).

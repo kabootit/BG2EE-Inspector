@@ -63,7 +63,9 @@ A manual test run by a person at the game, written once and run again. Undated; 
 - `## What to watch for`: what makes the tester stop, and what to report.
 - `## Pass criteria`: where the evidence is (a log, a command's output) and a table of what must appear.
 - `## Runs`: one row per execution, with the date, the commit, the result and the delivery note. The
-  manual test is not edited to describe a run; the note does that.
+  manual test is not edited to describe a run; the note does that. Once a run exists, every later change
+  to the steps or pass criteria adds a row to `### Changes to this test` under it: date, commit, what
+  changed, and what earlier runs were judged against (`docs/manual-tests/README.md`).
 - A delivery note's "Still to check by hand" links the manual test instead of repeating its steps.
 
 ## Rule (`docs/rules/<topic>.md`)

@@ -129,3 +129,12 @@ that records it.
 | 2026-11-06 | `37cccc3` | Incomplete: the console opens only in a loaded game and takes no pasted text, so the typed steps could not be followed; the build check and registration passed | [Bridge](../notes/2026-11-06-bridge.md) |
 | 2026-11-06 | `37cccc3`, revised test uncommitted | Incomplete: run 1 passed every check after loading a save; the party died before the area change | [Bridge](../notes/2026-11-06-bridge.md) |
 | 2026-11-06 | `20cfac2` | Passed: both runs of the script, after loading and after an area change | [Bridge](../notes/2026-11-06-bridge.md) |
+
+### Changes to this test
+
+Each change to the steps or pass criteria after the first run, so a Runs row can be read against the
+version of the test it was judged by; the delivery notes hold the exact lines each run logged.
+
+| Date | Commit | What changed | Runs before it were judged against |
+| --- | --- | --- | --- |
+| 2026-11-06 | `20cfac2` | Steps: the four functions are called by `test/lua/a7xt.lua`, loaded with `Infinity_DoFile`, in a loaded game, instead of typed console lines at the main menu | the first run tried the typed steps |

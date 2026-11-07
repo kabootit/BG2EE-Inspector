@@ -23,6 +23,19 @@ Every manual test is run the same way, from a committed, clean tree:
 6. **Review, then commit.** The tester reviews both, and they are committed only on request. A failed
    run is recorded the same way, followed by the fix, a new commit and a new run, each its own row.
 
+## When a test changes
+
+A manual test page always describes how to run it against the current code, because it is run again
+after fixes and game updates. When a change alters what a test does or checks:
+
+- **The same commit updates the page**: its steps or its Pass criteria, keeping the earlier values in
+  the text where they still help a reader.
+- **It adds a row to the page's Changes to this test table**, under Runs: the date, the commit, what
+  changed, and what earlier runs were judged against. The table starts with the first change after
+  the first run.
+- **Runs rows are never edited.** Each one keeps its meaning through its delivery note, which quotes
+  what that run logged, and through git, which keeps every version of the page.
+
 ## Index
 
 The manual tests so far:
