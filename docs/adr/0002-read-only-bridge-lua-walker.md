@@ -60,7 +60,9 @@ Lua; output on request as a data API and message-window text.**
 
 ### Lua walker
 
-- **Named fields.** Walker code reads named paths; only `a7x_offsets_<build>.lua` maps names to numbers.
+- **Named fields.** Walker code reads named paths; only the offsets file maps names to numbers. For
+  2.7.3 arm64 it is `a7xoff.lua`: `Infinity_DoFile` takes names of at most 8 characters, so the
+  inspector's Lua files are named `a7x…` in 8 characters rather than `a7x_offsets_<build>.lua`.
 - **Global object array.** Creatures are enumerated from it, filtered by area and EA, as BG2RadarOverlay
   does.
 - **Engine pitfalls from the EEex thread, guarded against:**

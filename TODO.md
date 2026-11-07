@@ -27,6 +27,11 @@ covers it.
 
 ## Later
 
+- **The rest of Phase 3: every creature, not only the party.** Enumerate the object array
+  (`A7XWALK.lookup` already reads it), keep sprites in the area on screen (the creature's area and the
+  visible area are still to be found, `docs/re-notes.md`), filter by EA, and the spawn harness that
+  compares spawned creatures with their `.cre` files. Starts once the [party check](docs/manual-tests/walker.md) passes.
+
 - **`deno task derive`: deferred until a second build.** `native/builds.h` is written by hand and
   checked by `test/re/builds_test.ts`; `docs/re-notes.md` has the recipe for a new build. Automating
   the recipe in `src/re/` is worth it once a game update gives it something to derive.

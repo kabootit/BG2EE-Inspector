@@ -138,4 +138,4 @@ version of the test it was judged by; the delivery notes hold the exact lines ea
 | Date | Commit | What changed | Runs before it were judged against |
 | --- | --- | --- | --- |
 | 2026-11-06 | `20cfac2` | Steps: the four functions are called by `test/lua/a7xt.lua`, loaded with `Infinity_DoFile`, in a loaded game, instead of typed console lines at the main menu | the first run tried the typed steps |
-| 2026-11-06 | the Phase 3 commit that adds `A7X_native.Objects()` (`initial/07-walker`) | Pass criteria: the build line counts every site (14 from Phase 3) and `Version` reports the current native API version (2 from Phase 3) | 13 sites and version 1, the Phase 2 values |
+| 2026-11-06 | `44365b0` | Pass criteria: the build line counts every site (14 from Phase 3) and `Version` reports the current native API version (2 from Phase 3) | 13 sites and version 1, the Phase 2 values |

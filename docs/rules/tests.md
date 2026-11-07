@@ -17,8 +17,9 @@ eyeballed once in a one-off command is lost the moment it scrolls away.
 - **Real data.** Cases come from captured sessions and the game's own files where possible.
 - **Never shipped.** The WeiDU component copies only `mod/inspector/`; `test/` is never installed into the
   game. The one exception is a script a manual test copies into `override/` by hand for its session and
-  removes at its end, both as steps of that test (`test/lua/a7xt.lua`, for the
-  [bridge test](../manual-tests/bridge.md)).
+  removes at its end, both as steps of that test: `test/lua/a7xt.lua` for the
+  [bridge test](../manual-tests/bridge.md), and `test/lua/a7xchk.lua`, with the walker's two files, for
+  the [party check](../manual-tests/walker.md).
 - **Run** `deno task test`, `deno task test:native` and `deno task test:lua`, or `deno task lint` for
   everything. The last two compile with the Command Line Tools into `build/`, and `test:lua` needs
   the Lua source from `deno task setup-dev`.

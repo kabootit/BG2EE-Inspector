@@ -800,6 +800,11 @@ Record everything in `docs/re-notes.md`: address, the expected bytes used for th
 
 ### Phase 3: Lua struct walker plus ground-truth validation (gate before showing enemy data)
 
+Split on 2026-11-06 ([Phase 3 plan](2026-11-06-party-walker.md)): the party walker and the party check
+first, on `initial/07-walker`; creature enumeration with area and EA filters, and the spawn harness,
+afterwards. The file names below are too long for `Infinity_DoFile`, which takes names of at most 8
+characters: the offsets are `a7xoff.lua` and the walker `a7xwalk.lua`.
+
 - `mod/inspector/lib/a7x_offsets_273_arm64.lua` holds the offsets table. `a7x_walk.lua` enumerates creatures by scanning the global `CGameObjectArray`, keeping sprites in the current area. Every walk is bounded by a node cap and pointer-range checks. For each creature it reads name, HP/max, AC, THAC0, saves, resistances, MR and EA.
 - **Validation:** emit `A7XCHECK` lines comparing walker values against party `characters[id]` through `Infinity_Log`. A Deno test asserts 100% agreement before enemy values are shown.
 
