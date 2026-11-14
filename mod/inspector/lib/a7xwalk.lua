@@ -70,6 +70,13 @@ local function unsigned(block, at, n)
   return v
 end
 
+-- A NUL-padded resref of `size` bytes at `addr`, cut at the first NUL; nil when unreadable.
+function A7XWALK.resref(addr, size)
+  local N = native()
+  local block = N and valid_pointer(addr) and N.ReadBlock(addr, size)
+  return block and block:match("^[^\0]*") or nil
+end
+
 -- The area on screen: { index, pointer, resref }, or nil and a reason.
 function A7XWALK.visible_area()
   local N = native()
@@ -80,9 +87,9 @@ function A7XWALK.visible_area()
   if not index or index >= O.game.area_count then return nil, "bad visible area index" end
   local area = R(game, { O.game.areas[1] + 8 * index, O.game.areas[2] })
   if not valid_pointer(area) then return nil, "no visible area" end
-  local block = N.ReadBlock(area + O.area.resref, O.area.resref_size)
-  if not block then return nil, "area unreadable" end
-  return { index = index, pointer = area, resref = block:match("^[^\0]*") }
+  local resref = A7XWALK.resref(area + O.area.resref, O.area.resref_size)
+  if not resref then return nil, "area unreadable" end
+  return { index = index, pointer = area, resref = resref }
 end
 
 -- Every sprite in `area` (a CGameArea pointer), in object-array order, as { id, sprite, ea }, and
@@ -171,6 +178,7 @@ function A7XWALK.creature(sprite)
   local current = allow ~= 0 and derived or sprite + O.sprite.temp
   local c = {
     id = R(sprite, O.object.id),
+    resref = A7XWALK.resref(sprite + O.sprite.resref, O.sprite.resref_size),
     name = name_of(sprite),
     ea = R(sprite, O.object.ea),
     stats_block = allow ~= 0 and "derived" or "temp",

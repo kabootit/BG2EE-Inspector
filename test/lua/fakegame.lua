@@ -59,6 +59,11 @@ local ID_A, ID_B = 5 * 65536 + 2001, 6 * 65536 + 2002
 local ID_C, ID_D, ID_E = 300 * 65536 + 2003, 7 * 65536 + 2004, 8 * 65536 + 2005
 local AREA1, AREA2 = 0x600000, 0x610000
 
+-- A sprite's .cre resref, NUL-padded.
+function F.resref(at, text)
+  for i = 0, O.sprite.resref_size - 1 do mem[at + O.sprite.resref + i] = text:byte(i + 1) or 0 end
+end
+
 local function stats(block, v)
   for name, f in pairs(O.stats) do put(block + f[1], f[2], v[name] or 0) end
 end
@@ -69,6 +74,7 @@ local function sprite(at, id, s)
   field(at, O.object.ea, s.ea or 2)
   field(at, O.object.area, s.area or AREA1)
   field(at, O.sprite.allow_effect_list, s.allow)
+  F.resref(at, s.resref or "")
   field(at, O.sprite.name_strref, s.strref)
   field(at, O.sprite.name, s.name or 0)
   field(at, O.sprite.hp, s.hp)
@@ -110,7 +116,7 @@ local function world()
   put(ARRAY + 16 * 6 + 8, "ptr", B)
   cstr(0x300000, "Alarion")
   sprite(A, ID_A, {
-    allow = 1, strref = -1, name = 0x300000, hp = 40, item = 0x400000,
+    resref = "ALARION", allow = 1, strref = -1, name = 0x300000, hp = 40, item = 0x400000,
     derived = { max_hp = 52, ac = -2, ac_missile = 1, thac0 = 9, save_death = 4, save_spell = 7,
       resist_fire = 25, resist_magic = 10, hit_bonus = 1 },
     temp = { max_hp = 99, ac = 9 },
@@ -138,7 +144,7 @@ local function crowd()
   slot(300, 2003, C)
   slot(7, 2004, D)
   slot(8, 2005, E)
-  sprite(C, ID_C, { ea = 255, allow = 1, strref = 1235, hp = 60, derived = { max_hp = 60 }, temp = {} })
+  sprite(C, ID_C, { resref = "OGRE01", ea = 255, allow = 1, strref = 1235, hp = 60, derived = { max_hp = 60 }, temp = {} })
   sprite(D, ID_D, { ea = 128, area = AREA2, allow = 1, strref = 1236, hp = 8, derived = { max_hp = 8 }, temp = {} })
   field(E, O.object.type, 0x10)
   field(E, O.object.area, AREA1)

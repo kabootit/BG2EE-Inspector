@@ -51,6 +51,10 @@ A7XOFF = {
   -- CGameSprite.
   sprite = {
     allow_effect_list = { 0x4e8c, "i32" }, -- non-zero: derived is the current stats block
+    resref = 0x540, -- 8 bytes, NUL-padded: the .cre file the creature was made from
+    resref_size = 8,
+    cre = 0x558, -- the .cre header, as in the file from offset 0 (CRE V1.0)
+    cre_size = 0x2d4,
     derived = 0x1120,
     temp = 0x1dc0,
     name_strref = { 0x560, "i32" },
