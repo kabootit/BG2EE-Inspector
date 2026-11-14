@@ -1,6 +1,7 @@
-import { strictEqual } from "node:assert/strict";
+import { deepStrictEqual, strictEqual } from "node:assert/strict";
 import { readCre, RES_TYPE } from "../../src/gamefiles/iebinary.ts";
 import { type Disk, openGameFiles, readCreature } from "../../src/gamefiles/resources.ts";
+import { GAME_DIR } from "../../src/shared/config.ts";
 import { biffFile, creFile, keyFile } from "./fixtures.ts";
 
 /** A game folder in memory: chitin.key, one archive, and optionally a patched file in override/. */
@@ -52,4 +53,29 @@ Deno.test("override/ comes before the archives, whatever the file name's case", 
   const found = await readCreature(await openGameFiles("/game", fakeDisk(true)), "COWH");
   strictEqual(found?.source, "override");
   strictEqual(readCre("COWH", found!.bytes).maxHp, 99);
+});
+
+// The spawn check's fixtures, from the one place they are listed.
+const FIXTURES = (await Deno.readTextFile("test/lua/a7xspawn.lua"))
+  .match(/^local FIXTURES = \{ (.*) \}$/m)![1]
+  .split(",").map((s) => s.trim().replace(/"/g, ""));
+
+Deno.test("each spawn fixture is in the installed game, with no items and no effects", async () => {
+  let files;
+  try {
+    files = await openGameFiles(GAME_DIR);
+  } catch (error) {
+    // Not installed on this machine. A permission error is not skipped, so the check cannot pass
+    // without having run.
+    if (error instanceof Deno.errors.NotFound) return;
+    throw error;
+  }
+  strictEqual(FIXTURES.length, 4, "fixtures listed");
+  for (const resref of FIXTURES) {
+    const found = await readCreature(files, resref);
+    strictEqual(found === null, false, `${resref} is in the game`);
+    const c = readCre(resref, found!.bytes);
+    deepStrictEqual([resref, c.itemCount, c.effectCount], [resref, 0, 0]);
+    strictEqual(c.acNatural, c.acEffective, `${resref}: one AC to compare with`);
+  }
 });
