@@ -1,5 +1,6 @@
 import { deepStrictEqual, strictEqual } from "node:assert/strict";
 import { readCre } from "../../src/gamefiles/iebinary.ts";
+import type { SpawnCreature } from "../../src/model/schemas.ts";
 import {
   changesSince,
   compareCreature,
@@ -12,58 +13,106 @@ import { creFile } from "../gamefiles/fixtures.ts";
 
 // Lines as the engine logs them: Infinity_Log's text inside the engine's own line format.
 const engine = (s: string) =>
-  `2026-11-13 21:00:00.000 BaldursGateIIEnhancedEdition[1:2] INFO: LUA: ${s}`;
+  `2026-11-14 21:00:00.000 BaldursGateIIEnhancedEdition[1:2] INFO: LUA: ${s}`;
 
-// The values of test/gamefiles/fixtures.ts's creFile(), as the walker would log them.
-const EQUAL = "resref=MUMFIG01 block=temp hp=30/48 ac=4,-1,2,0,-3 thac0=17 saves=13,15,14,16,16 " +
-  "resist=-25,100,40,100,-25,100,50,50,50,80 mr=0 ea=128";
+// What test/lua/a7xspawn.lua writes for the fake game: four spawns, one fixture found, its header.
+const GOLDEN = (await Deno.readTextFile("test/fixtures/a7xspawn.txt")).split("\n").filter((l) => l);
+const LOG = GOLDEN.map(engine).join("\n");
 
-const LOG = [
-  engine("A7XSPAWN 1 spawn MUMFIG01 ok "),
-  engine("A7XSPAWN 1 spawn SHFIRE failed no such creature"),
-  engine(`A7XSPAWN 1 creature 300 ${EQUAL}`),
-  engine("A7XSPAWN 2 creature 300 " + EQUAL.replace("thac0=17", "thac0=15")),
-  engine("A7XSPAWN 2 header 300 435245"),
-].join("\n");
+// The values of test/gamefiles/fixtures.ts's creFile(), as the walker would read them.
+const EQUAL: SpawnCreature = {
+  run: 1,
+  kind: "creature",
+  id: 300,
+  resref: "MUMFIG01",
+  block: "temp",
+  hp: { cur: 30, max: 48 },
+  ac: { value: 4, crushing: -1, missile: 2, piercing: 0, slashing: -3 },
+  thac0: 17,
+  saves: { death: 13, wand: 15, poly: 14, breath: 16, spell: 16 },
+  resist: {
+    fire: -25,
+    cold: 100,
+    electricity: 40,
+    acid: 100,
+    magic_fire: -25,
+    magic_cold: 100,
+    slashing: 50,
+    crushing: 50,
+    piercing: 50,
+    missile: 80,
+  },
+  mr: 0,
+  ea: 128,
+};
 
-Deno.test("spawn runs are found inside engine log lines, with spawns, creatures and headers", () => {
-  const runs = parseSpawns(LOG);
-  deepStrictEqual(runs.map((r) => r.run), [1, 2]);
-  deepStrictEqual(runs[0].spawned, [
-    { resref: "MUMFIG01", ok: true, why: "" },
-    { resref: "SHFIRE", ok: false, why: "no such creature" },
+Deno.test("the spawn check's lines fold into a run with spawns, creatures and headers", () => {
+  const { runs, problems } = parseSpawns(LOG);
+  deepStrictEqual(problems, []);
+  strictEqual(runs.length, 1);
+  deepStrictEqual(runs[0].spawned.map((s) => [s.resref, s.ok]), [
+    ["COWH", true],
+    ["DRBOD", true],
+    ["DADROW8", true],
+    ["SHFIRE", true],
   ]);
   const c = runs[0].creatures[0];
-  deepStrictEqual([c.id, c.resref, c.block, c.hp], ["300", "MUMFIG01", "temp", "30/48"]);
-  strictEqual(c.values.get("resist.magic_fire"), "-25");
-  strictEqual(c.values.get("mr"), "0");
-  deepStrictEqual([...runs[1].headers.get("300")!], [0x43, 0x52, 0x45]);
+  deepStrictEqual([c.resref, c.block, c.hp.max, c.ea], ["COWH", "derived", 60, 255]);
+  strictEqual(runs[0].headers.get(c.id)?.length, 0x2d4);
 });
 
 Deno.test("a creature whose values equal its file compares equal in every field", () => {
-  const cre = readCre("MUMFIG01", creFile());
-  const fields = compareCreature(parseSpawns(LOG)[0].creatures[0], cre, 0);
+  const fields = compareCreature(EQUAL, readCre("MUMFIG01", creFile()), 0);
   strictEqual(fields.length, 24); // max HP, 5 AC, THAC0, 5 saves, 10 resistances, MR, EA
   deepStrictEqual(fields.filter((f) => !f.ok), []);
 });
 
 Deno.test("a value that differs from the file is named with both values", () => {
-  const cre = readCre("MUMFIG01", creFile());
-  const diff = compareCreature(parseSpawns(LOG)[1].creatures[0], cre, 0).filter((f) => !f.ok);
-  deepStrictEqual(diff, [{ field: "thac0", walker: "15", file: "17", ok: false }]);
+  const diff = compareCreature({ ...EQUAL, thac0: 15 }, readCre("MUMFIG01", creFile()), 0)
+    .filter((f) => !f.ok);
+  deepStrictEqual(diff, [{ field: "thac0", walker: 15, file: 17, ok: false }]);
+});
+
+Deno.test("the AC compared with the walker's is the file's plus the Dexterity adjustment", () => {
+  // As the first run found: a file AC of 4 with DEX 18 (DEXMOD.2DA: -4) is an AC of 0 in the game.
+  const walker = { ...EQUAL, ac: { ...EQUAL.ac, value: 0 } };
+  const ac = compareCreature(walker, readCre("MUMFIG01", creFile()), -4).find((f) =>
+    f.field === "ac"
+  );
+  deepStrictEqual(ac, { field: "ac", walker: 0, file: 0, ok: true });
+});
+
+Deno.test("the run that spawned is judged; a later reading lists what changed since", () => {
+  const later = LOG.replaceAll('"run":1', '"run":2').split("\n")
+    .filter((l) => !l.includes('"kind":"spawn"')).join("\n")
+    .replace('"hp":{"cur":60,"max":60}', '"hp":{"cur":0,"max":60}').replace('"ea":255', '"ea":128');
+  const { runs } = parseSpawns(LOG + "\n" + later);
+  strictEqual(judgedRun(runs).run, 1);
+  deepStrictEqual(changesSince(runs[0].creatures[0], runs[1].creatures[0]), [
+    "hp: 60/60 -> 0/60",
+    "ea: 255 -> 128",
+  ]);
+  deepStrictEqual(changesSince(EQUAL, EQUAL), []);
 });
 
 Deno.test("a spawned fixture not found, an error, or no spawn at all fails the run", () => {
-  const [first] = parseSpawns(LOG);
-  deepStrictEqual(spawnProblems(first, ["MUMFIG01"]), []);
-  deepStrictEqual(spawnProblems(first, ["MUMFIG01", "COWH"]), [
-    "COWH: spawned but not found in run 1",
-  ]);
-  deepStrictEqual(spawnProblems(first, []), ["no fixture was spawned in this session"]);
-  const failed = parseSpawns(engine("A7XSPAWN 1 error no console object C"))[0];
-  deepStrictEqual(spawnProblems(failed, ["COWH"]), [
+  const [run] = parseSpawns(LOG).runs;
+  deepStrictEqual(spawnProblems(run, ["COWH"]), []);
+  deepStrictEqual(spawnProblems(run, ["COWH", "DRBOD"]), ["DRBOD: spawned but not found in run 1"]);
+  deepStrictEqual(spawnProblems(run, []), ["no fixture was spawned in this session"]);
+  const failed = parseSpawns(
+    engine('A7XSPAWN\t{"kind":"error","run":1,"why":"no console object C"}'),
+  );
+  deepStrictEqual(spawnProblems(failed.runs[0], ["COWH"]), [
     "the check could not run: no console object C",
   ]);
+});
+
+Deno.test("a creature line missing a field is a schema problem, not a creature", () => {
+  const broken = LOG.replace('"mr":0,', "");
+  const { runs, problems } = parseSpawns(broken);
+  strictEqual(runs[0].creatures.length, 0);
+  strictEqual(problems.some((p) => p.includes("mr")), true);
 });
 
 Deno.test("header differences are the offsets where the engine's copy and the file disagree", () => {
@@ -72,29 +121,4 @@ Deno.test("header differences are the offsets where the engine's copy and the fi
   copy[0x24] = 0;
   copy[0x100] = 9;
   deepStrictEqual(headerDifferences(copy, file, file.length), [0x24, 0x100]);
-});
-
-Deno.test("the AC compared with the walker's is the file's plus the Dexterity adjustment", () => {
-  // As the first run found: a file AC of 4 with DEX 18 (DEXMOD.2DA: -4) is an AC of 0 in the game.
-  const cre = readCre("MUMFIG01", creFile());
-  const walker =
-    parseSpawns(engine(`A7XSPAWN 1 creature 300 ${EQUAL.replace("ac=4,", "ac=0,")}`))[0];
-  const ac = compareCreature(walker.creatures[0], cre, -4).find((f) => f.field === "ac");
-  deepStrictEqual(ac, { field: "ac", walker: "0", file: "0", ok: true });
-});
-
-Deno.test("the run that spawned is judged, and a later reading lists what changed since", () => {
-  const runs = parseSpawns(
-    LOG + "\n" + engine(
-      "A7XSPAWN 3 creature 300 " +
-        EQUAL.replace("hp=30/48", "hp=0/48").replace("ea=128", "ea=255"),
-    ),
-  );
-  strictEqual(judgedRun(runs).run, 1);
-  strictEqual(judgedRun(parseSpawns(engine(`A7XSPAWN 4 creature 300 ${EQUAL}`))).run, 4);
-  deepStrictEqual(changesSince(runs[0].creatures[0], runs[2].creatures[0]), [
-    "hp: 30/48 -> 0/48",
-    "ea: 128 -> 255",
-  ]);
-  deepStrictEqual(changesSince(runs[0].creatures[0], runs[0].creatures[0]), []);
 });

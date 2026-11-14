@@ -169,9 +169,9 @@ end
 
 local function emit(r)
   for _, line in ipairs(F.lines(r)) do say(line) end
-  local json, why = J.encode(r)
-  if json and type(Infinity_Log) == "function" then Infinity_Log("A7XDATA\t" .. json) end
-  if not json then say("[A7X] could not write the record: " .. tostring(why)) end
+  local line, why = J.line("A7XDATA", r)
+  if line and type(Infinity_Log) == "function" then Infinity_Log(line) end
+  if not line then say("[A7X] could not write the record: " .. tostring(why)) end
 end
 
 local USAGE = '[A7X] A7X.show(id), A7X.show("enemies"), A7X.show("party") or A7X.show("all")'

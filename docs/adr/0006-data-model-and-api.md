@@ -64,13 +64,19 @@ Lua output is tested against.**
 
 ### The definition
 
-- **A Zod schema** (`src/model/schema.ts`, `jsr:@zod/zod@4`) is the one definition outside the game:
+- **A Zod schema** (`src/model/schemas.ts`, `jsr:@zod/zod@4`) is the one definition outside the game:
   the TypeScript type comes from it, `deno task verify` checks every `A7XDATA` line with it, and
   `docs/data-model.schema.json` is generated from it for tools that do not use TypeScript. Objects
   are strict: an unknown field fails.
-- **One golden file ties the two languages**: `test/fixtures/a7xdata.txt` is what the Lua API writes
-  for the fake game; the Lua test requires exactly those lines and the Deno test requires each to
-  pass the Zod schema.
+- **Every line the game writes is defined the same way**, folded in on 2026-11-14 after code review
+  ([central schemas plan](../plans/2026-11-14-central-schemas.md)): the checks' `A7XCHECK`,
+  `A7XLIST` and `A7XSPAWN` lines are JSON too, each a discriminated union by `kind` in the same
+  file, `src/model/schemas.ts`, which holds every data shape in the project and every type, inferred
+  from the schemas. The code that judges each check switches over every kind, and TypeScript refuses
+  to compile it while a kind is unhandled.
+- **One golden file per prefix ties the two languages**: `test/fixtures/` holds what the Lua writes
+  for the fake game (`a7xdata.txt`, `a7xcheck.txt`, `a7xlist.txt`, `a7xspawn.txt`); each Lua test
+  requires exactly those lines and the Deno test requires each to pass its schema.
 - **Versioning:** adding an optional field keeps `schema = 1`; renaming, removing or changing a
   field's meaning bumps it, with the schema, the spec and this ADR in the same change. Adding an API
   function is a minor version, changing or removing one a major.
@@ -79,6 +85,9 @@ Lua output is tested against.**
 
 - **One Zod schema outside, a tested Lua producer inside** (chosen): one definition where types exist,
   and the Lua side held to it by a shared file, at no cost in the game.
+- **Text lines for the checks, with a regex parser and a hand-written type beside each** (what the
+  Phase 3 checks used until 2026-11-14): each format was then defined twice, by the Lua that wrote it
+  and the parser that read it, with nothing tying the two together.
 - **A hand-written TypeScript guard and types**: no dependency, but the type, the check and a JSON
   Schema would be three things to keep in step by hand.
 - **TypeSpec**: designs HTTP and RPC APIs and emits JSON Schema; its compiler is a Node and npm tool,

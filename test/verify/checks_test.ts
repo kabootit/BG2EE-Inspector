@@ -1,67 +1,91 @@
-import { deepStrictEqual } from "node:assert/strict";
-import { offsetsHolding, parseChecks, parseDumps, problems } from "../../src/verify/checks.ts";
+import { deepStrictEqual, strictEqual } from "node:assert/strict";
+import {
+  dumpBytes,
+  memberDump,
+  offsetsHolding,
+  parseChecks,
+  problems,
+} from "../../src/verify/checks.ts";
 
 // Lines as the engine logs them: Infinity_Log's text inside the engine's own line format.
 const engine = (s: string) =>
-  `2026-11-06 19:01:32.541 BaldursGateIIEnhancedEdition[1:2] INFO: LUA: ${s}`;
+  `2026-11-14 19:01:32.541 BaldursGateIIEnhancedEdition[1:2] INFO: LUA: ${s}`;
 
-const PASSING = [
-  "A7X registered A7X_native at 0.5s, glClear call 1",
-  engine("A7XCHECK 1 party 1"),
-  engine("A7XCHECK 1 327681 skip not-populated"),
-  engine("A7XCHECK 2 party 2"),
-  engine("A7XCHECK 2 327681 name ok walker=Imoen Sister | engine=Imoen Sister"),
-  engine("A7XCHECK 2 327681 hp.cur ok walker=40 | engine=40"),
-  engine("A7XWALK 2 327681 ea_a=2 ea_b=2 block=derived"),
-  engine("A7XCHECK 2 393218 ac ok walker=-2 | engine=-2"),
-].join("\n");
+// What test/lua/a7xchk.lua writes for the fake game: member A compared, member B not populated.
+const GOLDEN = (await Deno.readTextFile("test/fixtures/a7xcheck.txt")).split("\n").filter((l) => l);
+const LOG = ["A7X registered A7X_native at 0.5s, glClear call 1", ...GOLDEN.map(engine)].join("\n");
+const A = 329681, B = 395218;
 
-Deno.test("checks are found inside engine log lines, by run", () => {
-  const runs = parseChecks(PASSING);
-  deepStrictEqual(runs.map((r) => r.run), [1, 2]);
-  deepStrictEqual(runs[1].members.map((m) => [m.id, m.fields.length]), [
-    ["327681", 2],
-    ["393218", 1],
+Deno.test("the party check's lines fold into a run of members, fields and evidence", () => {
+  const { runs, problems: bad } = parseChecks(LOG);
+  deepStrictEqual(bad, []);
+  deepStrictEqual(runs.map((r) => [r.run, r.size]), [[1, 2]]);
+  const [a, b] = runs[0].members;
+  deepStrictEqual([a.id, a.fields.length, a.fields.every((f) => f.ok)], [A, 20, true]);
+  strictEqual(a.walk?.block, "derived");
+  deepStrictEqual(a.dumps.map((d) => d.at), [0, 512, 1024, 1536]);
+  strictEqual(memberDump(a).length, 2048);
+  strictEqual(memberDump(a)[8], 0x31, "the sprite's type byte");
+  deepStrictEqual([b.id, b.skip, b.fields.length], [B, "not-populated", 0]);
+});
+
+Deno.test("a skipped member, a difference or a missing member fails the run", () => {
+  deepStrictEqual(problems(parseChecks(LOG).runs.at(-1)), [`${B}: skipped (not-populated)`]);
+  const diff = LOG.replace(
+    '{"engine":52,"field":"hp.max","id":329681,"kind":"field","ok":true',
+    '{"engine":53,"field":"hp.max","id":329681,"kind":"field","ok":false',
+  );
+  strictEqual(
+    problems(parseChecks(diff).runs.at(-1)).includes(`${A} hp.max: walker 52, engine 53`),
+    true,
+  );
+  const missing = LOG.split("\n").filter((l) => !l.includes('"kind":"skip"')).join("\n");
+  deepStrictEqual(problems(parseChecks(missing).runs.at(-1)), [
+    "party of 2, but 1 members reported",
   ]);
-  deepStrictEqual(runs[1].members[0].fields[0], {
-    field: "name",
-    ok: true,
-    walker: "Imoen Sister",
-    engine: "Imoen Sister",
-  });
 });
 
-Deno.test("the latest run passes when the whole party is compared and agrees", () => {
-  deepStrictEqual(problems(parseChecks(PASSING).at(-1)), []);
-  // The first run skipped a member, but only the latest is judged.
-  deepStrictEqual(problems(parseChecks(PASSING)[0]), ["327681: skipped (not-populated)"]);
-});
-
-Deno.test("a difference, a skip, a missing member and an error each fail", () => {
-  const diff = parseChecks(
-    engine("A7XCHECK 1 party 1\n") +
-      engine("A7XCHECK 1 5 hp.max DIFF walker=52 | engine=53"),
+Deno.test("a value the walker could not read is nil in the report", () => {
+  const unread = engine(
+    'A7XCHECK\t{"field":"name","id":5,"kind":"field","ok":false,"run":1,"walker":"X"}',
   );
-  deepStrictEqual(problems(diff.at(-1)), ["5 hp.max: walker 52, engine 53"]);
-  const missing = parseChecks(
-    engine("A7XCHECK 1 party 2\n") + engine("A7XCHECK 1 5 ac ok walker=1 | engine=1"),
-  );
-  deepStrictEqual(problems(missing.at(-1)), ["party of 2, but 1 members reported"]);
-  const error = parseChecks(engine("A7XCHECK 1 party error no game loaded"));
-  deepStrictEqual(problems(error.at(-1)), ["the check could not run: no game loaded"]);
-  deepStrictEqual(problems(parseChecks("nothing here").at(-1)), ["no A7XCHECK lines in the log"]);
+  const run =
+    parseChecks([engine('A7XCHECK\t{"kind":"party","run":1,"size":1}'), unread].join("\n"))
+      .runs[0];
+  deepStrictEqual(problems(run), ["5 name: walker X, engine nil"]);
 });
 
-Deno.test("dumps of one run are found, and the offsets every dump shares a value at", () => {
-  const log = [
-    engine("A7XDUMP 1 5 0002ff02"),
-    engine("A7XDUMP 2 5 0002ff02"),
-    engine("A7XDUMP 2 6 01020202"),
-    engine("A7XDUMP 2 7 ??020002"),
-  ].join("\n");
-  const dumps = parseDumps(log, 2);
-  deepStrictEqual(dumps.map((d) => d.id), ["5", "6", "7"]);
-  deepStrictEqual(dumps[2].bytes, [null, 2, 0, 2]);
+Deno.test("an error line, or no lines, fails; the latest run is the one judged", () => {
+  const error = parseChecks(engine('A7XCHECK\t{"kind":"error","run":1,"why":"no game loaded"}'));
+  deepStrictEqual(problems(error.runs[0]), ["the check could not run: no game loaded"]);
+  deepStrictEqual(problems(undefined), ["no A7XCHECK lines in the log"]);
+  const two = parseChecks(LOG + "\n" + engine('A7XCHECK\t{"kind":"party","run":2,"size":0}'));
+  deepStrictEqual(two.runs.map((r) => r.run), [1, 2]);
+  deepStrictEqual(problems(two.runs.at(-1)), []);
+});
+
+Deno.test("a line that does not match its schema is a problem naming the log line", () => {
+  const { runs, problems: bad } = parseChecks(
+    [engine('A7XCHECK\t{"kind":"party","run":1,"size":2,"extra":1}'), engine("A7XCHECK\t{oops}")]
+      .join("\n"),
+  );
+  deepStrictEqual(runs, []);
+  strictEqual(bad.length, 2);
+  strictEqual(bad[0].startsWith("log line 1: "), true);
+  strictEqual(bad[1], "log line 2: not JSON");
+});
+
+Deno.test("a missing dump chunk leaves its bytes unknown and the others at their offsets", () => {
+  const [a] = parseChecks(LOG).runs[0].members;
+  const gap = memberDump({ ...a, dumps: a.dumps.filter((d) => d.at !== 512) });
+  strictEqual(gap.length, 2048);
+  strictEqual(gap[600], null);
+  strictEqual(gap[8], 0x31);
+});
+
+Deno.test("offsets holding a value in every dump are found; unreadable bytes hold nothing", () => {
+  const dumps = ["0002??02", "0102??02"].map(dumpBytes);
+  deepStrictEqual(dumps[0], [0, 2, null, 2]);
   deepStrictEqual(offsetsHolding(dumps, 2), [1, 3]);
   deepStrictEqual(offsetsHolding([], 2), []);
 });

@@ -22,10 +22,10 @@ in [the plan](../plans/2026-11-13-spawn-harness.md#analysis-done-in-plan-mode-re
 **Spawning changes the game.** Load a save you do not mind losing the state of, and quit without
 saving: the four creatures would otherwise stay in that save.
 
-The walker's Lua (`a7xoff.lua`, `a7xwalk.lua`) and the spawn script (`a7xspawn.lua`) are copied into
-the game's `override/` folder for the session. In the game, the only thing typed is
-`Infinity_DoFile("a7xspawn")`. Results go to the session log; the game shows a one-line summary each
-time the script runs.
+The walker's Lua (`a7xoff.lua`, `a7xwalk.lua`), the JSON writer (`a7xjson.lua`) and the spawn script
+(`a7xspawn.lua`) are copied into the game's `override/` folder for the session. In the game, the only
+thing typed is `Infinity_DoFile("a7xspawn")`. Results go to the session log; the game shows a
+one-line summary each time the script runs.
 
 ## Before you start
 
@@ -33,12 +33,13 @@ time the script runs.
 - **The repo is in the state to test.** Committed or not; the run tests the local working tree, and
   the Runs row notes the latest commit and whether there were local changes.
 - **`Debug Mode` is 1** in `Baldur.lua`, so Ctrl+Space opens the Lua console in a loaded game.
-- **The three files are in the game's `override/` folder.** From the repo folder:
+- **The four files are in the game's `override/` folder.** From the repo folder:
 
   ```sh
   G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
   mkdir -p "$G/override"
-  cp mod/inspector/lib/a7xoff.lua mod/inspector/lib/a7xwalk.lua test/lua/a7xspawn.lua "$G/override/"
+  cp mod/inspector/lib/a7xoff.lua mod/inspector/lib/a7xwalk.lua mod/inspector/lib/a7xjson.lua \
+    test/lua/a7xspawn.lua "$G/override/"
   ```
 
   They are removed again at the end (step 7).
@@ -70,7 +71,7 @@ time the script runs.
    The message window shows one line, such as `A7X spawn check 1: spawned 4, found 4 of 4 (details in
    the session log)`, or what is missing, or `A7X spawn check 1 could not run: <reason>`. Note where
    the creatures appeared: at the pointer, beside the party, or elsewhere. No line means the script
-   did not load: check that the three files are in `override/`.
+   did not load: check that the four files are in `override/`.
 4. **Let the game run, then read again** (2 minutes). Unpause for about three seconds, pause again,
    and run the same line. The summary says `A7X spawn check 2: spawned earlier, found 4 of 4`, or
    fewer if one has left the area. The first reading is the one judged, because a `.cre` describes a
@@ -79,11 +80,12 @@ time the script runs.
    exits.
 6. **Check the save was not changed**, if in doubt: load it again later; the four creatures must not
    be there.
-7. **Remove the three files**, and the `override/` folder if it is now empty:
+7. **Remove the four files**, and the `override/` folder if it is now empty:
 
    ```sh
    G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
-   rm "$G/override/a7xoff.lua" "$G/override/a7xwalk.lua" "$G/override/a7xspawn.lua"
+   rm "$G/override/a7xoff.lua" "$G/override/a7xwalk.lua" "$G/override/a7xjson.lua" \
+     "$G/override/a7xspawn.lua"
    rmdir "$G/override"
    ```
 
@@ -124,7 +126,7 @@ appeared. The run passes when:
 | No Lua errors | the session log | no `LUA ERROR` line |
 
 A `DIFF` is a finding, not only a failure: the delivery note records the field, both values and the
-stats block read (`block=`), and the rule behind it, an engine adjustment or a walker mistake, is
+stats block read (`block`), and the rule behind it, an engine adjustment or a walker mistake, is
 settled before anything is fixed. The header differences printed for each creature are evidence for
 later work, not a pass condition.
 
@@ -147,3 +149,4 @@ version of the test it was judged by.
 | --- | --- | --- | --- |
 | 2026-11-13 | the commit that adds the spawn check, after the first run | The second fixture is `DRBOD` instead of `MUMFIG01`, which died or vanished between the two readings; `verify` compares AC as the file's plus the `DEXMOD.2DA` Dexterity adjustment | `MUMFIG01` as a fixture, and AC compared with the file's AC alone |
 | 2026-11-13 | the same commit, after the second run | The reading taken straight after spawning is judged, not the second; later readings are printed with what changed since; a fight with the spawned creatures is no longer a reason to stop | the second reading judged, which the tester's attack had changed (three creatures at 0 HP, one turned hostile) |
+| 2026-11-14 | the commit that writes the checks' lines as JSON | Before you start and the last steps: `a7xjson.lua`, the JSON writer, is copied and removed with the others; the script writes its lines as JSON defined in `src/model/schemas.ts`, which `deno task verify` checks | three files copied, and lines written as text |

@@ -1,5 +1,5 @@
 -- a7xspawn.lua: the spawn check, run in the game with Infinity_DoFile("a7xspawn") after a7xoff.lua,
--- a7xwalk.lua and this file are copied into override/ (docs/manual-tests/spawn.md).
+-- a7xwalk.lua, a7xjson.lua and this file are copied into override/ (docs/manual-tests/spawn.md).
 --
 -- On its first run in a session it spawns the fixtures below with the engine's own console object
 -- (C:CreateCreature), which changes the game: the manual test uses a save that is not saved again.
@@ -7,11 +7,11 @@
 -- walker reads and the .cre header the engine holds; deno task verify compares both with the files.
 -- The fixtures have no items and no effects in their .cre, so equipment cannot change their stats.
 --
---   A7XSPAWN <run> spawn <resref> <ok|failed> <why>
---   A7XSPAWN <run> creature <id> resref=<r> block=<b> hp=<cur>/<max> ac=<ac>,<crushing>,<missile>,<piercing>,<slashing>
---     thac0=<t> saves=<death>,<wand>,<poly>,<breath>,<spell> resist=<A7XWALK.RESISTS, in order> mr=<m> ea=<ea>
---   A7XSPAWN <run> header <id> <hex of the .cre header>
---   A7XSPAWN <run> error <why>
+-- Each result is one line through Infinity_Log: "A7XSPAWN", a tab, and a JSON object with the run
+-- and a kind. The kinds and their fields are defined in src/model/schemas.ts (SpawnLine):
+--
+--   spawn (resref, ok, why), error (why), header (id, hex of the .cre header),
+--   creature (id, resref, block, hp, ac, thac0, saves, resist, mr, ea), each table by name
 --
 -- Everything runs inside pcall, and one summary line goes to the message window at the end.
 
@@ -20,20 +20,15 @@ local FIXTURES = { "COWH", "DRBOD", "DADROW8", "SHFIRE" }
 A7XSPAWN_run = (A7XSPAWN_run or 0) + 1
 local run = A7XSPAWN_run
 
-local function log(...)
-  local parts = {}
-  for i = 1, select("#", ...) do parts[#parts + 1] = tostring((select(i, ...))) end
-  Infinity_Log(table.concat(parts, " "))
+-- One line: the run and `t`, as JSON. A line that cannot be written whole becomes an error line.
+local function emit(t)
+  t.run = run
+  local line, why = A7XJSON.line("A7XSPAWN", t)
+  Infinity_Log(line or A7XJSON.line("A7XSPAWN", { run = run, kind = "error", why = why }))
 end
 
 local function hex(block)
   return (block:gsub(".", function(c) return string.format("%02x", c:byte()) end))
-end
-
-local function joined(t, keys)
-  local out = {}
-  for i, k in ipairs(keys) do out[i] = tostring(t[k]) end
-  return table.concat(out, ",")
 end
 
 local failure
@@ -44,8 +39,12 @@ local ok, err = pcall(function()
   if type(Infinity_DoFile) == "function" then
     Infinity_DoFile("a7xoff")
     Infinity_DoFile("a7xwalk")
+    Infinity_DoFile("a7xjson")
   end
-  if type(A7XWALK) ~= "table" or not A7XWALK.creatures then failure = "walker not loaded" return end
+  if type(A7XWALK) ~= "table" or not A7XWALK.creatures or type(A7XJSON) ~= "table" then
+    failure = "walker or JSON writer not loaded"
+    return
+  end
   local area, why = A7XWALK.visible_area()
   if not area then failure = why return end
 
@@ -54,7 +53,7 @@ local ok, err = pcall(function()
     spawned = 0
     for _, resref in ipairs(FIXTURES) do
       local done, e = pcall(function() C:CreateCreature(resref) end)
-      log("A7XSPAWN", run, "spawn", resref, done and "ok" or "failed", done and "" or tostring(e))
+      emit({ kind = "spawn", resref = resref, ok = done, why = not done and tostring(e) or nil })
       if done then spawned = spawned + 1 end
     end
     A7XSPAWN_spawned = true
@@ -70,13 +69,12 @@ local ok, err = pcall(function()
     local resref = c and c.resref and c.resref:upper()
     if resref and wanted[resref] then
       seen[resref] = true
-      log("A7XSPAWN", run, "creature", c.id, "resref=" .. resref, "block=" .. c.stats_block,
-        "hp=" .. tostring(c.hp.cur) .. "/" .. tostring(c.hp.max),
-        "ac=" .. joined(c.ac, { "value", "crushing", "missile", "piercing", "slashing" }),
-        "thac0=" .. tostring(c.thac0), "saves=" .. joined(c.saves, A7XWALK.SAVES),
-        "resist=" .. joined(c.resist, A7XWALK.RESISTS), "mr=" .. tostring(c.mr), "ea=" .. tostring(c.ea))
+      emit({
+        kind = "creature", id = c.id, resref = resref, block = c.stats_block, hp = c.hp, ac = c.ac,
+        thac0 = c.thac0, saves = c.saves, resist = c.resist, mr = c.mr, ea = c.ea,
+      })
       local header = A7X_native.ReadBlock(e.sprite + O.sprite.cre, O.sprite.cre_size)
-      log("A7XSPAWN", run, "header", c.id, header and hex(header) or "unreadable")
+      emit({ kind = "header", id = c.id, hex = header and hex(header) or nil })
     end
   end
   for _, resref in ipairs(FIXTURES) do
@@ -84,7 +82,7 @@ local ok, err = pcall(function()
   end
 end)
 if not ok then failure = tostring(err) end
-if failure then log("A7XSPAWN", run, "error", failure) end
+if failure and type(A7XJSON) == "table" then emit({ kind = "error", why = failure }) end
 
 local summary
 if failure then

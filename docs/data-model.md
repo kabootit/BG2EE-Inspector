@@ -2,7 +2,7 @@
 
 The record the inspector gives for a creature, schema 1: what each field means and which check proved
 it. Mods receive it as a Lua table from [the API](api.md); tools outside the game receive it as JSON
-in an `A7XDATA` line. Its one machine definition is the Zod schema in `src/model/schema.ts`, also
+in an `A7XDATA` line. Its one machine definition is the Zod schema in `src/model/schemas.ts`, also
 published as JSON Schema in [data-model.schema.json](data-model.schema.json); why is in
 [ADR-0006](adr/0006-data-model-and-api.md).
 

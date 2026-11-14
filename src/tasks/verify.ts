@@ -1,14 +1,22 @@
 /**
  * `deno task verify [session-log]`: judge the checks in a session log, by default the newest
- * logs/session-*.log. The party check (src/verify/checks.ts): every compared field of its latest
- * run. The creature list check (src/verify/list.ts): every run, each with its area and creatures.
- * The spawn check (src/verify/spawn.ts): the run that spawned, each creature against its .cre file,
- * read from the installed game, and what later runs saw change. The A7XDATA lines A7X.show writes
- * (src/verify/data.ts): every one a schema-1 record. Exits non-zero unless the log holds at least one check and every run
- * judged passed.
+ * logs/session-*.log. Every line is JSON defined in src/model/schemas.ts; a line that does not match
+ * its schema fails the run. The party check (src/verify/checks.ts): every compared field of its
+ * latest run. The creature list check (src/verify/list.ts): every run, each with its area and
+ * creatures. The spawn check (src/verify/spawn.ts): the run that spawned, each creature against its
+ * .cre file, read from the installed game, and what later runs saw change. The A7XDATA records
+ * A7X.show writes: every one a schema-1 record. Exits non-zero unless the log holds at least one check
+ * and every run judged passed.
  */
-import { offsetsHolding, parseChecks, parseDumps, problems } from "../verify/checks.ts";
-import { listProblems, type ListRun, parseLists } from "../verify/list.ts";
+import {
+  type CheckRun,
+  type ListRun,
+  parseLines,
+  RecordSchema,
+  type SpawnRun,
+} from "../model/schemas.ts";
+import { memberDump, offsetsHolding, parseChecks, problems } from "../verify/checks.ts";
+import { listProblems, parseLists } from "../verify/list.ts";
 import {
   changesSince,
   compareCreature,
@@ -16,12 +24,10 @@ import {
   judgedRun,
   parseSpawns,
   spawnProblems,
-  type SpawnRun,
 } from "../verify/spawn.ts";
 import { cell, CRE_HEADER_SIZE, read2da, readCre } from "../gamefiles/iebinary.ts";
 import { openGameFiles, readCreature, readResource } from "../gamefiles/resources.ts";
 import { GAME_DIR } from "../shared/config.ts";
-import { parseData } from "../verify/data.ts";
 import { runTask } from "../shared/task.ts";
 
 async function newestLog(): Promise<string | undefined> {
@@ -32,9 +38,14 @@ async function newestLog(): Promise<string | undefined> {
   return names.sort().at(-1) && `logs/${names.sort().at(-1)}`;
 }
 
+/** Lines of one prefix that did not match their schema; true when there were none. */
+function noBadLines(prefix: string, found: string[]): boolean {
+  for (const p of found) console.error(`verify: ${prefix}: ${p}`);
+  return found.length === 0;
+}
+
 /** The party check's latest run; true when it passed. */
-function judgeParty(log: string, path: string): boolean {
-  const runs = parseChecks(log);
+function judgeParty(runs: CheckRun[], path: string): boolean {
   const run = runs.at(-1);
   console.log(
     `verify: ${path}, ${runs.length} run(s) of the party check; judging run ${run?.run ?? "-"}`,
@@ -43,12 +54,14 @@ function judgeParty(log: string, path: string): boolean {
     if (m.skip) console.log(`  ${m.id}  skipped: ${m.skip}`);
     for (const f of m.fields) {
       console.log(
-        `  ${m.id}  ${f.field.padEnd(16)} ${f.ok ? "ok  " : "DIFF"}  ${f.walker}  ${f.engine}`,
+        `  ${m.id}  ${f.field.padEnd(16)} ${f.ok ? "ok  " : "DIFF"}  ${f.walker ?? "nil"}  ${
+          f.engine ?? "nil"
+        }`,
       );
     }
   }
   // A party member's EA is 2 (PC): offsets reading 2 in every member's sprite are where it may be.
-  const dumps = run ? parseDumps(log, run.run) : [];
+  const dumps = (run?.members ?? []).filter((m) => m.dumps.length > 0).map(memberDump);
   if (dumps.length > 0) {
     const hits = offsetsHolding(dumps, 2).map((o) => `0x${o.toString(16)}`);
     console.log(
@@ -69,11 +82,20 @@ function judgeParty(log: string, path: string): boolean {
 function judgeList(run: ListRun): boolean {
   const area = run.area ? `${run.area.resref} (index ${run.area.index})` : "no area";
   console.log(`verify: creature list run ${run.run} in ${area}, ${run.creatures.length} creatures`);
-  if (run.scan) console.log(`  scan ${run.scan}`);
-  for (const c of run.creatures) {
+  if (run.scan) {
+    const s = run.scan;
     console.log(
-      `  ${c.id}  ${c.group.padEnd(8)} ${c.party ? "party" : "     "}  ea ${c.ea.padEnd(3)}  ` +
-        `hp ${c.hp.padEnd(7)}  ${c.name}`,
+      `  scan slots=${s.slots} objects=${s.objects} sprites=${s.sprites} listed=${s.listed} ms=${
+        s.ms ?? "-"
+      }`,
+    );
+  }
+  for (const c of run.creatures) {
+    const hp = c.hp ? `${c.hp.cur ?? "?"}/${c.hp.max ?? "?"}` : "?";
+    console.log(
+      `  ${c.id}  ${(c.group ?? "?").padEnd(8)} ${c.party ? "party" : "     "}  ea ${
+        String(c.ea ?? "?").padEnd(3)
+      }  hp ${hp.padEnd(7)}  ${c.name ?? "(no name)"}`,
     );
   }
   for (const c of run.checks) {
@@ -98,7 +120,7 @@ async function judgeSpawn(runs: SpawnRun[], path: string): Promise<boolean> {
     `verify: ${path}, ${runs.length} run(s) of the spawn check; judging run ${run.run}`,
   );
   for (const s of runs.flatMap((r) => r.spawned)) {
-    console.log(`  spawn ${s.resref.padEnd(8)} ${s.ok ? "ok" : `failed ${s.why}`}`);
+    console.log(`  spawn ${s.resref.padEnd(8)} ${s.ok ? "ok" : `failed ${s.why ?? ""}`}`);
   }
   const found = spawnProblems(run, spawned);
   const files = await openGameFiles(GAME_DIR);
@@ -122,8 +144,8 @@ async function judgeSpawn(runs: SpawnRun[], path: string): Promise<boolean> {
       continue;
     }
     console.log(
-      `  ${c.id}  ${c.resref}  block=${c.block}  hp ${c.hp}  DEX ${cre.dex} (AC ${dexAc})  ` +
-        `(file: ${resource.source})`,
+      `  ${c.id}  ${c.resref}  block=${c.block}  hp ${c.hp.cur}/${c.hp.max}  DEX ${cre.dex} ` +
+        `(AC ${dexAc})  (file: ${resource.source})`,
     );
     for (const f of compareCreature(c, cre, dexAc)) {
       if (!f.ok) diffs++;
@@ -161,25 +183,6 @@ async function judgeSpawn(runs: SpawnRun[], path: string): Promise<boolean> {
   return false;
 }
 
-/** The A7XDATA lines; true when every one is a schema-1 record. */
-function judgeData(log: string, path: string): boolean {
-  const data = parseData(log);
-  console.log(`verify: ${path}, ${data.lines} A7XDATA line(s)`);
-  for (const r of data.records) {
-    console.log(
-      `  ${r.allegiance.side.padEnd(8)} ${String(r.id).padEnd(10)} hp ${
-        `${r.hp.cur}/${r.hp.max}`.padEnd(8)
-      } ${r.name}`,
-    );
-  }
-  if (data.problems.length === 0) {
-    console.log(`verify: data passed, ${data.lines} line(s), every one a schema-1 record`);
-    return true;
-  }
-  for (const p of data.problems) console.error(`verify: data: ${p}`);
-  return false;
-}
-
 await runTask(async () => {
   const path = Deno.args[0] ?? await newestLog();
   if (!path) {
@@ -187,26 +190,45 @@ await runTask(async () => {
     return 1;
   }
   const log = await Deno.readTextFile(path);
-  const party = parseChecks(log).length > 0;
+  const checks = parseChecks(log);
   const lists = parseLists(log);
   const spawns = parseSpawns(log);
-  const data = parseData(log).lines > 0;
-  if (!party && lists.length === 0 && spawns.length === 0 && !data) {
+  const data = parseLines(log, "A7XDATA", RecordSchema);
+  const lines = checks.runs.length + lists.runs.length + spawns.runs.length + data.count +
+    checks.problems.length + lists.problems.length + spawns.problems.length;
+  if (lines === 0) {
     console.error(`verify: ${path} has no A7XCHECK, A7XLIST, A7XSPAWN or A7XDATA lines`);
     return 1;
   }
-  let passed = true;
-  if (party) passed = judgeParty(log, path) && passed;
-  if (lists.length > 0) console.log(`verify: ${path}, ${lists.length} run(s) of the creature list`);
-  for (const run of lists) passed = judgeList(run) && passed;
-  if (lists.length > 1) {
+  // Every line must match its schema, whatever else is judged.
+  let passed = noBadLines("A7XCHECK", checks.problems);
+  passed = noBadLines("A7XLIST", lists.problems) && passed;
+  passed = noBadLines("A7XSPAWN", spawns.problems) && passed;
+  if (checks.runs.length > 0) passed = judgeParty(checks.runs, path) && passed;
+  if (lists.runs.length > 0) {
+    console.log(`verify: ${path}, ${lists.runs.length} run(s) of the creature list`);
+  }
+  for (const run of lists.runs) passed = judgeList(run) && passed;
+  if (lists.runs.length > 1) {
     console.log(
       `verify: creature list areas, in run order: ${
-        lists.map((r) => r.area?.resref ?? "-").join(", ")
+        lists.runs.map((r) => r.area?.resref ?? "-").join(", ")
       }`,
     );
   }
-  if (spawns.length > 0) passed = await judgeSpawn(spawns, path) && passed;
-  if (data) passed = judgeData(log, path) && passed;
+  if (spawns.runs.length > 0) passed = await judgeSpawn(spawns.runs, path) && passed;
+  if (data.count > 0) {
+    console.log(`verify: ${path}, ${data.count} A7XDATA line(s)`);
+    for (const r of data.lines) {
+      console.log(
+        `  ${r.allegiance.side.padEnd(8)} ${String(r.id).padEnd(10)} hp ${
+          `${r.hp.cur}/${r.hp.max}`.padEnd(8)
+        } ${r.name}`,
+      );
+    }
+    if (noBadLines("A7XDATA", data.problems)) {
+      console.log(`verify: data passed, ${data.count} line(s), every one a schema-1 record`);
+    } else passed = false;
+  }
   return passed ? 0 : 1;
 });

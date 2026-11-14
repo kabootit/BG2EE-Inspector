@@ -1,16 +1,15 @@
 -- a7xlist.lua: the creature list check, run in the game with Infinity_DoFile("a7xlist") after
--- a7xoff.lua, a7xwalk.lua and this file are copied into override/ (docs/manual-tests/creatures.md).
+-- a7xoff.lua, a7xwalk.lua, a7xjson.lua and this file are copied into override/
+-- (docs/manual-tests/creatures.md).
 --
 -- Lists every creature in the area on screen, then checks the list against what the engine itself
 -- provides: every party member (the ids behind the portraits) is in it and friendly, no id appears
 -- twice, each id leads back to its sprite by the engine's own id rule, and every creature has a
--- name. It writes, through Infinity_Log:
+-- name. Each result is one line through Infinity_Log: "A7XLIST", a tab, and a JSON object with the
+-- run and a kind. The kinds and their fields are defined in src/model/schemas.ts (ListLine):
 --
---   A7XLIST <run> area index=<i> resref=<resref>
---   A7XLIST <run> scan slots=<n> objects=<n> sprites=<n> listed=<n> ms=<t>
---   A7XLIST <run> creature <id> ea=<ea> group=<group> party=<yes|no> hp=<cur>/<max> state=<hex> name=<name>
---   A7XLIST <run> check <name> <ok|DIFF> <detail>
---   A7XLIST <run> error <why>
+--   area (index, resref), scan (slots, objects, sprites, listed, ms),
+--   creature (id, ea, group, party, hp, state, name), check (name, ok, detail), error (why)
 --
 -- Everything runs inside pcall, so a failure is logged rather than raised into the game. When it
 -- finishes, one summary line goes to the message window (Infinity_DisplayString).
@@ -18,21 +17,17 @@
 A7XLIST_run = (A7XLIST_run or 0) + 1
 local run = A7XLIST_run
 
-local function log(...)
-  local parts = {}
-  for i = 1, select("#", ...) do parts[#parts + 1] = tostring((select(i, ...))) end
-  Infinity_Log(table.concat(parts, " "))
+-- One line: the run and `t`, as JSON. A line that cannot be written whole becomes an error line.
+local function emit(t)
+  t.run = run
+  local line, why = A7XJSON.line("A7XLIST", t)
+  Infinity_Log(line or A7XJSON.line("A7XLIST", { run = run, kind = "error", why = why }))
 end
 
 local tally = { ok = 0, differ = 0 }
 local function check(name, ok, detail)
   tally[ok and "ok" or "differ"] = tally[ok and "ok" or "differ"] + 1
-  log("A7XLIST", run, "check", name, ok and "ok" or "DIFF", detail)
-end
-
--- Lua 5.2's %x refuses negative numbers, so a state with its top bit set is shown as unsigned.
-local function hex(n)
-  return type(n) == "number" and string.format("0x%x", n % 2 ^ 32) or "nil"
+  emit({ kind = "check", name = name, ok = ok, detail = detail })
 end
 
 local function list_of(ids)
@@ -46,19 +41,23 @@ local ok, err = pcall(function()
   if type(Infinity_DoFile) == "function" then
     Infinity_DoFile("a7xoff")
     Infinity_DoFile("a7xwalk")
+    Infinity_DoFile("a7xjson")
   end
-  if type(A7XWALK) ~= "table" or not A7XWALK.creatures then failure = "walker not loaded" return end
+  if type(A7XWALK) ~= "table" or not A7XWALK.creatures or type(A7XJSON) ~= "table" then
+    failure = "walker or JSON writer not loaded"
+    return
+  end
   local area, why = A7XWALK.visible_area()
   if not area then failure = why return end
   resref = area.resref
-  log("A7XLIST", run, "area", "index=" .. area.index, "resref=" .. tostring(resref))
+  emit({ kind = "area", index = area.index, resref = resref })
   local clock = type(os) == "table" and type(os.clock) == "function" and os.clock or nil
   local started = clock and clock()
   local list, counts = A7XWALK.creatures(area.pointer)
   if not list then failure = counts return end
-  local ms = clock and string.format("%.1f", (clock() - started) * 1000) or "-"
-  log("A7XLIST", run, "scan", "slots=" .. counts.slots, "objects=" .. counts.objects,
-    "sprites=" .. counts.sprites, "listed=" .. #list, "ms=" .. ms)
+  local ms = clock and tonumber(string.format("%.1f", (clock() - started) * 1000)) or nil
+  emit({ kind = "scan", slots = counts.slots, objects = counts.objects, sprites = counts.sprites,
+    listed = #list, ms = ms })
   local party, party_why = A7XWALK.party()
   if not party then failure = party_why return end
   local in_party = {}
@@ -77,9 +76,8 @@ local ok, err = pcall(function()
     else
       totals.other = totals.other + 1
     end
-    log("A7XLIST", run, "creature", e.id, "ea=" .. tostring(e.ea), "group=" .. tostring(group),
-      "party=" .. (in_party[e.id] and "yes" or "no"), "hp=" .. tostring(hp.cur) .. "/" .. tostring(hp.max),
-      "state=" .. hex(c.state), "name=" .. tostring(c.name))
+    emit({ kind = "creature", id = e.id, ea = e.ea, group = group, party = in_party[e.id] == true,
+      hp = (hp.cur or hp.max) and { cur = hp.cur, max = hp.max } or nil, state = c.state, name = c.name })
     if seen[e.id] then repeated[#repeated + 1] = tostring(e.id) end
     seen[e.id] = e
     if A7XWALK.lookup(e.id) ~= e.sprite then astray[#astray + 1] = tostring(e.id) end
@@ -98,7 +96,7 @@ local ok, err = pcall(function()
   check("names", #unnamed == 0, "no name: " .. list_of(unnamed))
 end)
 if not ok then failure = tostring(err) end
-if failure then log("A7XLIST", run, "error", failure) end
+if failure and type(A7XJSON) == "table" then emit({ kind = "error", why = failure }) end
 
 local summary
 if failure then

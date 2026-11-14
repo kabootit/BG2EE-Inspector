@@ -1,13 +1,15 @@
--- The party check (test/lua/a7xchk.lua) against the fake game and a fake characters[]: every field
--- of a member that agrees, a deliberate difference, a member whose record screen was never opened,
--- and the parse of the record screen's save text.
+-- The party check (test/lua/a7xchk.lua) against the fake game and a fake characters[]: its lines for
+-- a member who agrees and one whose record screen was never opened are exactly the golden file
+-- test/fixtures/a7xcheck.txt, which test/model/schemas_test.ts checks against the schema; then a
+-- deliberate difference, no game, the summary line, and the parse of the record screen's save text.
 
 local T = dofile("test/lua/testlib.lua")
 local F = dofile("test/lua/fakegame.lua")
 
-local logged
+local logged, shown
 function Infinity_Log(s) logged[#logged + 1] = s end
 function Infinity_DoFile(name) dofile("mod/inspector/lib/" .. name .. ".lua") end
+function Infinity_DisplayString(s) shown = s end
 
 -- In the engine's format: the shown save, then how far it is from the base save. Member A's bases
 -- are 10 to 14 and its shown saves 4, 0, 0, 0 and 7.
@@ -31,12 +33,16 @@ local function run()
   return logged
 end
 
-local function lines_for(lines, id)
-  local out = {}
+local function golden()
+  local lines = {}
+  for line in io.lines("test/fixtures/a7xcheck.txt") do lines[#lines + 1] = line end
+  return lines
+end
+
+local function find(lines, fragment)
   for _, l in ipairs(lines) do
-    if l:match("^A7XCHECK %d+ " .. id .. " ") then out[#out + 1] = l end
+    if l:find(fragment, 1, true) then return l end
   end
-  return out
 end
 
 T.test("the save text gives five shown and base values in order", function()
@@ -66,74 +72,45 @@ T.test("a member's save text from the third run gives the values the walker read
   T.eq(table.concat(base, " "), "3 5 4 4 6", "base")
 end)
 
-T.test("a member whose values all agree is all ok, with a walker line after", function()
+T.test("the lines for a member who agrees and one not populated are the golden file", function()
   F.world()
   characters = { [F.ID_A] = engine_a() }
-  local lines = run()
-  T.eq(lines[1], "A7XCHECK 1 party 2", "party line")
-  local a = lines_for(lines, F.ID_A)
-  T.eq(#a, 20, "compared fields") -- name, 2 hp, 5 ac, thac0, ea, 5 x 2 saves
-  for _, l in ipairs(a) do T.eq(l:match(" ok walker=") ~= nil, true, l) end
-  T.eq(a[1], "A7XCHECK 1 " .. F.ID_A .. " name ok walker=Alarion | engine=Alarion", "name line")
-  local walk
-  for _, l in ipairs(lines) do if l:match("^A7XWALK 1 " .. F.ID_A .. " block=") then walk = l end end
-  T.eq(walk ~= nil and walk:match(" block=derived state=0 ") ~= nil, true, "walker line")
-  local dump
-  for _, l in ipairs(lines) do if l:match("^A7XDUMP 1 " .. F.ID_A .. " ") then dump = l end end
-  local bytes = dump and dump:match(" (%S+)$")
-  T.eq(bytes and #bytes, 4096, "2048 dumped bytes as hex")
-  T.eq(bytes:sub(2 * 0x8 + 1, 2 * 0x8 + 2), "31", "the type byte in the dump")
+  local lines, want = run(), golden()
+  T.eq(#lines, #want, "line count")
+  for i = 1, #want do T.eq(lines[i], want[i], "line " .. i) end
+  for i = 1, #lines do T.eq(#lines[i] <= A7XJSON.MAX_LINE, true, "line " .. i .. " fits the log") end
+  local dumps = 0
+  for _, l in ipairs(lines) do if l:find('"kind":"dump"', 1, true) then dumps = dumps + 1 end end
+  T.eq(dumps, 4, "the 2048-byte dump in four 512-byte lines")
+  T.eq(find(lines, '"kind":"skip"'):find('"why":"not-populated"', 1, true) ~= nil, true, "B skipped")
+  T.eq(find(lines, '"kind":"walk"'):find('"keys":["AC","HP","THAC0","name","proficiencies"]', 1, true) ~= nil,
+    true, "the keys of characters[id] as evidence")
 end)
 
-T.test("the keys of characters[id] and the save text are logged as evidence", function()
-  F.world()
-  characters = { [F.ID_A] = engine_a() }
-  local keys, text
-  for _, l in ipairs(run()) do
-    keys = keys or l:match("^A7XWALK %d+ " .. F.ID_A .. " keys=(.*)$")
-    text = text or l:match("^A7XWALK %d+ " .. F.ID_A .. " savingThrows=(.*)$")
-  end
-  T.eq(keys, "AC,HP,THAC0,name,proficiencies", "keys")
-  T.eq(text, "string " .. SAVES_A:gsub("\n", "\\n"), "text, newlines escaped")
-end)
-
-T.test("a value that differs is a DIFF with both values", function()
+T.test("a value that differs is a field line with ok false and both values", function()
   F.world()
   local e = engine_a()
   e.HP.max = 53
   characters = { [F.ID_A] = e }
-  local found
-  for _, l in ipairs(run()) do if l:match(" hp%.max ") then found = l end end
-  T.eq(found, "A7XCHECK 1 " .. F.ID_A .. " hp.max DIFF walker=52 | engine=53", "diff line")
+  local line = find(run(), '"field":"hp.max"')
+  T.eq(line, 'A7XCHECK\t{"engine":53,"field":"hp.max","id":' .. F.ID_A ..
+    ',"kind":"field","ok":false,"run":1,"walker":52}', "the line")
 end)
 
-T.test("a member not in characters[] is skipped as not populated", function()
-  F.world()
-  characters = { [F.ID_A] = engine_a() }
-  local b = lines_for(run(), F.ID_B)
-  T.eq(#b, 1, "one line")
-  T.eq(b[1], "A7XCHECK 1 " .. F.ID_B .. " skip not-populated", "skip line")
-end)
-
-T.test("no game loaded is one error line", function()
+T.test("no game loaded is one error line and a could-not-run summary", function()
   F.world()
   F.field(F.ROOT, A7XOFF.chitin.game, 0)
   local lines = run()
   T.eq(#lines, 1, "one line")
-  T.eq(lines[1], "A7XCHECK 1 party error no game loaded", "error line")
+  T.eq(lines[1], 'A7XCHECK\t{"kind":"error","run":1,"why":"no game loaded"}', "error line")
+  T.eq(shown, "A7X party check 1 could not run: no game loaded", "summary")
 end)
 
 T.test("the check ends with one summary line in the message window", function()
   F.world()
   characters = { [F.ID_A] = engine_a() }
-  local shown
-  Infinity_DisplayString = function(s) shown = s end
   run()
   T.eq(shown, "A7X party check 1: 2 members, 20 fields equal, 0 differ, 1 skipped (details in the session log)", "summary")
-  F.field(F.ROOT, A7XOFF.chitin.game, 0)
-  run()
-  T.eq(shown, "A7X party check 1 could not run: no game loaded", "failure summary")
-  Infinity_DisplayString = nil
 end)
 
 T.done()

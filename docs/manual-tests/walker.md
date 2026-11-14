@@ -14,9 +14,9 @@ compares each with `characters[id]`, the table the engine fills for the record s
 shows no enemy stats until every value matches (the [gate](../README.md#terms) for Phase 3). What the
 walker reads and where each offset comes from: [docs/re-notes.md](../re-notes.md#engine-structures).
 
-The walker's Lua (`a7xoff.lua`, `a7xwalk.lua`) and the check script (`a7xchk.lua`) are copied into the
-game's `override/` folder for the session; the WeiDU component that installs them for good comes in
-Phase 4. In the game, the only thing typed is `Infinity_DoFile("a7xchk")`, which loads and runs them.
+The walker's Lua (`a7xoff.lua`, `a7xwalk.lua`), the JSON writer (`a7xjson.lua`) and the check script
+(`a7xchk.lua`) are copied into the game's `override/` folder for the session; the WeiDU component that
+installs them for good comes in Phase 4. In the game, the only thing typed is `Infinity_DoFile("a7xchk")`, which loads and runs them.
 Results go to the session log; the game shows only a one-line summary when the check is done.
 
 ## Before you start
@@ -25,12 +25,13 @@ Results go to the session log; the game shows only a one-line summary when the c
 - **The repo is in the state to test.** Committed or not; the run tests the local working tree, and
   the Runs row notes the latest commit and whether there were local changes.
 - **`Debug Mode` is 1** in `Baldur.lua`, so Ctrl+Space opens the Lua console in a loaded game.
-- **The three files are in the game's `override/` folder.** From the repo folder:
+- **The four files are in the game's `override/` folder.** From the repo folder:
 
   ```sh
   G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
   mkdir -p "$G/override"
-  cp mod/inspector/lib/a7xoff.lua mod/inspector/lib/a7xwalk.lua test/lua/a7xchk.lua "$G/override/"
+  cp mod/inspector/lib/a7xoff.lua mod/inspector/lib/a7xwalk.lua mod/inspector/lib/a7xjson.lua \
+    test/lua/a7xchk.lua "$G/override/"
   ```
 
   They are removed again at the end (step 6).
@@ -63,13 +64,14 @@ Results go to the session log; the game shows only a one-line summary when the c
    The message window, above the console, shows one line when the check is done, such as
    `A7X party check 1: 6 members, 120 fields equal, 0 differ, 0 skipped (details in the session log)`,
    or `A7X party check 1 could not run: <reason>`. No line means the script did not load: check that
-   the three files are in `override/`.
+   the four files are in `override/`.
 5. **Quit from the game's own menu**, not with Ctrl+C. `play` prints its summary and exits.
-6. **Remove the three files**, and the `override/` folder if it is now empty:
+6. **Remove the four files**, and the `override/` folder if it is now empty:
 
    ```sh
    G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
-   rm "$G/override/a7xoff.lua" "$G/override/a7xwalk.lua" "$G/override/a7xchk.lua"
+   rm "$G/override/a7xoff.lua" "$G/override/a7xwalk.lua" "$G/override/a7xjson.lua" \
+     "$G/override/a7xchk.lua"
    rmdir "$G/override"
    ```
 
@@ -104,7 +106,7 @@ Say "done" when step 7 has printed its result. The run passes when:
 | No Lua errors | the session log | no `LUA ERROR` line |
 
 A `DIFF` is a finding, not only a failure: the delivery note records the field, both values, and the
-stats block the walker read (`block=` on the `A7XWALK` line), before anything is fixed.
+stats block the walker read (`block` on the member's `walk` line), before anything is fixed.
 
 ## Runs
 
@@ -129,3 +131,5 @@ version of the test it was judged by.
 | 2026-11-13 | the same commit, after the second run | The walker reads EA at `+0x38`, the offset the second run's dumps found, and the check compares it (every party member is a PC, 2); the save text is read from `characters[id].proficiencies` | three EA candidates, and save text looked for at the top level of `characters[id]` |
 | 2026-11-13 | the same commit, after the third run | The check reads each save line as the third run logged it: the shown save, then, only when not 0, its difference from the base, so the base is the first number less the second | each line read as "base (shown)", which only parsed when a modifier was present, and then as the wrong values |
 | 2026-11-13 | the same commit, before the fourth run | Step 4: the check shows a one-line summary in the message window when it is done | no acknowledgement in the game; the result was visible only in the session log |
+| 2026-11-14 | the commit that writes the checks' lines as JSON | Before you start and the last steps: `a7xjson.lua`, the JSON writer, is copied and removed with the others; the script writes its lines as JSON defined in `src/model/schemas.ts`, which `deno task verify` checks, and its evidence lines (`A7XWALK`, `A7XDUMP`) became `walk` and `dump` lines of `A7XCHECK` | three files copied, and lines written as text |
+| 2026-11-14 | the same commit, after the first run with JSON lines | The sprite dump is written as four `dump` lines of 512 bytes, each with its offset: the game's log cuts a message after 4084 characters, which cut every one-line dump; `deno task verify` reports a line cut short instead of skipping it | the dump in one line, which the log cut, and which `verify` then skipped without a word, so the list of offsets reading 2 was missing |

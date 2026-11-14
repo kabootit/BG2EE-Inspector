@@ -1,15 +1,16 @@
 -- a7xchk.lua: the in-game half of docs/manual-tests/walker.md, the party check.
 --
--- Copied into the game's override/ folder with a7xoff.lua and a7xwalk.lua for the test only, and
--- removed after it. Typed in the debug console as Infinity_DoFile("a7xchk"), it loads the walker,
--- then for each party member compares what the walker reads with what the engine shows in
+-- Copied into the game's override/ folder with a7xoff.lua, a7xwalk.lua and a7xjson.lua for the test
+-- only, and removed after it. Typed in the debug console as Infinity_DoFile("a7xchk"), it loads the
+-- walker, then for each party member compares what the walker reads with what the engine shows in
 -- characters[id], the table the record screen is drawn from. Every result is one log line through
--- Infinity_Log, read afterwards by deno task verify:
+-- Infinity_Log, read afterwards by deno task verify: "A7XCHECK", a tab, and a JSON object with the
+-- run and a kind. The kinds and their fields are defined in src/model/schemas.ts (CheckLine):
 --
---   A7XCHECK <run> party <count>
---   A7XCHECK <run> <id> <field> <ok|DIFF> walker=<value> | engine=<value>
---   A7XCHECK <run> <id> skip <reason>
---   A7XWALK <run> <id> <name>=<value> ...   (recorded, not compared)
+--   party (size), field (id, field, walker, engine, ok), skip (id, why), error (why)
+--   walk (id, block, state, thac0_stat, mr, resist, keys, proficiencies_keys, saving_throws) and
+--   dump (id, at, hex): evidence about each member, recorded, not compared; the dump in 512-byte
+--   lines, each with its offset, so no line is longer than the game's log keeps
 --
 -- characters[id] is filled only for a party member whose record screen has been opened. Everything
 -- runs inside pcall, so a failure is logged rather than raised into the game. When it finishes, one
@@ -18,10 +19,11 @@
 A7XCHK_run = (A7XCHK_run or 0) + 1
 local run = A7XCHK_run
 
-local function log(...)
-  local parts = {}
-  for i = 1, select("#", ...) do parts[#parts + 1] = tostring((select(i, ...))) end
-  Infinity_Log(table.concat(parts, " "))
+-- One line: the run and `t`, as JSON. A line that cannot be written whole becomes an error line.
+local function emit(t)
+  t.run = run
+  local line, why = A7XJSON.line("A7XCHECK", t)
+  Infinity_Log(line or A7XJSON.line("A7XCHECK", { run = run, kind = "error", why = why }))
 end
 
 local tally = { members = 0, equal = 0, differ = 0, skipped = 0 }
@@ -29,8 +31,7 @@ local tally = { members = 0, equal = 0, differ = 0, skipped = 0 }
 local function compare(id, field, walker, engine)
   local same = walker == engine
   tally[same and "equal" or "differ"] = tally[same and "equal" or "differ"] + 1
-  log("A7XCHECK", run, id, field, same and "ok" or "DIFF",
-    "walker=" .. tostring(walker) .. " | engine=" .. tostring(engine))
+  emit({ kind = "field", id = id, field = field, walker = walker, engine = engine, ok = same })
 end
 
 -- The record screen's save text, one line per save, death to spell, as the party check's third run
@@ -52,6 +53,7 @@ end
 A7XCHK_save_values = save_values
 
 local DUMP_BYTES = 2048
+local DUMP_CHUNK = 512 -- bytes per dump line, so each line stays under A7XJSON.MAX_LINE
 local PC = 2 -- EA of a party member
 
 -- The bytes at `addr` in hex, read 256 at a time; "??" for each byte of a block that fails.
@@ -71,7 +73,7 @@ local function check_member(member)
   local id = member.id
   local function skip(why)
     tally.skipped = tally.skipped + 1
-    log("A7XCHECK", run, id, "skip", why)
+    emit({ kind = "skip", id = id, why = why })
   end
   if not member.sprite then return skip(member.why or "no sprite") end
   local c, why = A7XWALK.creature(member.sprite)
@@ -96,26 +98,23 @@ local function check_member(member)
     compare(id, "save." .. save, c.saves_shown[save], value[1])
     compare(id, "save." .. save .. ".base", c.saves_base[save], value[2])
   end
-  local extra = {
-    "block=" .. c.stats_block,
-    "state=" .. tostring(c.state), "thac0_stat=" .. tostring(c.thac0), "mr=" .. tostring(c.mr),
-  }
-  for _, r in ipairs(A7XWALK.RESISTS) do extra[#extra + 1] = r .. "=" .. tostring(c.resist[r]) end
-  log("A7XWALK", run, id, table.concat(extra, " "))
-  -- Evidence for fields still being located: what characters[id] holds, the save text as the
-  -- engine wrote it, and the sprite's first bytes, which deno task verify searches.
+  -- Evidence, recorded and not compared: the walker's other values, what characters[id] holds, the
+  -- save text as the engine wrote it, and the sprite's first bytes, which deno task verify searches.
   local function keys_of(t)
     local keys = {}
     for k in pairs(type(t) == "table" and t or {}) do keys[#keys + 1] = tostring(k) end
     table.sort(keys)
-    return table.concat(keys, ",")
+    return keys
   end
-  log("A7XWALK", run, id, "keys=" .. keys_of(e))
-  log("A7XWALK", run, id, "proficiencies.keys=" .. keys_of(e.proficiencies))
   local text = details.savingThrows
-  log("A7XWALK", run, id, "savingThrows=" .. type(text) ..
-    (type(text) == "string" and (" " .. text:sub(1, 400):gsub("\n", "\\n")) or ""))
-  log("A7XDUMP", run, id, hex(member.sprite, DUMP_BYTES))
+  emit({
+    kind = "walk", id = id, block = c.stats_block, state = c.state, thac0_stat = c.thac0, mr = c.mr,
+    resist = c.resist, keys = keys_of(e), proficiencies_keys = keys_of(e.proficiencies),
+    saving_throws = type(text) == "string" and text:sub(1, 400) or nil,
+  })
+  for at = 0, DUMP_BYTES - 1, DUMP_CHUNK do
+    emit({ kind = "dump", id = id, at = at, hex = hex(member.sprite + at, DUMP_CHUNK) })
+  end
 end
 
 local failure
@@ -123,15 +122,16 @@ local ok, err = pcall(function()
   if type(Infinity_DoFile) == "function" then
     Infinity_DoFile("a7xoff")
     Infinity_DoFile("a7xwalk")
+    Infinity_DoFile("a7xjson")
   end
-  if type(A7XWALK) ~= "table" then failure = "walker not loaded" return end
+  if type(A7XWALK) ~= "table" or type(A7XJSON) ~= "table" then failure = "walker or JSON writer not loaded" return end
   local party, why = A7XWALK.party()
   if not party then failure = why return end
-  log("A7XCHECK", run, "party", #party)
+  emit({ kind = "party", size = #party })
   for _, member in ipairs(party) do check_member(member) end
 end)
 if not ok then failure = tostring(err) end
-if failure then log("A7XCHECK", run, "party", "error", failure) end
+if failure and type(A7XJSON) == "table" then emit({ kind = "error", why = failure }) end
 
 -- The acknowledgement in the game: one line in the message window, which the console shows above itself.
 local summary = failure and string.format("A7X party check %d could not run: %s", run, failure) or

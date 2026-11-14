@@ -17,10 +17,11 @@ area a creature is in, the area on screen, and an area's name
 ([the plan](../plans/2026-11-13-creature-list.md#analysis-done-in-plan-mode-read-only)). Terms such as
 walker are defined in [docs/README.md](../README.md#terms).
 
-The walker's Lua (`a7xoff.lua`, `a7xwalk.lua`) and the list script (`a7xlist.lua`) are copied into the
-game's `override/` folder for the session; the WeiDU component that installs them for good comes in
-Phase 4. In the game, the only thing typed is `Infinity_DoFile("a7xlist")`, which loads and runs them.
-Results go to the session log; the game shows a one-line summary each time the script runs.
+The walker's Lua (`a7xoff.lua`, `a7xwalk.lua`), the JSON writer (`a7xjson.lua`) and the list script
+(`a7xlist.lua`) are copied into the game's `override/` folder for the session; the WeiDU component
+that installs them for good comes in Phase 4. In the game, the only thing typed is
+`Infinity_DoFile("a7xlist")`, which loads and runs them. Results go to the session log; the game
+shows a one-line summary each time the script runs.
 
 ## Before you start
 
@@ -28,12 +29,13 @@ Results go to the session log; the game shows a one-line summary each time the s
 - **The repo is in the state to test.** Committed or not; the run tests the local working tree, and
   the Runs row notes the latest commit and whether there were local changes.
 - **`Debug Mode` is 1** in `Baldur.lua`, so Ctrl+Space opens the Lua console in a loaded game.
-- **The three files are in the game's `override/` folder.** From the repo folder:
+- **The four files are in the game's `override/` folder.** From the repo folder:
 
   ```sh
   G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
   mkdir -p "$G/override"
-  cp mod/inspector/lib/a7xoff.lua mod/inspector/lib/a7xwalk.lua test/lua/a7xlist.lua "$G/override/"
+  cp mod/inspector/lib/a7xoff.lua mod/inspector/lib/a7xwalk.lua mod/inspector/lib/a7xjson.lua \
+    test/lua/a7xlist.lua "$G/override/"
   ```
 
   They are removed again at the end (step 7).
@@ -66,17 +68,18 @@ Results go to the session log; the game shows a one-line summary each time the s
 
    The message window shows one line, such as `A7X creature list 1: AR1000, 23 creatures (6 party,
    3 hostile, 14 other), all checks ok (details in the session log)`, or `A7X creature list 1 could
-   not run: <reason>`. No line means the script did not load: check that the three files are in
+   not run: <reason>`. No line means the script did not load: check that the four files are in
    `override/`.
 5. **Change area and run it again** (3 minutes). Walk the party through the door or exit into another
    area, wait for it to load, and run the same line again. The summary says `A7X creature list 2`
    and should name a different area.
 6. **Quit from the game's own menu**, not with Ctrl+C. `play` prints its summary and exits.
-7. **Remove the three files**, and the `override/` folder if it is now empty:
+7. **Remove the four files**, and the `override/` folder if it is now empty:
 
    ```sh
    G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
-   rm "$G/override/a7xoff.lua" "$G/override/a7xwalk.lua" "$G/override/a7xlist.lua"
+   rm "$G/override/a7xoff.lua" "$G/override/a7xwalk.lua" "$G/override/a7xjson.lua" \
+     "$G/override/a7xlist.lua"
    rmdir "$G/override"
    ```
 
@@ -123,3 +126,12 @@ that records it.
 | Date | Commit | Result | Delivery note |
 | --- | --- | --- | --- |
 | 2026-11-13 | `f8c4fbd`, local changes | Passed: both runs, 15 checks each, in `AR4000` (10 creatures) and `AR4500` (8); the four creatures named on screen, Illasera and three Black Reavers, listed as hostile | [Creature list](../notes/2026-11-13-creature-list.md) |
+
+### Changes to this test
+
+Each change to the steps or pass criteria after the first run, so a Runs row can be read against the
+version of the test it was judged by.
+
+| Date | Commit | What changed | Runs before it were judged against |
+| --- | --- | --- | --- |
+| 2026-11-14 | the commit that writes the checks' lines as JSON | Before you start and the last steps: `a7xjson.lua`, the JSON writer, is copied and removed with the others; the script writes its lines as JSON defined in `src/model/schemas.ts`, which `deno task verify` checks | three files copied, and lines written as text |

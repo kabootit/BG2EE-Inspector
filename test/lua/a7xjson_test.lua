@@ -14,6 +14,8 @@ T.test("whole numbers are integers, others round-trip", function()
   T.eq(J(-7), "-7", "negative")
   T.eq(J(2 ^ 52), "4503599627370496", "large integer")
   T.eq(J(0.5), "0.5", "fraction")
+  T.eq(J(0.7), "0.7", "the shortest form that reads back")
+  T.eq(tonumber(J(1 / 3)), 1 / 3, "17 digits where 14 do not read back")
   T.eq(tonumber(J(0.1)), 0.1, "a fraction reads back the same")
 end)
 
@@ -49,6 +51,16 @@ T.test("values JSON cannot hold are refused with a reason, never raised", functi
   local loop = {}
   loop.self = loop
   refused(loop, "a cycle")
+end)
+
+T.test("a log line is the prefix, a tab and the JSON, and never longer than the log keeps", function()
+  T.eq(A7XJSON.line("A7XTEST", { b = 2, a = 1 }), 'A7XTEST\t{"a":1,"b":2}', "a line")
+  local long, why = A7XJSON.line("A7XTEST", { hex = ("00"):rep(A7XJSON.MAX_LINE) })
+  T.eq(long, nil, "too long")
+  T.eq(why:match("longer than the 4000 the log keeps whole") ~= nil, true, why)
+  local bad, reason = A7XJSON.line("A7XTEST", { f = function() end })
+  T.eq(bad, nil, "not writable")
+  T.eq(reason:match("^cannot write a line: ") ~= nil, true, reason)
 end)
 
 T.done()

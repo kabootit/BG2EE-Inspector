@@ -1,6 +1,7 @@
--- The spawn check (test/lua/a7xspawn.lua) against the fake game and a fake console object C: the
--- spawn calls on the first run only, fixtures found by their resref, a fixture missing, no C, and
--- the summary line.
+-- The spawn check (test/lua/a7xspawn.lua) against the fake game and a fake console object C: its
+-- lines for a fixture found are exactly the golden file test/fixtures/a7xspawn.txt, which
+-- test/model/schemas_test.ts checks against the schema; then the spawn calls on the first run only,
+-- a fixture in another area, a spawn that fails, no C, and the summary line.
 
 local T = dofile("test/lua/testlib.lua")
 local F = dofile("test/lua/fakegame.lua")
@@ -41,22 +42,23 @@ T.test("the first run spawns every fixture through C, later runs spawn nothing",
   session()
   local lines = run()
   T.eq(table.concat(calls, " "), "COWH DRBOD DADROW8 SHFIRE", "spawn calls")
-  T.eq(lines[1], "A7XSPAWN 1 spawn COWH ok ", "spawn line")
+  T.eq(lines[1], 'A7XSPAWN\t{"kind":"spawn","ok":true,"resref":"COWH","run":1}', "spawn line")
   run()
   T.eq(#calls, 4, "no more calls on the second run")
   T.eq(shown:match("^A7X spawn check 2: spawned earlier, ") ~= nil, true, shown)
 end)
 
-T.test("a creature made from a fixture is logged with its values and header", function()
+T.test("the lines for a creature made from a fixture are the golden file", function()
   session()
   F.resref(F.C, "cowh")
   local lines = run()
-  local creature = matching(lines, "^A7XSPAWN 1 creature ")
-  T.eq(#creature, 1, "one fixture in the area")
-  T.eq(creature[1], "A7XSPAWN 1 creature " .. F.ID_C .. " resref=COWH block=derived hp=60/60 " ..
-    "ac=0,0,0,0,0 thac0=0 saves=0,0,0,0,0 resist=0,0,0,0,0,0,0,0,0,0 mr=0 ea=255", "creature line")
-  local header = matching(lines, "^A7XSPAWN 1 header ")[1]
-  T.eq(#header:match(" (%x+)$"), 2 * A7XOFF.sprite.cre_size, "the header as hex")
+  local want = {}
+  for line in io.lines("test/fixtures/a7xspawn.txt") do want[#want + 1] = line end
+  T.eq(#lines, #want, "line count")
+  for i = 1, #want do T.eq(lines[i], want[i], "line " .. i) end
+  T.eq(#matching(lines, '"kind":"creature"'), 1, "one fixture in the area")
+  T.eq(#matching(lines, '"kind":"header"')[1]:match('"hex":"(%x+)"'), 2 * A7XOFF.sprite.cre_size,
+    "the header as hex")
   T.eq(shown, "A7X spawn check 1: spawned 4, found 1 of 4, missing DRBOD DADROW8 SHFIRE " ..
     "(details in the session log)", "summary")
 end)
@@ -72,7 +74,8 @@ T.test("a spawn that raises is logged as failed and the run goes on", function()
   session()
   C = { CreateCreature = function(self, resref) error("no such creature") end }
   local lines = run()
-  T.eq(lines[1]:match("^A7XSPAWN 1 spawn COWH failed .*no such creature$") ~= nil, true, lines[1])
+  T.eq(lines[1]:match('^A7XSPAWN\t{"kind":"spawn","ok":false,"resref":"COWH","run":1,"why":".*no such creature"}$') ~= nil,
+    true, lines[1])
   T.eq(shown:match("spawned 0, found 0 of 4") ~= nil, true, shown)
 end)
 
@@ -80,7 +83,7 @@ T.test("without C the check cannot run, and nothing counts as spawned", function
   session()
   C = nil
   local lines = run()
-  T.eq(lines[1], "A7XSPAWN 1 error no console object C", "error line")
+  T.eq(lines[1], 'A7XSPAWN\t{"kind":"error","run":1,"why":"no console object C"}', "error line")
   T.eq(shown, "A7X spawn check 1 could not run: no console object C", "summary")
   T.eq(A7XSPAWN_spawned, nil, "a later run may still spawn")
 end)

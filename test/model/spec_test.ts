@@ -1,5 +1,5 @@
 import { deepStrictEqual } from "node:assert/strict";
-import { RecordSchema } from "../../src/model/schema.ts";
+import { RecordSchema } from "../../src/model/schemas.ts";
 
 // docs/data-model.md's Fields table: each row's field name and, for a table, the keys in its Type
 // column, written `{ a, b }`.

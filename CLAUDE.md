@@ -60,7 +60,7 @@ The tasks available so far; more arrive with each step of the plan:
 | `deno task test` | the test suite in `test/` |
 | `deno task test:native` | compile and run `test/native/*_test.c` (the bridge with a fake Lua API, the `lua_State` layout) |
 | `deno task test:lua` | build stock Lua 5.2.4 from `vendor/` and run `test/lua/*_test.lua` |
-| `deno task schema` | write `docs/data-model.schema.json` from the Zod schema in `src/model/schema.ts` |
+| `deno task schema` | write `docs/data-model.schema.json` from the Zod schema in `src/model/schemas.ts` |
 | `deno task verify [log]` | judge the checks in a session log (by default the newest): the party check, the creature list, the spawn check (against the game's `.cre` files), and every `A7XDATA` line against the record's schema |
 | `deno task check` | type-check |
 
@@ -81,9 +81,9 @@ src/             Deno, grouped by concern; no loose files (test/structure_test.t
   build/         dylib.ts (build and check the library, shared by build and doctor), lua.ts (the test interpreter)
   game/          capture.ts, launch.ts, session.ts (the play launcher)
   gamefiles/     iebinary.ts (KEY, BIFF, CRE readers) and resources.ts (override/ first, then the archives)
-  model/         schema.ts (the record, as one Zod schema: types, validation, JSON Schema)
-  verify/        checks.ts (the party check), list.ts (the creature list), spawn.ts (the spawn check),
-                 data.ts (A7XDATA lines)
+  model/         schemas.ts: every data shape, one Zod schema each (the record, every check's lines),
+                 the types inferred from them, and parseLines; the one place to read a data shape
+  verify/        checks.ts (the party check), list.ts (the creature list), spawn.ts (the spawn check)
 test/            mirrors src/ (test/lint/docs_test.ts tests src/lint/docs.ts); test/native (C), test/lua (Lua); test/e2e later
 docs/            rules, ADRs, plans, delivery notes, specs; start at docs/README.md
 .claude/         committed settings (deny and ask lists) and skills
