@@ -44,6 +44,14 @@ summary, What was built, Gotchas worth remembering, Verification (what was run, 
 numbered "still to check by hand" list, which links the manual test when there is one), and Follow-ups. It
 never claims more verification than happened.
 
+## Learnings
+
+When a change teaches something worth keeping beyond the change itself (a refactor that shows a better
+pattern, a technique that worked), write `docs/learnings/YYYY-MM-DD-<topic>.md` (dated, so the folder
+sorts by time; `lint:docs` checks the name) with frontmatter `title` and `description`: the job the
+code does, the code before and after, why the change is better, and where the pattern stops paying.
+It quotes real code from the repository, and never claims a benefit the change did not show.
+
 ## Manual tests
 
 A manual test longer than a few steps is written up in `docs/manual-tests/<slug>.md` and linked from

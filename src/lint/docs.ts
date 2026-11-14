@@ -342,28 +342,28 @@ export function checkAdrs(docs: Doc[]): Finding[] {
 }
 
 /**
- * Delivery notes: `YYYY-MM-DD-<topic>.md`, so they sort by time like plans, with
- * title and description frontmatter.
+ * Dated pages in `docs/<folder>/`: `YYYY-MM-DD-<topic>.md`, so they sort by time like
+ * plans, with title and description frontmatter. Findings are `<kind>-name` and
+ * `<kind>-frontmatter`.
  */
-export function checkNotes(docs: Doc[]): Finding[] {
+function checkDated(docs: Doc[], folder: string, kind: string, what: string): Finding[] {
   const out: Finding[] = [];
+  const prefix = `docs/${folder}/`;
   for (
-    const doc of docs.filter((d) =>
-      d.path.startsWith("docs/notes/") && !d.path.endsWith("/README.md")
-    )
+    const doc of docs.filter((d) => d.path.startsWith(prefix) && !d.path.endsWith("/README.md"))
   ) {
-    if (!/^docs\/notes\/\d{4}-\d{2}-\d{2}-[a-z0-9-]+\.md$/.test(doc.path)) {
+    if (!/^\d{4}-\d{2}-\d{2}-[a-z0-9-]+\.md$/.test(doc.path.slice(prefix.length))) {
       out.push({
-        rule: "note-name",
+        rule: `${kind}-name`,
         file: doc.path,
         line: 1,
-        detail: "delivery notes are named YYYY-MM-DD-<topic>.md",
+        detail: `${what} are named YYYY-MM-DD-<topic>.md`,
       });
     }
     const fm = parseFrontmatter(doc.text);
     if (!fm?.title || !fm?.description) {
       out.push({
-        rule: "note-frontmatter",
+        rule: `${kind}-frontmatter`,
         file: doc.path,
         line: 1,
         detail: "title and description are required",
@@ -371,6 +371,16 @@ export function checkNotes(docs: Doc[]): Finding[] {
     }
   }
   return out;
+}
+
+/** Delivery notes: dated, with title and description frontmatter. */
+export function checkNotes(docs: Doc[]): Finding[] {
+  return checkDated(docs, "notes", "note", "delivery notes");
+}
+
+/** Learnings, write-ups of a lesson with before and after: dated like delivery notes. */
+export function checkLearnings(docs: Doc[]): Finding[] {
+  return checkDated(docs, "learnings", "learning", "learnings");
 }
 
 /** Plans: `YYYY-MM-DD-topic.md` with an H1 starting "Plan: ". */
@@ -514,6 +524,7 @@ export function lintDocs(docs: Doc[], files: Set<string>, dirs: Set<string>): Fi
   findings.push(
     ...checkAdrs(docs),
     ...checkNotes(docs),
+    ...checkLearnings(docs),
     ...checkPlans(docs),
     ...checkManualTests(docs),
     ...checkReachable(docs),

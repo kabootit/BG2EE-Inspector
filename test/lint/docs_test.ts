@@ -3,6 +3,7 @@ import {
   checkAdrs,
   checkEmDash,
   checkFences,
+  checkLearnings,
   checkLinks,
   checkManualTests,
   checkNotes,
@@ -154,6 +155,20 @@ Deno.test("notes and plans follow their naming and front matter", () => {
     "plan-heading",
   ]);
   deepStrictEqual(checkPlans([{ path: "docs/plans/2026-11-01-x.md", text: "# Plan: X\n" }]), []);
+});
+
+Deno.test("learnings are dated like notes, with front matter", () => {
+  deepStrictEqual(
+    rules(checkLearnings([{ path: "docs/learnings/declarative-parsing.md", text: "# x\n" }])),
+    ["learning-name", "learning-frontmatter"],
+  );
+  deepStrictEqual(
+    checkLearnings([{
+      path: "docs/learnings/2026-11-14-declarative-parsing.md",
+      text: "---\ntitle: T\ndescription: D\n---\n# T\n",
+    }]),
+    [],
+  );
 });
 
 function manualTest(slug: string, fm: Record<string, string>, h1: string, sections: string[]): Doc {

@@ -37,29 +37,37 @@ export type Comparison = { field: string; walker: string; file: string; ok: bool
 
 const LINE = /A7XSPAWN (\d+) (\S+) ?(.*)$/;
 
+/**
+ * Each creature-line key whose value is a comma-separated list, and the fields it fills, in the
+ * order test/lua/a7xspawn.lua writes them. HP is not here: its separator is "/", and only its
+ * maximum is compared.
+ */
+const LISTS: [key: string, fields: readonly string[]][] = [
+  ["ac", ["ac", "ac.crushing", "ac.missile", "ac.piercing", "ac.slashing"]],
+  ["thac0", ["thac0"]],
+  ["saves", CRE_SAVES.map((s) => `save.${s}`)],
+  ["resist", WALKER_RESISTS.map((r) => `resist.${r}`)],
+  ["mr", ["mr"]],
+  ["ea", ["ea"]],
+];
+
 /** A creature line's fields, named as the comparison names them. */
 function creatureValues(rest: string): SpawnedCreature | null {
-  const words = rest.split(" ");
-  const id = words[0];
-  const kv = new Map(
-    words.slice(1).map((w) => [w.slice(0, w.indexOf("=")), w.slice(w.indexOf("=") + 1)]),
-  );
+  const [id, ...words] = rest.split(" ");
+  const kv = new Map(words.map((w) => {
+    const at = w.indexOf("=");
+    return [w.slice(0, at), w.slice(at + 1)];
+  }));
   const resref = kv.get("resref");
   if (!id || !resref) return null;
-  const values = new Map<string, string>();
-  const [cur, max] = (kv.get("hp") ?? "").split("/");
-  values.set("hp.max", max ?? "");
-  const ac = (kv.get("ac") ?? "").split(",");
-  ["ac", "ac.crushing", "ac.missile", "ac.piercing", "ac.slashing"].forEach((f, i) =>
-    values.set(f, ac[i] ?? "")
-  );
-  values.set("thac0", kv.get("thac0") ?? "");
-  const saves = (kv.get("saves") ?? "").split(",");
-  CRE_SAVES.forEach((s, i) => values.set(`save.${s}`, saves[i] ?? ""));
-  const resist = (kv.get("resist") ?? "").split(",");
-  WALKER_RESISTS.forEach((r, i) => values.set(`resist.${r}`, resist[i] ?? ""));
-  values.set("mr", kv.get("mr") ?? "");
-  values.set("ea", kv.get("ea") ?? "");
+  const [cur, max = ""] = (kv.get("hp") ?? "").split("/");
+  const values = new Map<string, string>([
+    ["hp.max", max],
+    ...LISTS.flatMap(([key, fields]) => {
+      const parts = (kv.get(key) ?? "").split(",");
+      return fields.map((f, i): [string, string] => [f, parts[i] ?? ""]);
+    }),
+  ]);
   return { id, resref, block: kv.get("block") ?? "", hp: `${cur}/${max}`, values };
 }
 
@@ -68,28 +76,35 @@ function hexBytes(hex: string): Uint8Array | null {
   return Uint8Array.from(hex.match(/../g)!.map((h) => parseInt(h, 16)));
 }
 
+/** What each kind of A7XSPAWN line adds to its run. */
+const KINDS: Record<string, (run: SpawnRun, rest: string) => void> = {
+  spawn(run, rest) {
+    const [resref, result, ...why] = rest.split(" ");
+    run.spawned.push({ resref, ok: result === "ok", why: why.join(" ") });
+  },
+  creature(run, rest) {
+    const c = creatureValues(rest);
+    if (c) run.creatures.push(c);
+  },
+  header(run, rest) {
+    const [id, hex = ""] = rest.split(" ");
+    run.headers.set(id, hexBytes(hex));
+  },
+  error(run, rest) {
+    run.error = rest;
+  },
+};
+
 /** Every run of the spawn check in a log, in run order. */
 export function parseSpawns(log: string): SpawnRun[] {
   const runs = new Map<number, SpawnRun>();
   for (const raw of log.split("\n")) {
-    const m = raw.trimEnd().match(LINE);
-    if (!m) continue;
-    const n = Number(m[1]);
-    const run: SpawnRun = runs.get(n) ?? { run: n, spawned: [], creatures: [], headers: new Map() };
-    runs.set(n, run);
-    const [, , kind, rest] = m;
-    if (kind === "spawn") {
-      const [resref, result, ...why] = rest.split(" ");
-      run.spawned.push({ resref, ok: result === "ok", why: why.join(" ") });
-    } else if (kind === "creature") {
-      const c = creatureValues(rest);
-      if (c) run.creatures.push(c);
-    } else if (kind === "header") {
-      const [id, hex] = rest.split(" ");
-      run.headers.set(id, hexBytes(hex ?? ""));
-    } else if (kind === "error") {
-      run.error = rest;
-    }
+    const [, n, kind, rest] = raw.trimEnd().match(LINE) ?? [];
+    if (!n) continue;
+    const run: SpawnRun = runs.get(Number(n)) ??
+      { run: Number(n), spawned: [], creatures: [], headers: new Map() };
+    runs.set(run.run, run);
+    KINDS[kind]?.(run, rest);
   }
   return [...runs.values()].sort((a, b) => a.run - b.run);
 }
@@ -99,19 +114,20 @@ export function parseSpawns(log: string): SpawnRun[] {
  * AC adjustment for the creature's Dexterity, added to its AC.
  */
 export function fileValues(cre: Creature, dexAc: number): Map<string, string> {
-  const v = new Map<string, string>();
-  v.set("hp.max", String(cre.maxHp));
-  v.set("ac", String(cre.acEffective + dexAc));
-  v.set("ac.crushing", String(cre.acCrushing));
-  v.set("ac.missile", String(cre.acMissile));
-  v.set("ac.piercing", String(cre.acPiercing));
-  v.set("ac.slashing", String(cre.acSlashing));
-  v.set("thac0", String(cre.thac0));
-  for (const s of CRE_SAVES) v.set(`save.${s}`, String(cre.saves[s]));
-  for (const r of WALKER_RESISTS) v.set(`resist.${r}`, String(cre.resistances[r]));
-  v.set("mr", String(cre.resistances.magic));
-  v.set("ea", String(cre.ea));
-  return v;
+  const fields: [field: string, value: number][] = [
+    ["hp.max", cre.maxHp],
+    ["ac", cre.acEffective + dexAc],
+    ["ac.crushing", cre.acCrushing],
+    ["ac.missile", cre.acMissile],
+    ["ac.piercing", cre.acPiercing],
+    ["ac.slashing", cre.acSlashing],
+    ["thac0", cre.thac0],
+    ...CRE_SAVES.map((s): [string, number] => [`save.${s}`, cre.saves[s]]),
+    ...WALKER_RESISTS.map((r): [string, number] => [`resist.${r}`, cre.resistances[r]]),
+    ["mr", cre.resistances.magic],
+    ["ea", cre.ea],
+  ];
+  return new Map(fields.map(([field, value]) => [field, String(value)]));
 }
 
 /** The walker's values for one creature against its file, field by field. */
