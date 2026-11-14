@@ -1,7 +1,9 @@
 # Plan: Phase 3, the creature list (`initial/07-walker`, continued)
 
-> **Status:** approved 2026-11-13. Edited in place until pushed, per
-> [working-together.md](../rules/working-together.md). It follows the
+> **Status:** approved and delivered 2026-11-13: the creature list manual test passed on its first
+> run, recorded in the [delivery note](../notes/2026-11-13-creature-list.md). Delivered as planned,
+> except that the walker.md intro correction needed no Changes row (it changed no step or pass
+> criterion). It follows the
 > [party walker plan](2026-11-06-party-walker.md); the project's own terms (walker, gate, stats
 > block, site) are defined in [docs/README.md](../README.md#terms).
 

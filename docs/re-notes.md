@@ -127,20 +127,25 @@ image-relative (`0x5499cc`) or absolute (`0x1005499cc`), and output is image-rel
 
 ## Engine structures
 
-The structures the walker follows, all found in the engine function that fills `characters[id]` for
+The structures the walker follows. Most were found in the engine function that fills `characters[id]` for
 the record screen (`0x2e24c8`, about 32 KB, called by `Infinity_UpdateLuaStats` at `0x3391e0` with
 the selected party member's sprite) or in code it calls. That function reads exactly the fields an
 inspector needs, so its loads give the arm64 offsets directly; `deno task re annotate 0x2e24c8` shows
-each `characters` key next to the load that feeds it. Offsets are sprite-relative unless stated:
+each `characters` key next to the load that feeds it. The areas were found from the console's
+`ExploreArea` and the engine code that compares an object's area with the one on screen. Offsets are
+sprite-relative unless stated:
 
 | What | Where | Evidence |
 | --- | --- | --- |
 | `CInfGame*` | `g_pBaldurChitin + 0x10c0` | loaded by `Infinity_UpdateLuaStats` and by the stats function |
 | Party ids, count | game `+0x6618` (6 `int32`), game `+0x6630` (`int16`) | `Infinity_UpdateLuaStats` indexes the ids by slot after checking the count |
+| Areas, and the one on screen | game `+0x6598`: 12 `CGameArea*`, 8 bytes each; the area on screen is entry `u8` game `+0x6590` | `CLUAConsole::ExploreArea` (`0x130de4`, bound at `0x1bf50`) reads `areas[game[+0x6590]]`; a function at `0x243ec0` compares a pointer with each of the 12 in turn. In the creature list's runs (2026-11-13) the index was 0, then 1 after an area change, and the party was in the indexed area both times |
+| An area's resref | 8 bytes, NUL-padded, at `CGameArea +0x204` | `ExploreArea` copies it into its result string (`0x369558`); the creature list's runs read `AR4000` and then `AR4500`, the area the party had walked into |
 | Object array slots | 16 bytes each from `0x35d8360`: `u16` generation at `+0`, pointer at `+8`; an empty slot has generation `0xffff` | the lookup `0x1ae26c`: an id's high 16 bits (masked to 15) are the slot, its low 16 bits the generation, which must match |
 | Object array bounds | `int16` at `0x35d8350` (capacity), `0x35d8352` (highest slot in use), `0x35d8354` (next generation, from 2000) | the lookup, and the functions that add (`0x1ae3xx`) and clear (`0x1aeb1x`) objects |
 | Object type | `u8` at `+0x8`; a sprite is `0x31` | ten engine sites compare it with `0x31` |
 | Object id | `int32` at `+0x48` | `Infinity_UpdateLuaStats` sets the Lua global `id` from it; `characters` is keyed by it |
+| Object area | `CGameArea*` at object `+0x18` | 14 engine sites compare it with the area on screen, among them `0x86808` and `0xc3220`; in the creature list's runs every party member's matched it, in both areas, and creatures seen on screen were listed by it |
 | EA | `u8` at `+0x38`: the EA byte of the `CAIObjectType` at `+0x30` | the party check's sprite dumps (2026-11-13): the only offset in the first 2 KB of all six party sprites that reads 2, the EA of a PC. Read statically from the type-matching code at `0x3f2xx`, the candidates were `+0x30` and `+0x78`, and the `.cre` header's EA at `+0x7c8` was a third; in the game they read other values for the party, and the header byte read 224 for every member |
 | Stats blocks | `m_derivedStats` at `+0x1120`, `m_tempStats` at `+0x1dc0` (`0xca0` bytes each); `int32` at `+0x4e8c` (`m_bAllowEffectListCall`) non-zero means derived is current | the THAC0 code picks between them on that flag, the rule EEex follows |
 | Each stat by `STATS.IDS` number | `CDerivedStats::GetAtOffset`, `0x7cd50`: ids 1 to 33 are `int16` at `2 * (id + 1)`, so `MAXHITPOINTS` `+0x4`, `ARMORCLASS` `+0x6`, the AC mods `+0x8` to `+0xe`, `THAC0` `+0x10`, saves `+0x14` to `+0x1c`, resistances `+0x1e` to `+0x32` (names as in IESDP's BG:EE `STATS.IDS`); id 151, `HITBONUS`, is `int16` at `+0x1f4` | `deno task re stats 0x7cd50` decodes all 202 from the getter's jump table |
@@ -149,5 +154,8 @@ each `characters` key next to the load that feeds it. Offsets are sprite-relativ
 | Name | strref `+0x560`, through `Infinity_FetchString`; when it is `-1`, the engine string at `+0x3910` (a `char*`) | the name branch and `0x2b0434` |
 | Saves in `characters[]` | text only, in `characters[id].proficiencies.savingThrows`: one line per save, death to spell, such as `Paralysis / Poison / Death: -4 (-7)`: the save as shown, then in brackets, only when it is not 0, how far that is from the base save. The code that builds it makes the shown save 4 better under `STATE_IMPROVEDINVISIBILITY`; no party member had that state in the party check's runs | the format and keys from `0x2e694c` on; the key is set while `proficiencies` is on top of the Lua stack (`Stats` is popped before it), which the party check's logged keys confirm |
 
-Not here yet: the area a creature is in and the area on screen, for listing the creatures around the
-party; they come with that work, after the party check.
+EA groups, used to sort the listed creatures: friendly up to 30 (`GOODCUTOFF` in IESDP's `EA.IDS`),
+hostile from 200 (`EVILCUTOFF`), neutral between. The engine's type-matching code (`0x3f3e8` to
+`0x3f5c4`) compares EA with `0x1e`/`0x1f` and `0xc7`/`0xc8`. In the creature list's runs the party
+read 2 (friendly), Illasera and three Black Reavers 255 (hostile), and Cespenar and Sarevok 128
+(neutral).

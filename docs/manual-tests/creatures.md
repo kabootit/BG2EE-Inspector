@@ -117,5 +117,9 @@ and scan counts before anything is fixed.
 
 ## Runs
 
-No runs yet. Each run adds a row: the date, the commit it ran against, the result, and a link to the
-delivery note that records it.
+Each run adds a row: the date, the commit it ran against, the result, and a link to the delivery note
+that records it.
+
+| Date | Commit | Result | Delivery note |
+| --- | --- | --- | --- |
+| 2026-11-13 | `f8c4fbd`, local changes | Passed: both runs, 15 checks each, in `AR4000` (10 creatures) and `AR4500` (8); the four creatures named on screen, Illasera and three Black Reavers, listed as hostile | [Creature list](../notes/2026-11-13-creature-list.md) |
