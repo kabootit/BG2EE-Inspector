@@ -130,8 +130,13 @@ later work, not a pass condition.
 
 ## Runs
 
-No runs recorded on this page yet; the first run is recorded with the next one. Each run adds a row:
-the date, the commit it ran against, the result, and a link to the delivery note that records it.
+Each run adds a row: the date, the commit it ran against, the result, and a link to the delivery note
+that records it.
+
+| Date | Commit | Result | Delivery note |
+| --- | --- | --- | --- |
+| 2026-11-13 | `bc17e13`, local changes | Failed: all four spawned and found at the first reading; `MUMFIG01` died or vanished before the second, the one then judged; every field equal except `DADROW8`'s AC, 6 against 10, the engine's Dexterity adjustment from `DEXMOD.2DA`. Re-judged with that rule, the first reading passes | [Spawn harness](../notes/2026-11-13-spawn-harness.md) |
+| 2026-11-13 | `bc17e13`, local changes | Passed on the first reading, the criterion adopted after this run: four creatures, 96 fields, every one equal to its `.cre`. As the test then stood it failed: the tester attacked the creatures between the readings, and the second showed three at 0 HP and `DADROW8` at EA 255 | [Spawn harness](../notes/2026-11-13-spawn-harness.md) |
 
 ### Changes to this test
 

@@ -149,10 +149,23 @@ sprite-relative unless stated:
 | EA | `u8` at `+0x38`: the EA byte of the `CAIObjectType` at `+0x30` | the party check's sprite dumps (2026-11-13): the only offset in the first 2 KB of all six party sprites that reads 2, the EA of a PC. Read statically from the type-matching code at `0x3f2xx`, the candidates were `+0x30` and `+0x78`, and the `.cre` header's EA at `+0x7c8` was a third; in the game they read other values for the party, and the header byte read 224 for every member |
 | Stats blocks | `m_derivedStats` at `+0x1120`, `m_tempStats` at `+0x1dc0` (`0xca0` bytes each); `int32` at `+0x4e8c` (`m_bAllowEffectListCall`) non-zero means derived is current | the THAC0 code picks between them on that flag, the rule EEex follows |
 | Each stat by `STATS.IDS` number | `CDerivedStats::GetAtOffset`, `0x7cd50`: ids 1 to 33 are `int16` at `2 * (id + 1)`, so `MAXHITPOINTS` `+0x4`, `ARMORCLASS` `+0x6`, the AC mods `+0x8` to `+0xe`, `THAC0` `+0x10`, saves `+0x14` to `+0x1c`, resistances `+0x1e` to `+0x32` (names as in IESDP's BG:EE `STATS.IDS`); id 151, `HITBONUS`, is `int16` at `+0x1f4` | `deno task re stats 0x7cd50` decodes all 202 from the getter's jump table |
-| Base header | the creature's `.cre` header from file offset 0 at `+0x558`: name strref `+0x560` (file `0x08`), current HP `int16` `+0x57c` (file `0x24`), base saves `u8` `+0x5ac` (file `0x54`) | `characters[id].HP.current` and the save texts read these |
+| `.cre` resref | 8 bytes, NUL-padded, at `+0x540`: the file the creature was made from | `0x2d7e88`, called by `CLUAConsole::CreateCreature` with the resref right after construction, stores it there; the spawn check (2026-11-13) found every spawned creature by it, in two sessions |
+| Base header | the creature's `.cre` header from file offset 0 at `+0x558`: name strref `+0x560` (file `0x08`), current HP `int16` `+0x57c` (file `0x24`), base saves `u8` `+0x5ac` (file `0x54`) | `characters[id].HP.current` and the save texts read these. The spawn check compared the engine's copy with the file for eight spawned creatures, straight after spawning: 37 to 66 of the header's `0x2d4` bytes differ. The first 8 (the signature) hold `ff ff ff ff ff ff ff 7f`; from `0x270` (the file's EA and other IDS bytes) on, most of the rest differ, so the engine uses that part otherwise: its `0x270` read 224, as the party check found at sprite `+0x7c8`. Between, only the colors at `0x2c` to `0x32` differ, in three of the eight |
 | THAC0 as shown | `derived[+0x10] - int32[+0x1204] - selected[stat 151, HITBONUS]`, or `0` when the weapon slot (`u8` `+0x10f8`, item pointers from `+0xfc0`) is empty | `characters[id].THAC0.current` |
 | Name | strref `+0x560`, through `Infinity_FetchString`; when it is `-1`, the engine string at `+0x3910` (a `char*`) | the name branch and `0x2b0434` |
 | Saves in `characters[]` | text only, in `characters[id].proficiencies.savingThrows`: one line per save, death to spell, such as `Paralysis / Poison / Death: -4 (-7)`: the save as shown, then in brackets, only when it is not 0, how far that is from the base save. The code that builds it makes the shown save 4 better under `STATE_IMPROVEDINVISIBILITY`; no party member had that state in the party check's runs | the format and keys from `0x2e694c` on; the key is set while `proficiencies` is on top of the Lua stack (`Stats` is popped before it), which the party check's logged keys confirm |
+
+**Spawned creatures against their files** (the spawn check, 2026-11-13): for creatures whose `.cre`
+has no items and no effects, the walker's max HP, AC modifiers, THAC0, saves, resistances, magic
+resistance and EA equal the file's, at Insane difficulty too. AC equals the file's effective AC plus
+the AC column of `DEXMOD.2DA` for the creature's Dexterity: DEX 18 read 4 better than the file, DEX
+24 read 6 better, as the table gives. Once the game runs these change like any creature's: attacked
+by the party, a neutral creature read EA 255, and the dead read HP 0 and stay in the creature list.
+
+**`C:CreateCreature(resref)`**, the console object's spawn, works from a script loaded with
+`Infinity_DoFile`: `CLUAConsole::CreateCreature` (`0x1304e4`, bound at `0x1bc64`) checks the
+`.cre` exists, builds the creature in the area on screen, and it can be read straight away. In the
+spawn check's first run the creatures appeared east of the party.
 
 EA groups, used to sort the listed creatures: friendly up to 30 (`GOODCUTOFF` in IESDP's `EA.IDS`),
 hostile from 200 (`EVILCUTOFF`), neutral between. The engine's type-matching code (`0x3f3e8` to

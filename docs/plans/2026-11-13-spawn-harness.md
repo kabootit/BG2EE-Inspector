@@ -1,7 +1,9 @@
 # Plan: Phase 3, the spawn harness (`initial/07-walker`, continued)
 
-> **Status:** approved 2026-11-13. Edited in place until pushed, per
-> [working-together.md](../rules/working-together.md). It follows the
+> **Status:** approved and delivered 2026-11-13: the spawn check passed on its second run, recorded
+> in the [delivery note](../notes/2026-11-13-spawn-harness.md). What changed in delivery, all
+> recorded below and in the note: `DRBOD` replaced `MUMFIG01`; AC is compared with the Dexterity
+> adjustment added; the reading taken straight after spawning is the one judged. It follows the
 > [creature list plan](2026-11-13-creature-list.md); the project's own terms (walker, gate, stats
 > block) are defined in [docs/README.md](../README.md#terms).
 

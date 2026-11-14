@@ -74,4 +74,5 @@ Manual tests run at the game, step by step, each with its record of runs:
   [2026-11-06 the hook gate](notes/2026-11-06-hook-gate.md),
   [2026-11-06 Phase 2, the bridge](notes/2026-11-06-bridge.md),
   [2026-11-13 Phase 3, the party walker](notes/2026-11-13-party-walker.md),
-  [2026-11-13 Phase 3, the creature list](notes/2026-11-13-creature-list.md).
+  [2026-11-13 Phase 3, the creature list](notes/2026-11-13-creature-list.md),
+  [2026-11-13 Phase 3, the spawn harness](notes/2026-11-13-spawn-harness.md).

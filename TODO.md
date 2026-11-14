@@ -27,9 +27,9 @@ covers it.
 
 ## Later
 
-- **The rest of Phase 3: the spawn check.** Built ([plan](docs/plans/2026-11-13-spawn-harness.md));
-  Phase 3 is done when the [spawn check](docs/manual-tests/spawn.md) passes. Then Phase 4, the data API
-  and in-game output.
+- **Phase 4: the data API and in-game output** (foundation plan). Phase 3 is done: the
+  [spawn check](docs/manual-tests/spawn.md) passed on 2026-11-13
+  ([delivery note](docs/notes/2026-11-13-spawn-harness.md)), so enemy values may be shown.
 
 - **`deno task derive`: deferred until a second build.** `native/builds.h` is written by hand and
   checked by `test/re/builds_test.ts`; `docs/re-notes.md` has the recipe for a new build. Automating
