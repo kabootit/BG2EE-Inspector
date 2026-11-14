@@ -17,7 +17,7 @@ each offset comes from: [docs/re-notes.md](../re-notes.md#engine-structures).
 The walker's Lua (`a7xoff.lua`, `a7xwalk.lua`) and the check script (`a7xchk.lua`) are copied into the
 game's `override/` folder for the session; the WeiDU component that installs them for good comes in
 Phase 4. In the game, the only thing typed is `Infinity_DoFile("a7xchk")`, which loads and runs them.
-Results go to the session log; nothing appears on screen.
+Results go to the session log; the game shows only a one-line summary when the check is done.
 
 ## Before you start
 
@@ -60,6 +60,10 @@ Results go to the session log; nothing appears on screen.
    Infinity_DoFile("a7xchk")
    ```
 
+   The message window, above the console, shows one line when the check is done, such as
+   `A7X party check 1: 6 members, 120 fields equal, 0 differ, 0 skipped (details in the session log)`,
+   or `A7X party check 1 could not run: <reason>`. No line means the script did not load: check that
+   the three files are in `override/`.
 5. **Quit from the game's own menu**, not with Ctrl+C. `play` prints its summary and exits.
 6. **Remove the three files**, and the `override/` folder if it is now empty:
 
@@ -117,3 +121,4 @@ version of the test it was judged by.
 | 2026-11-13 | the commit that adds the save text and sprite dumps to the check | Pass criteria: a third EA candidate, the `.cre` header's EA (`ea_cre=`), and `deno task verify`'s list of offsets that read 2 in every party member's sprite; the check also logs the keys of `characters[id]` and the save text it parses | two EA candidates, both of which read other values for the party in the first run |
 | 2026-11-13 | the same commit, after the second run | The walker reads EA at `+0x38`, the offset the second run's dumps found, and the check compares it (every party member is a PC, 2); the save text is read from `characters[id].proficiencies` | three EA candidates, and save text looked for at the top level of `characters[id]` |
 | 2026-11-13 | the same commit, after the third run | The check reads each save line as the third run logged it: the shown save, then, only when not 0, its difference from the base, so the base is the first number less the second | each line read as "base (shown)", which only parsed when a modifier was present, and then as the wrong values |
+| 2026-11-13 | the same commit, before the fourth run | Step 4: the check shows a one-line summary in the message window when it is done | no acknowledgement in the game; the result was visible only in the session log |

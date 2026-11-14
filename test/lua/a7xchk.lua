@@ -12,7 +12,8 @@
 --   A7XWALK <run> <id> <name>=<value> ...   (recorded, not compared)
 --
 -- characters[id] is filled only for a party member whose record screen has been opened. Everything
--- runs inside pcall, so a failure is logged rather than raised into the game.
+-- runs inside pcall, so a failure is logged rather than raised into the game. When it finishes, one
+-- summary line goes to the message window (Infinity_DisplayString), so the tester sees that it ran.
 
 A7XCHK_run = (A7XCHK_run or 0) + 1
 local run = A7XCHK_run
@@ -23,8 +24,12 @@ local function log(...)
   Infinity_Log(table.concat(parts, " "))
 end
 
+local tally = { members = 0, equal = 0, differ = 0, skipped = 0 }
+
 local function compare(id, field, walker, engine)
-  log("A7XCHECK", run, id, field, walker == engine and "ok" or "DIFF",
+  local same = walker == engine
+  tally[same and "equal" or "differ"] = tally[same and "equal" or "differ"] + 1
+  log("A7XCHECK", run, id, field, same and "ok" or "DIFF",
     "walker=" .. tostring(walker) .. " | engine=" .. tostring(engine))
 end
 
@@ -62,12 +67,17 @@ local function hex(addr, n)
 end
 
 local function check_member(member)
+  tally.members = tally.members + 1
   local id = member.id
-  if not member.sprite then return log("A7XCHECK", run, id, "skip", member.why or "no sprite") end
+  local function skip(why)
+    tally.skipped = tally.skipped + 1
+    log("A7XCHECK", run, id, "skip", why)
+  end
+  if not member.sprite then return skip(member.why or "no sprite") end
   local c, why = A7XWALK.creature(member.sprite)
-  if not c then return log("A7XCHECK", run, id, "skip", why) end
+  if not c then return skip(why) end
   local e = type(characters) == "table" and characters[id] or nil
-  if type(e) ~= "table" then return log("A7XCHECK", run, id, "skip", "not-populated") end
+  if type(e) ~= "table" then return skip("not-populated") end
   local HP, AC, THAC0 = e.HP or {}, e.AC or {}, e.THAC0 or {}
   compare(id, "name", c.name, e.name)
   compare(id, "hp.cur", c.hp.cur, HP.current)
@@ -108,15 +118,24 @@ local function check_member(member)
   log("A7XDUMP", run, id, hex(member.sprite, DUMP_BYTES))
 end
 
+local failure
 local ok, err = pcall(function()
   if type(Infinity_DoFile) == "function" then
     Infinity_DoFile("a7xoff")
     Infinity_DoFile("a7xwalk")
   end
-  if type(A7XWALK) ~= "table" then return log("A7XCHECK", run, "party", "error", "walker not loaded") end
+  if type(A7XWALK) ~= "table" then failure = "walker not loaded" return end
   local party, why = A7XWALK.party()
-  if not party then return log("A7XCHECK", run, "party", "error", why) end
+  if not party then failure = why return end
   log("A7XCHECK", run, "party", #party)
   for _, member in ipairs(party) do check_member(member) end
 end)
-if not ok then log("A7XCHECK", run, "party", "error", tostring(err)) end
+if not ok then failure = tostring(err) end
+if failure then log("A7XCHECK", run, "party", "error", failure) end
+
+-- The acknowledgement in the game: one line in the message window, which the console shows above itself.
+local summary = failure and string.format("A7X party check %d could not run: %s", run, failure) or
+  string.format("A7X party check %d: %d members, %d fields equal, %d differ, %d skipped (details in the session log)",
+    run, tally.members, tally.equal, tally.differ, tally.skipped)
+if type(Infinity_DisplayString) == "function" then pcall(Infinity_DisplayString, summary) end
+A7XCHK_summary = summary

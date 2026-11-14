@@ -123,4 +123,17 @@ T.test("no game loaded is one error line", function()
   T.eq(lines[1], "A7XCHECK 1 party error no game loaded", "error line")
 end)
 
+T.test("the check ends with one summary line in the message window", function()
+  F.world()
+  characters = { [F.ID_A] = engine_a() }
+  local shown
+  Infinity_DisplayString = function(s) shown = s end
+  run()
+  T.eq(shown, "A7X party check 1: 2 members, 20 fields equal, 0 differ, 1 skipped (details in the session log)", "summary")
+  F.field(F.ROOT, A7XOFF.chitin.game, 0)
+  run()
+  T.eq(shown, "A7X party check 1 could not run: no game loaded", "failure summary")
+  Infinity_DisplayString = nil
+end)
+
 T.done()
