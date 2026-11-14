@@ -60,7 +60,7 @@ The tasks available so far; more arrive with each step of the plan:
 | `deno task test` | the test suite in `test/` |
 | `deno task test:native` | compile and run `test/native/*_test.c` (the bridge with a fake Lua API, the `lua_State` layout) |
 | `deno task test:lua` | build stock Lua 5.2.4 from `vendor/` and run `test/lua/*_test.lua` |
-| `deno task verify [log]` | judge the party check in a session log (by default the newest): every member compared, every field equal |
+| `deno task verify [log]` | judge the party check and the creature list in a session log (by default the newest): every member compared and equal; every list run's checks ok |
 | `deno task check` | type-check |
 
 ## Layout
@@ -78,7 +78,7 @@ src/             Deno, grouped by concern; no loose files (test/structure_test.t
                  decoding, cross-references, stat tables), objdump.ts, builds.ts (builds.h against the game)
   build/         dylib.ts (build and check the library, shared by build and doctor), lua.ts (the test interpreter)
   game/          capture.ts, launch.ts, session.ts (the play launcher)
-  verify/        checks.ts (the party check, judged from a session log)
+  verify/        checks.ts (the party check) and list.ts (the creature list), judged from a session log
                  later: gamefiles/, model/ (see docs/architecture.md)
 test/            mirrors src/ (test/lint/docs_test.ts tests src/lint/docs.ts); test/native (C), test/lua (Lua); test/e2e later
 docs/            rules, ADRs, plans, delivery notes, specs; start at docs/README.md

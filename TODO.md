@@ -27,10 +27,11 @@ covers it.
 
 ## Later
 
-- **The rest of Phase 3: every creature, not only the party.** Enumerate the object array
-  (`A7XWALK.lookup` already reads it), keep sprites in the area on screen (the creature's area and the
-  visible area are still to be found, `docs/re-notes.md`), filter by EA, and the spawn harness that
-  compares spawned creatures with their `.cre` files. The [party check](docs/manual-tests/walker.md) passed on 2026-11-13
+- **The rest of Phase 3: the spawn harness.** Spawn a known creature with `C:CreateCreature` and
+  compare the walker's values with its `.cre` file: a `.cre` reader in Deno (adapted from
+  BG2EE-GameLog), the console facts tested first (foundation plan, "Developer test harness"), and a
+  throwaway save. It follows the [creature list](docs/plans/2026-11-13-creature-list.md), which lists
+  the creatures it would compare; the [party check](docs/manual-tests/walker.md) passed on 2026-11-13
   ([delivery note](docs/notes/2026-11-13-party-walker.md)).
 
 - **`deno task derive`: deferred until a second build.** `native/builds.h` is written by hand and
