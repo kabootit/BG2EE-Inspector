@@ -37,6 +37,13 @@ Needed only to re-derive engine addresses after a game update, and to run the Lu
 | `llvm-objdump`, `otool` | from the same Command Line Tools or Xcode | nothing extra; always run as `xcrun llvm-objdump` (there is no `/usr/bin/llvm-objdump` stub) | arm64 disassembly |
 | Lua source | **5.2.4** | `deno task setup-dev` | a stock build is the reference for recognizing the game's stripped Lua functions, and builds the interpreter for the Lua unit tests. The game binary records only "Lua 5.2", so 5.2.4, the final 5.2 release, is the closest reference |
 
+## Deno modules
+
+One library is fetched by Deno itself, not by a setup task: Zod 4 (`jsr:@zod/zod@4`), which checks the
+inspector's records outside the game. Deno downloads it from `jsr.io` into its own cache the first
+time a task that imports it runs, and `deno.lock` (committed, frozen) holds its hash, so a download
+that differs fails. Nothing is installed into the project folder.
+
 ## The setup tasks
 
 Both tasks download one pinned archive, check it against the SHA-256 published upstream before writing or

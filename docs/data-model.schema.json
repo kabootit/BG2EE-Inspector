@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "number",
+      "const": 1,
+      "description": "the record format's version"
+    },
+    "id": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991,
+      "description": "the engine's id for the creature, valid for this game session"
+    },
+    "resref": {
+      "type": "string",
+      "maxLength": 8,
+      "description": "the name of the .cre file the creature was made from"
+    },
+    "name": {
+      "type": "string",
+      "description": "the name the game shows for it"
+    },
+    "allegiance": {
+      "type": "object",
+      "properties": {
+        "ea": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255,
+          "description": "the engine's allegiance value (IESDP's EA.IDS)"
+        },
+        "side": {
+          "type": "string",
+          "enum": [
+            "party",
+            "ally",
+            "neutral",
+            "enemy"
+          ],
+          "description": "ea in words; party for a party member"
+        }
+      },
+      "required": [
+        "ea",
+        "side"
+      ],
+      "additionalProperties": false,
+      "description": "whose side the creature is on"
+    },
+    "hp": {
+      "type": "object",
+      "properties": {
+        "cur": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "max": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "cur",
+        "max"
+      ],
+      "additionalProperties": false,
+      "description": "hit points now, and the maximum"
+    },
+    "ac": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991,
+      "description": "armor class"
+    },
+    "ac_mods": {
+      "type": "object",
+      "properties": {
+        "crushing": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "missile": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "piercing": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "slashing": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "crushing",
+        "missile",
+        "piercing",
+        "slashing"
+      ],
+      "additionalProperties": false,
+      "description": "AC adjustments against each kind of attack"
+    },
+    "thac0": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991,
+      "description": "THAC0, before the bonuses of the weapon in hand"
+    },
+    "saves": {
+      "type": "object",
+      "properties": {
+        "death": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "wand": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "poly": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "breath": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "spell": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "death",
+        "wand",
+        "poly",
+        "breath",
+        "spell"
+      ],
+      "additionalProperties": false,
+      "description": "saving throws"
+    },
+    "resist": {
+      "type": "object",
+      "properties": {
+        "fire": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "cold": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "electricity": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "acid": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "magic_fire": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "magic_cold": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "slashing": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "crushing": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "piercing": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "missile": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "fire",
+        "cold",
+        "electricity",
+        "acid",
+        "magic_fire",
+        "magic_cold",
+        "slashing",
+        "crushing",
+        "piercing",
+        "missile"
+      ],
+      "additionalProperties": false,
+      "description": "resistances, in percent"
+    },
+    "mr": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991,
+      "description": "magic resistance, in percent"
+    }
+  },
+  "required": [
+    "schema",
+    "id",
+    "resref",
+    "name",
+    "allegiance",
+    "hp",
+    "ac",
+    "ac_mods",
+    "thac0",
+    "saves",
+    "resist",
+    "mr"
+  ],
+  "additionalProperties": false,
+  "description": "A creature as the inspector reads it, schema 1"
+}

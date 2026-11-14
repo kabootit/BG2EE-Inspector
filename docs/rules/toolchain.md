@@ -12,8 +12,10 @@ something real: an apostrophe in `Baldur's Gate` breaking quoting, a zsh glob si
 - **Deno for tasks, scripts and tests.** Entry points go through `deno task`. Calling a system binary from
   `Deno.Command` is fine (`script`, `clang`, `ditto`, `codesign`); the orchestration stays in TypeScript.
 - **Never Python, perl, npm, npx or shell scripts**, including for throwaway work.
-- **Imports:** relative files, `node:assert/strict` for tests, and `jsr:@std/*` with a pinned major
-  version. Nothing else. `lint:security` checks every import.
+- **Imports:** relative files, `node:assert/strict` for tests, `jsr:@std/*` with a pinned major
+  version, and `jsr:@zod/zod@4`, the schema library for the inspector's records
+  ([ADR-0006](../adr/0006-data-model-and-api.md)). Nothing else. `lint:security` checks every
+  import, and `deno.lock`, committed and frozen, pins each remote module's hash.
 - **Deno version.** `MIN_DENO` in `src/shared/deno_version.ts` is 2.9.8, and every task runs through
   `runTask()` (`src/shared/task.ts`), which checks it first, so an older Deno fails with one clear line.
   Raise it there and in `docs/requirements.md` together.

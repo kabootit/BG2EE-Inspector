@@ -43,6 +43,12 @@ for every task; no other tools.**
   the interpreter for `deno task test:lua`.
 - **WeiDU** v251.00 native arm64, fetched by `deno task setup-weidu` with a pinned SHA-256, instead of
   borrowing whatever `setup-*` binary a mod left in the game folder.
+- **One library: Zod 4** (`jsr:@zod/zod@4`), added 2026-11-14 for the schema of the inspector's records
+  ([ADR-0006](0006-data-model-and-api.md)): one definition gives the TypeScript types, the check of
+  every `A7XDATA` line, and a JSON Schema for other tools. It has no dependencies of its own, its
+  JSR builds are signed by GitHub Actions, and it runs only in Deno, never in the game. Deno fetches
+  it from `jsr.io` into its cache on first use; `deno.lock`, committed and frozen, pins its hash, so
+  a changed download fails instead of running.
 
 ## Options considered
 

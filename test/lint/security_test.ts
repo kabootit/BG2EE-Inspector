@@ -33,6 +33,13 @@ Deno.test("imports: relative, allowed built-ins and pinned @std only", () => {
   strictEqual(typeof importAllowed("npm:left-pad"), "string");
   strictEqual(typeof importAllowed("https://example.org/mod.ts"), "string");
   strictEqual(typeof importAllowed("node:fs"), "string");
+  strictEqual(importAllowed("jsr:@zod/zod@4"), null);
+  strictEqual(importAllowed("jsr:@zod/zod@^4.6"), null);
+  strictEqual(typeof importAllowed("jsr:@zod/zod"), "string");
+  strictEqual(typeof importAllowed("jsr:@zod/zod@3"), "string");
+  strictEqual(typeof importAllowed("jsr:@zod/zodiac@4"), "string");
+  strictEqual(typeof importAllowed("jsr:@other/zod@4"), "string");
+  strictEqual(typeof importAllowed("npm:zod@4"), "string");
 });
 
 Deno.test("import forms are found; comments are not imports", () => {

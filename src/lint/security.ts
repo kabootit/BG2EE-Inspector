@@ -87,18 +87,24 @@ const BUILTINS = new Set(["node:assert/strict"]);
 // --- dependencies ----------------------------------------------------------
 
 /**
- * What may be imported: relative files, a short list of Deno built-ins, and the
- * Deno standard library with a pinned major version. Everything else fails.
+ * What may be imported: relative files, a short list of Deno built-ins, the
+ * Deno standard library with a pinned major version, and Zod 4 (the schema of
+ * the inspector's records, ADR-0006). Everything else fails.
  */
 export function importAllowed(spec: string): string | null {
   if (BUILTINS.has(spec)) return null;
   if (spec.startsWith("./") || spec.startsWith("../")) return null;
+  if (spec.startsWith("jsr:@zod/zod")) {
+    return /^jsr:@zod\/zod@\^?4(\.\d+){0,2}(\/[a-z0-9/]+)?$/.test(spec)
+      ? null
+      : "Zod must be jsr:@zod/zod@4, its major version pinned";
+  }
   if (spec.startsWith("jsr:@std/")) {
     return /@\^?\d/.test(spec.slice("jsr:@std/".length))
       ? null
       : "must pin a major version, e.g. jsr:@std/assert@1";
   }
-  return "not a relative file, an allowed built-in, or jsr:@std/*";
+  return "not a relative file, an allowed built-in, jsr:@std/* or jsr:@zod/zod@4";
 }
 
 /** Drop whole comment lines, so prose about an import is not read as one. */

@@ -3,13 +3,13 @@ type: ADR
 id: "0002"
 title: "A read-only native bridge, struct walking in Lua, data-first output"
 description: "The dylib exposes only bounded memory reads, registered through one interposed import (ADR-0005), with a per-build address table; all struct walking is Lua with named fields; output is a data API plus message-window text, with any UI left to external mods."
-status: proposed
+status: active
 date: 2026-11-01
 ---
 
 # ADR-0002: A read-only native bridge, struct walking in Lua, data-first output
 
-**Status:** Proposed (active once the Phase 3 gate passes) · **Date:** 2026-11-01
+**Status:** Active (the Phase 3 gate passed on 2026-11-13) · **Date:** 2026-11-01
 
 ## References
 
@@ -17,6 +17,8 @@ date: 2026-11-01
 - [Architecture](../architecture.md): diagrams of these layers, the boot sequence and the inspect flow.
 - EEex forum thread[^eeex-thread]: the design history and engine pitfalls cited below by page.
 - BG2RadarOverlay[^radar] (MIT): a working read-only model on Windows.
+- [ADR-0006](0006-data-model-and-api.md): the record and the public API this output decision
+  became.
 
 ## Context
 
@@ -55,8 +57,9 @@ Lua; output on request as a data API and message-window text.**
     `cstr`, up to 256 bytes to the first NUL;
   - `ReadBlock(addr, len)`: exactly `len` bytes, 1 to 4096, as a string.
 
-  Addresses are integers from 1 to 2^53, which a Lua 5.2 number holds exactly. Until `a7x_api.lua`
-  exists (Phase 4) to capture the table and clear the global, `A7X_native` stays visible to all Lua.
+  Addresses are integers from 1 to 2^53, which a Lua 5.2 number holds exactly. The public API,
+  `a7xapi.lua`, takes the table private on its first call and clears the global
+  ([ADR-0006](0006-data-model-and-api.md)); until that call, `A7X_native` is visible to all Lua.
 
 ### Lua walker
 
@@ -78,8 +81,11 @@ Lua; output on request as a data API and message-window text.**
 
 ### Output
 
-- **A versioned public data API.** `A7X.get`, `A7X.list`, `A7X.hovered`, `A7X.portrait`, `A7X.status` and
-  `A7X.version` return fresh schema-1 tables.
+- **A versioned public data API.** `A7X.get`, `A7X.list`, `A7X.status` and `A7X.version` return
+  fresh schema-1 tables (API 1.0, Phase 4); `A7X.hovered` and `A7X.portrait` follow with the hotkey as
+  API 1.1. The record and the API are [ADR-0006](0006-data-model-and-api.md); the foundation plan's
+  `"unknown_build"` status is folded into `"no_native"`, because on an unknown build the library
+  registers nothing and Lua cannot tell the two apart.
 - **Triggers.** The `e` key over a creature or portrait, `e` followed by a portrait click, and console
   commands, all printing through `Infinity_DisplayString`.
 - **No automatic output**, and no UI panel in this project: external mods build on the API.

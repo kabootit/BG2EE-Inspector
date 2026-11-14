@@ -10,6 +10,9 @@ apply to all work in the repo.
   sequence, inspect workflow and game-update workflow.
 - [Reverse-engineering notes](re-notes.md): every engine address the native library uses, how it was
   found and checked, and how to find it again after a game update.
+- [The API](api.md): how another mod, or a tool outside the game, reads the inspector's data.
+- [The record](data-model.md): every field of a creature's record, what it means and which check
+  proved it; also as [JSON Schema](data-model.schema.json).
 - [Foundation plan](plans/2026-11-01-inspector-foundation.md): the approved plan for the first release,
   with its research and decisions.
 

@@ -1,0 +1,65 @@
+# The inspector's API
+
+How another game mod, or a tool outside the game, reads what the inspector reads: the public Lua
+table `A7X` inside the game, and the `A7XDATA` JSON lines in the game's log outside it. Both carry the
+same record, defined in [docs/data-model.md](data-model.md). Why it is shaped this way is in
+[ADR-0006](adr/0006-data-model-and-api.md). This is API **1.0**, records of **schema 1**.
+
+## Inside the game: the `A7X` table
+
+The inspector loads with `Infinity_DoFile("a7x")`; for now that line is typed in the Ctrl+Space console
+(the WeiDU component that loads it from `ui.menu` comes with the next part of Phase 4). It leaves one
+global, `A7X`. A consumer looks it up when it needs it, never at file load, so the order mods load in
+does not matter:
+
+```lua
+if A7X and A7X.status() == "ok" then
+  local enemies = A7X.list("enemies")
+  for _, c in ipairs(enemies.creatures) do
+    local r = A7X.get(c.id)
+    if r then Infinity_DisplayString(r.name .. " " .. r.hp.cur .. "/" .. r.hp.max) end
+  end
+end
+```
+
+The functions, all of which return fresh tables and none of which raises:
+
+| Function | Returns |
+| --- | --- |
+| `A7X.version()` | `{ api = "1.0", schema = 1, build = "2.7.3 arm64" }`; `build` is missing when the inspector is not running |
+| `A7X.status()` | `"ok"`; `"no_native"` when the game was not started with the inspector's library, or the library refused this game build; `"loading"` when no game is loaded or no area is on screen |
+| `A7X.get(id)` | the record for a creature id, or `nil` and a reason: the status, `"stale id"` for an id that no longer names a creature, `"unreadable: <field>"` when a value could not be read |
+| `A7X.list(filter)` | `{ area = "<resref>", creatures = { { id, name, allegiance = { ea, side } }, ... } }` for the area on screen; `filter` is `"all"` (the default), `"enemies"` or `"party"` |
+| `A7X.show(what)` | console output, not data: prints the records for an id, `"enemies"`, `"party"` or `"all"` to the message window, and writes each as an `A7XDATA` line; with no argument it prints how to call it |
+
+Rules a consumer can rely on:
+
+- **Check `api` before calling.** A different major version means the functions may have changed.
+- **Ids last for the game session.** A saved id may name a different creature after loading a game.
+- **Nothing is cached for you.** Each call reads game memory again; call from your own throttled
+  tick, not every frame.
+- **No raw reads.** The inspector's memory-reading table is private once the API has been called;
+  other mods get records, never addresses.
+
+Still to come, as API 1.1: `A7X.hovered()`, the creature under the pointer, and `A7X.portrait()`, the
+party member behind a hovered portrait.
+
+## Outside the game: `A7XDATA` lines
+
+Each record `A7X.show` prints is also written to the game's log as one line:
+
+```text
+A7XDATA	{"ac":5,"ac_mods":{"crushing":0,...},"allegiance":{"ea":128,"side":"neutral"},...}
+```
+
+After `A7XDATA` comes a tab, then the record as JSON with its keys sorted. `deno task play` captures the
+log into `logs/`, and `deno task verify` checks every line against the schema. A tool that does not use
+TypeScript can check the lines against [data-model.schema.json](data-model.schema.json), the same
+schema as JSON Schema.
+
+## Versions
+
+- **The API** follows semantic versioning: adding a function is a minor version, changing or removing
+  one a major.
+- **The record** carries `schema`: adding an optional field keeps it, renaming, removing or changing
+  the meaning of a field raises it.
