@@ -3,7 +3,8 @@
  * logs/session-*.log. The party check (src/verify/checks.ts): every compared field of its latest
  * run. The creature list check (src/verify/list.ts): every run, each with its area and creatures.
  * The spawn check (src/verify/spawn.ts): the run that spawned, each creature against its .cre file,
- * read from the installed game, and what later runs saw change. Exits non-zero unless the log holds at least one check and every run
+ * read from the installed game, and what later runs saw change. The A7XDATA lines A7X.show writes
+ * (src/verify/data.ts): every one a schema-1 record. Exits non-zero unless the log holds at least one check and every run
  * judged passed.
  */
 import { offsetsHolding, parseChecks, parseDumps, problems } from "../verify/checks.ts";
@@ -20,6 +21,7 @@ import {
 import { cell, CRE_HEADER_SIZE, read2da, readCre } from "../gamefiles/iebinary.ts";
 import { openGameFiles, readCreature, readResource } from "../gamefiles/resources.ts";
 import { GAME_DIR } from "../shared/config.ts";
+import { parseData } from "../verify/data.ts";
 import { runTask } from "../shared/task.ts";
 
 async function newestLog(): Promise<string | undefined> {
@@ -159,6 +161,25 @@ async function judgeSpawn(runs: SpawnRun[], path: string): Promise<boolean> {
   return false;
 }
 
+/** The A7XDATA lines; true when every one is a schema-1 record. */
+function judgeData(log: string, path: string): boolean {
+  const data = parseData(log);
+  console.log(`verify: ${path}, ${data.lines} A7XDATA line(s)`);
+  for (const r of data.records) {
+    console.log(
+      `  ${r.allegiance.side.padEnd(8)} ${String(r.id).padEnd(10)} hp ${
+        `${r.hp.cur}/${r.hp.max}`.padEnd(8)
+      } ${r.name}`,
+    );
+  }
+  if (data.problems.length === 0) {
+    console.log(`verify: data passed, ${data.lines} line(s), every one a schema-1 record`);
+    return true;
+  }
+  for (const p of data.problems) console.error(`verify: data: ${p}`);
+  return false;
+}
+
 await runTask(async () => {
   const path = Deno.args[0] ?? await newestLog();
   if (!path) {
@@ -169,8 +190,9 @@ await runTask(async () => {
   const party = parseChecks(log).length > 0;
   const lists = parseLists(log);
   const spawns = parseSpawns(log);
-  if (!party && lists.length === 0 && spawns.length === 0) {
-    console.error(`verify: ${path} has no A7XCHECK, A7XLIST or A7XSPAWN lines`);
+  const data = parseData(log).lines > 0;
+  if (!party && lists.length === 0 && spawns.length === 0 && !data) {
+    console.error(`verify: ${path} has no A7XCHECK, A7XLIST, A7XSPAWN or A7XDATA lines`);
     return 1;
   }
   let passed = true;
@@ -185,5 +207,6 @@ await runTask(async () => {
     );
   }
   if (spawns.length > 0) passed = await judgeSpawn(spawns, path) && passed;
+  if (data) passed = judgeData(log, path) && passed;
   return passed ? 0 : 1;
 });
