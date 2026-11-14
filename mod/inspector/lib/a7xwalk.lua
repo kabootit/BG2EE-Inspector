@@ -1,4 +1,5 @@
--- a7xwalk.lua: follow engine structures from A7X_native.Root() to the party, and read a creature.
+-- a7xwalk.lua: follow engine structures from A7X_native.Root() to the party and to the creatures in
+-- the area on screen, and read a creature.
 --
 -- Every read goes through A7X_native (read-only, a bad address gives nil) and every field through
 -- A7XOFF (a7xoff.lua), so this file holds no numbers of its own. Before a pointer is followed it
@@ -60,6 +61,71 @@ function A7XWALK.party()
     party[#party + 1] = { slot = slot, id = id, sprite = sprite, why = why }
   end
   return party
+end
+
+-- `n` bytes of `block` from position `at` (0-based) as a little-endian unsigned number.
+local function unsigned(block, at, n)
+  local v = 0
+  for i = n, 1, -1 do v = v * 256 + block:byte(at + i) end
+  return v
+end
+
+-- The area on screen: { index, pointer, resref }, or nil and a reason.
+function A7XWALK.visible_area()
+  local N = native()
+  if not N then return nil, "no A7X_native" end
+  local game = R(N.Root(), O.chitin.game)
+  if not valid_pointer(game) then return nil, "no game loaded" end
+  local index = R(game, O.game.visible_area)
+  if not index or index >= O.game.area_count then return nil, "bad visible area index" end
+  local area = R(game, { O.game.areas[1] + 8 * index, O.game.areas[2] })
+  if not valid_pointer(area) then return nil, "no visible area" end
+  local block = N.ReadBlock(area + O.area.resref, O.area.resref_size)
+  if not block then return nil, "area unreadable" end
+  return { index = index, pointer = area, resref = block:match("^[^\0]*") }
+end
+
+-- Every sprite in `area` (a CGameArea pointer), in object-array order, as { id, sprite, ea }, and
+-- the scan's counts { slots, objects, sprites }; or nil and a reason. The slots are read 256 at a
+-- time (4 KB, ReadBlock's limit), never past the highest slot in use or the array's capacity.
+function A7XWALK.creatures(area)
+  local N = native()
+  if not N then return nil, "no A7X_native" end
+  if not valid_pointer(area) then return nil, "bad area pointer" end
+  local array = N.Objects()
+  local capacity, highest = R(array, O.objects.capacity), R(array, O.objects.highest)
+  if not capacity or not highest then return nil, "object array unreadable" end
+  local slots = math.max(0, math.min(highest + 1, capacity))
+  local size, per = O.objects.slot_size, 256
+  local list, counts = {}, { slots = slots, objects = 0, sprites = 0 }
+  for first = 0, slots - 1, per do
+    local n = math.min(per, slots - first)
+    local block = N.ReadBlock(array + first * size, n * size)
+    if not block then return nil, "object array unreadable at slot " .. first end
+    for i = 0, n - 1 do
+      -- A slot: a u16 generation and an 8-byte pointer (O.objects.generation, O.objects.pointer).
+      local generation = unsigned(block, i * size + O.objects.generation[1], 2)
+      local object = unsigned(block, i * size + O.objects.pointer[1], 8)
+      if generation ~= O.objects.empty and valid_pointer(object) then
+        counts.objects = counts.objects + 1
+        if R(object, O.object.type) == O.sprite_type then
+          counts.sprites = counts.sprites + 1
+          if R(object, O.object.area) == area then
+            list[#list + 1] = { id = R(object, O.object.id), sprite = object, ea = R(object, O.object.ea) }
+          end
+        end
+      end
+    end
+  end
+  return list, counts
+end
+
+-- "friendly", "neutral" or "hostile" for an EA value, by the engine's two cut-offs; nil for no EA.
+function A7XWALK.ea_group(ea)
+  if type(ea) ~= "number" then return nil end
+  if ea <= O.ea.friendly_max then return "friendly" end
+  if ea >= O.ea.hostile_min then return "hostile" end
+  return "neutral"
 end
 
 local function stat(block, name)

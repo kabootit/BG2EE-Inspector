@@ -1,7 +1,10 @@
 -- fakegame.lua: a fake game for the Lua tests, as bytes in a Lua table, read through a fake
 -- A7X_native the way the real one reads game memory. world() builds a party of two: A on the derived
 -- stats block with a custom name and a weapon, B on the temp block with a strref name, no weapon and
--- improved invisibility. Tests change single fields with field() to make the hostile cases.
+-- improved invisibility, both in the area on screen (AR0602). crowd() adds, past the first 256
+-- slots, a hostile creature in the same area, a neutral one in another area and an object that is not
+-- a sprite. Tests change single fields with field() to make the hostile cases, and make a block read
+-- fail by adding its address to F.fail_blocks.
 
 dofile("mod/inspector/lib/a7xoff.lua")
 local O = A7XOFF
@@ -51,8 +54,10 @@ local function cstr(addr, text)
 end
 
 local ROOT, GAME, ARRAY = 0x10000, 0x20000, 0x50000
-local A, B = 0x100000, 0x200000
+local A, B, C, D, E = 0x100000, 0x200000, 0x500000, 0x510000, 0x520000
 local ID_A, ID_B = 5 * 65536 + 2001, 6 * 65536 + 2002
+local ID_C, ID_D, ID_E = 300 * 65536 + 2003, 7 * 65536 + 2004, 8 * 65536 + 2005
+local AREA1, AREA2 = 0x600000, 0x610000
 
 local function stats(block, v)
   for name, f in pairs(O.stats) do put(block + f[1], f[2], v[name] or 0) end
@@ -61,7 +66,8 @@ end
 local function sprite(at, id, s)
   field(at, O.object.type, s.type or O.sprite_type)
   field(at, O.object.id, id)
-  field(at, O.object.ea, 2)
+  field(at, O.object.ea, s.ea or 2)
+  field(at, O.object.area, s.area or AREA1)
   field(at, O.sprite.allow_effect_list, s.allow)
   field(at, O.sprite.name_strref, s.strref)
   field(at, O.sprite.name, s.name or 0)
@@ -75,9 +81,20 @@ local function sprite(at, id, s)
   stats(at + O.sprite.temp, s.temp)
 end
 
+local function area(at, resref)
+  for i = 0, O.area.resref_size - 1 do mem[at + O.area.resref + i] = resref:byte(i + 1) or 0 end
+end
+
 local function world()
   mem = {}
+  F.fail_blocks = {}
   field(ROOT, O.chitin.game, GAME)
+  for i = 0, O.game.area_count - 1 do put(GAME + O.game.areas[1] + 8 * i, "ptr", 0) end
+  put(GAME + O.game.areas[1], "ptr", AREA1)
+  put(GAME + O.game.areas[1] + 8, "ptr", AREA2)
+  field(GAME, O.game.visible_area, 0)
+  area(AREA1, "AR0602")
+  area(AREA2, "AR0603")
   field(GAME, O.game.party_count, 2)
   put(GAME + O.game.party_ids[1], "i32", ID_A)
   put(GAME + O.game.party_ids[1] + 4, "i32", ID_B)
@@ -105,20 +122,47 @@ local function world()
   })
 end
 
+-- More objects, so a scan crosses into a second 256-slot block: C, hostile, in the area on screen
+-- at slot 300; D, neutral, in the other area; E, not a sprite, in the area on screen.
+local function crowd()
+  field(ARRAY, O.objects.capacity, 400)
+  field(ARRAY, O.objects.highest, 300)
+  for slot = 11, 300 do
+    put(ARRAY + 16 * slot, "u16", O.objects.empty)
+    put(ARRAY + 16 * slot + 8, "ptr", 0)
+  end
+  local function slot(index, generation, at)
+    put(ARRAY + 16 * index, "u16", generation)
+    put(ARRAY + 16 * index + 8, "ptr", at)
+  end
+  slot(300, 2003, C)
+  slot(7, 2004, D)
+  slot(8, 2005, E)
+  sprite(C, ID_C, { ea = 255, allow = 1, strref = 1235, hp = 60, derived = { max_hp = 60 }, temp = {} })
+  sprite(D, ID_D, { ea = 128, area = AREA2, allow = 1, strref = 1236, hp = 8, derived = { max_hp = 8 }, temp = {} })
+  field(E, O.object.type, 0x10)
+  field(E, O.object.area, AREA1)
+end
+
 A7X_native = {
   Root = function() return ROOT end,
   Objects = function() return ARRAY end,
   Read = function(addr, kind) return get(addr, kind) end,
   -- Bytes never written read as zero here: the fake has no unmapped pages, only sparse writes.
   ReadBlock = function(addr, n)
+    if F.fail_blocks[addr] then return nil end
     local chars = {}
     for i = 0, n - 1 do chars[#chars + 1] = string.char(mem[addr + i] or 0) end
     return table.concat(chars)
   end,
 }
-function Infinity_FetchString(strref) return strref == 1234 and "Jaheira" or nil end
+local NAMES = { [1234] = "Jaheira", [1235] = "Ogre", [1236] = "Commoner" }
+function Infinity_FetchString(strref) return NAMES[strref] end
 
 
 F.ROOT, F.GAME, F.ARRAY, F.A, F.B, F.ID_A, F.ID_B = ROOT, GAME, ARRAY, A, B, ID_A, ID_B
-F.put, F.field, F.world = put, field, world
+F.C, F.D, F.E, F.ID_C, F.ID_D, F.ID_E = C, D, E, ID_C, ID_D, ID_E
+F.AREA1, F.AREA2 = AREA1, AREA2
+F.fail_blocks = {}
+F.put, F.field, F.world, F.crowd = put, field, world, crowd
 return F

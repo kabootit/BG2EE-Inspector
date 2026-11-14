@@ -1,6 +1,7 @@
 -- The walker (mod/inspector/lib/a7xwalk.lua) against a fake game in a Lua table of bytes: a party of
 -- two, one on each stats block, a custom name and a strref name, an empty weapon slot, improved
--- invisibility, and the hostile cases (bad counts, stale ids, wrong types, unreadable pointers).
+-- invisibility, the area on screen and the creatures in it, EA groups, and the hostile cases (bad
+-- counts, stale ids, wrong types, unreadable pointers and blocks, a bad area index).
 
 local T = dofile("test/lua/testlib.lua")
 local F = dofile("test/lua/fakegame.lua") -- loads a7xoff.lua, which the walker reads at load
@@ -77,11 +78,72 @@ T.test("a wrong type byte, a null or -1 pointer, and no game are refused", funct
   T.eq(select(2, A7XWALK.party()), "no game loaded", "no game")
 end)
 
+T.test("the visible area is the indexed entry of the area table, with its resref", function()
+  world()
+  local v = assert(A7XWALK.visible_area())
+  T.eq(v.index, 0, "index")
+  T.eq(v.pointer, F.AREA1, "pointer")
+  T.eq(v.resref, "AR0602", "resref, cut at the first NUL")
+  field(GAME, O.game.visible_area, 1)
+  T.eq(A7XWALK.visible_area().resref, "AR0603", "the other area")
+end)
+
+T.test("a bad visible area index, an empty entry and no game are refused", function()
+  world()
+  field(GAME, O.game.visible_area, O.game.area_count)
+  T.eq(select(2, A7XWALK.visible_area()), "bad visible area index", "index past the table")
+  field(GAME, O.game.visible_area, 2)
+  T.eq(select(2, A7XWALK.visible_area()), "no visible area", "empty entry")
+  field(ROOT, O.chitin.game, 0)
+  T.eq(select(2, A7XWALK.visible_area()), "no game loaded", "no game")
+end)
+
+T.test("the creatures in an area are its sprites only, across 256-slot blocks", function()
+  world()
+  F.crowd()
+  local list, counts = assert(A7XWALK.creatures(F.AREA1))
+  T.eq(#list, 3, "A, B and C")
+  T.eq(list[1].id, ID_A, "first in slot order")
+  T.eq(list[2].sprite, B, "second")
+  T.eq(list[3].id, F.ID_C, "C, from the second block")
+  T.eq(list[3].ea, 255, "C's EA")
+  T.eq(counts.slots, 301, "slots scanned: highest + 1")
+  T.eq(counts.objects, 5, "live objects: A, B, C, D, E")
+  T.eq(counts.sprites, 4, "sprites: E is not one")
+  local other = assert(A7XWALK.creatures(F.AREA2))
+  T.eq(#other, 1, "the other area")
+  T.eq(other[1].id, F.ID_D, "D")
+end)
+
+T.test("a scan stops at the array's capacity, and an unreadable block or bad area is refused", function()
+  world()
+  F.crowd()
+  field(ARRAY, O.objects.capacity, 200)
+  local list, counts = assert(A7XWALK.creatures(F.AREA1))
+  T.eq(counts.slots, 200, "capacity, not highest + 1")
+  T.eq(#list, 2, "C, at slot 300, is past it")
+  field(ARRAY, O.objects.capacity, 400)
+  F.fail_blocks[ARRAY + 256 * 16] = true
+  T.eq(select(2, A7XWALK.creatures(F.AREA1)), "object array unreadable at slot 256", "second block")
+  T.eq(select(2, A7XWALK.creatures(0)), "bad area pointer", "null area")
+end)
+
+T.test("EA groups follow the engine's cut-offs at 30 and 200", function()
+  T.eq(A7XWALK.ea_group(2), "friendly", "PC")
+  T.eq(A7XWALK.ea_group(30), "friendly", "GOODCUTOFF")
+  T.eq(A7XWALK.ea_group(31), "neutral", "past GOODCUTOFF")
+  T.eq(A7XWALK.ea_group(199), "neutral", "below EVILCUTOFF")
+  T.eq(A7XWALK.ea_group(200), "hostile", "EVILCUTOFF")
+  T.eq(A7XWALK.ea_group(nil), nil, "no EA")
+end)
+
 T.test("without A7X_native every function says so", function()
   local saved = A7X_native
   A7X_native = nil
   T.eq(select(2, A7XWALK.party()), "no A7X_native", "party")
   T.eq(select(2, A7XWALK.lookup(ID_A)), "no A7X_native", "lookup")
+  T.eq(select(2, A7XWALK.visible_area()), "no A7X_native", "visible area")
+  T.eq(select(2, A7XWALK.creatures(F.AREA1)), "no A7X_native", "creatures")
   A7X_native = saved
 end)
 

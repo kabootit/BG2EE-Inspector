@@ -11,11 +11,20 @@ A7XOFF = {
   -- From A7X_native.Root(): the CBaldurChitin object.
   chitin = { game = { 0x10c0, "ptr" } },
 
-  -- CInfGame: the party, as object ids in slot order.
+  -- CInfGame: the party, as object ids in slot order, and the loaded areas.
   game = {
     party_ids = { 0x6618, "i32" },
     party_count = { 0x6630, "i16" },
     party_max = 6,
+    areas = { 0x6598, "ptr" }, -- CGameArea pointers, 8 bytes each; empty slots are 0
+    area_count = 12,
+    visible_area = { 0x6590, "u8" }, -- index into areas of the area on screen
+  },
+
+  -- CGameArea.
+  area = {
+    resref = 0x204, -- 8 bytes, NUL-padded: the area's resource name, such as AR0602
+    resref_size = 8,
   },
 
   -- The object array at A7X_native.Objects(): 16-byte slots, its bounds in the 16 bytes before it.
@@ -35,6 +44,7 @@ A7XOFF = {
     -- The live EA: the EA byte of the CAIObjectType at +0x30. Found by the party check: the only
     -- offset in the first 2 KB of every party sprite that reads 2 (PC).
     ea = { 0x38, "u8" },
+    area = { 0x18, "ptr" }, -- the CGameArea the object is in
   },
   sprite_type = 0x31,
 
@@ -81,4 +91,7 @@ A7XOFF = {
     hit_bonus = { 0x1f4, "i16", id = 151 }, -- HITBONUS, subtracted from THAC0 as shown
   },
   state_improved_invisibility = 0x400000, -- the record screen shows saves 4 better under it
+
+  -- EA groups, as the engine's own EA matching draws them (EA.IDS GOODCUTOFF and EVILCUTOFF).
+  ea = { friendly_max = 30, hostile_min = 200 },
 }
