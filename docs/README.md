@@ -6,8 +6,9 @@ apply to all work in the repo.
 ## Overview
 
 - [Requirements](requirements.md): what to install first, and how `deno task doctor` checks it.
-- [Architecture](architecture.md): diagrams of the roadmap, code organization, runtime layers, boot
-  sequence, inspect workflow and game-update workflow.
+- [Architecture](architecture.md): diagrams of the roadmap, code organization, runtime layers, data
+  flow (every JSON line, from the game to its schema and its readers), boot sequence, inspect workflow
+  and game-update workflow.
 - [Reverse-engineering notes](re-notes.md): every engine address the native library uses, how it was
   found and checked, and how to find it again after a game update.
 - [The API](api.md): how another mod, or a tool outside the game, reads the inspector's data.
@@ -83,4 +84,5 @@ Manual tests run at the game, step by step, each with its record of runs:
   [2026-11-13 Phase 3, the spawn harness](notes/2026-11-13-spawn-harness.md).
 - Learnings, named `YYYY-MM-DD-<topic>.md` so they sort by time: a lesson from the work, with code
   before and after and why the change is better:
-  [2026-11-14 reading data back: the format as data, not as statements](learnings/2026-11-14-declarative-line-parsing.md).
+  [2026-11-14 reading data back: the format as data, not as statements](learnings/2026-11-14-declarative-line-parsing.md),
+  [2026-11-14 one schema for every line: catching drift between two languages](learnings/2026-11-14-central-schemas.md).

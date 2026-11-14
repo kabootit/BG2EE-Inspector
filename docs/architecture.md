@@ -2,8 +2,10 @@
 
 How the inspector is organized, what runs where, and the order things happen in. Each diagram is a
 Mermaid block, which GitHub renders and VS Code previews with a Mermaid extension. The decisions behind
-these diagrams are in [ADR-0001](adr/0001-native-dylib-injection.md) and
-[ADR-0002](adr/0002-read-only-bridge-lua-walker.md). Most of this is still to be built; the
+these diagrams are in [ADR-0001](adr/0001-native-dylib-injection.md),
+[ADR-0002](adr/0002-read-only-bridge-lua-walker.md) and [ADR-0006](adr/0006-data-model-and-api.md).
+Parts are still to be built: those marked "later" in the runtime layers, and the hotkey the inspect
+workflow describes; the
 [foundation plan](plans/2026-11-01-inspector-foundation.md) says in which step.
 
 ## Roadmap
@@ -65,8 +67,8 @@ flowchart TD
 | `src/re/` | Mach-O and arm64 helpers, `derive.ts` for `native/builds.h` | Phase 1 |
 | `src/build/` | building and checking the dylib, shared by `build` and `doctor` | Phase 0 |
 | `src/game/` | launcher, redaction, WeiDU install, e2e save handling | Phase 0 onward |
-| `src/gamefiles/` | `.cre`, `.spl`, `dialog.tlk` readers adapted from BG2EE-GameLog | Phase 3 and 5 |
-| `src/model/` | schema-1 types and guard, captured-session parsing | Phase 3 and 4 |
+| `src/gamefiles/` | `chitin.key`, BIFF, `.cre` and 2DA readers adapted from BG2EE-GameLog; `.spl` and `dialog.tlk` later | Phase 3 and 5 |
+| `src/model/` | `schemas.ts`: every data shape the game writes, one Zod schema each, the types inferred from them, and `parseLines` ([Data flow](#data-flow)) | Phase 4 |
 | `src/verify/` | assertions for `deno task verify` and `deno task e2e` | Phase 3 |
 
 The rules, enforced by `test/structure_test.ts`:
@@ -93,12 +95,13 @@ flowchart TD
       RD["A7X_native: Read, ReadBlock, Root via mach_vm_read_overwrite"]
     end
     subgraph LUA["Inspector Lua, in override/"]
-      WK["a7x_walk.lua + a7x_effects.lua: named fields, bounded walks"]
-      OF["a7x_offsets_273_arm64.lua: names to numbers"]
-      API["a7x_api.lua: public A7X table, schema 1"]
-      FM["a7x_format.lua"]
-      TR["triggers: e hotkey, console A7X.show"]
-      TS["a7x_test.lua: A7XT, dev component only"]
+      WK["a7xwalk.lua: named fields, bounded walks; effects later"]
+      OF["a7xoff.lua: names to numbers"]
+      API["a7xapi.lua: public A7X table, schema 1"]
+      FM["a7xfmt.lua: text lines"]
+      JS["a7xjson.lua: JSON lines"]
+      TR["triggers: console A7X.show; e hotkey later"]
+      TS["a7x_test.lua: A7XT, dev component, later"]
     end
   end
   RD -- "reads memory of" --> ENG
@@ -111,9 +114,79 @@ flowchart TD
   TS --> API
   EXT["External mods, e.g. a future UI mod"] -- "A7X.get, A7X.list" --> API
   FM -- "Infinity_DisplayString" --> MSG["Message window, shown by the debug console"]
-  API -- "Infinity_Log A7XDATA json" --> OUT["stdout via script pty"]
+  API --> JS
+  JS -- "Infinity_Log A7XDATA json" --> OUT["stdout via script pty"]
   OUT --> DENO["Deno: verify, e2e, GameLog"]
 ```
+
+## Data flow
+
+Every piece of data the inspector produces leaves the game in one of three ways: as Lua tables to other
+mods, as text in the message window, or as JSON lines in the game's log, which Deno reads afterwards.
+Every JSON line is defined once, by a Zod schema in `src/model/schemas.ts`; why is in
+[ADR-0006](adr/0006-data-model-and-api.md), and the record's fields are in
+[docs/data-model.md](data-model.md).
+
+### The path of a line
+
+From game memory to the three outputs, and from the log to a verdict. The check scripts are test tools,
+copied into the game only for a manual test; the API is the inspector itself.
+
+```mermaid
+flowchart TD
+  MEM["Game memory"] --> NAT["A7X_native: Read, ReadBlock"]
+  NAT --> WALK["a7xwalk.lua + a7xoff.lua: named fields"]
+  WALK --> API["a7xapi.lua: the A7X table, schema-1 records"]
+  WALK --> CHK["Check scripts, test only: a7xchk, a7xlist, a7xspawn"]
+  API -- "A7X.get, A7X.list" --> MODS["Other mods: plain Lua tables"]
+  API -- "A7X.show" --> FMT["a7xfmt.lua: two text lines per record"]
+  FMT -- "Infinity_DisplayString" --> MSG["Message window"]
+  API -- "A7X.show" --> JSON["a7xjson.lua: sorted keys, integers kept"]
+  CHK --> JSON
+  JSON -- "Infinity_Log: prefix, tab, JSON" --> LOG["Game stdout"]
+  LOG -- "deno task play" --> CAP["logs/session-*.log"]
+  CAP --> PARSE["parseLines in schemas.ts: each line checked against its schema"]
+  PARSE --> VER["src/verify: checks.ts, list.ts, spawn.ts fold lines into runs"]
+  VER --> REP["deno task verify: the report and its exit code"]
+  CAP --> TOOLS["Tools outside the game: checked with data-model.schema.json"]
+```
+
+Each prefix, who writes it, what defines it, what pins it and who reads it:
+
+| Prefix | Written by | Schema | Golden file | Read by |
+| --- | --- | --- | --- | --- |
+| `A7XDATA` | `mod/inspector/lib/a7xapi.lua`, through `A7X.show` | `RecordSchema` | `test/fixtures/a7xdata.txt` | `deno task verify`; other tools, through `docs/data-model.schema.json` |
+| `A7XCHECK` | `test/lua/a7xchk.lua` | `CheckLine` | `test/fixtures/a7xcheck.txt` | `src/verify/checks.ts` |
+| `A7XLIST` | `test/lua/a7xlist.lua` | `ListLine` | `test/fixtures/a7xlist.txt` | `src/verify/list.ts` |
+| `A7XSPAWN` | `test/lua/a7xspawn.lua` | `SpawnLine` | `test/fixtures/a7xspawn.txt` | `src/verify/spawn.ts`, with the game's `.cre` files |
+
+The two outputs that are not JSON have the same source: the tables `A7X.get` returns are the records
+`A7XDATA` carries, before encoding, and the message-window text is made from them by `a7xfmt.lua`
+for people, not programs.
+
+### How every part is tied to the schema
+
+The schema file is the single source of truth; each other part is held to it by a test, the compiler
+or a generated file, so a change on one side cannot pass unnoticed on another.
+
+```mermaid
+flowchart TD
+  SCH["src/model/schemas.ts: one Zod schema per prefix"]
+  SCH -- "z.infer" --> TYPES["Every type: lines, records, runs"]
+  TYPES -- "exhaustive switch: a new kind will not compile until handled" --> VER["src/verify modules"]
+  SCH -- "deno task schema" --> JS["docs/data-model.schema.json"]
+  JS -- "test: the file equals the schema" --> SCHT["test/model/schemas_test.ts"]
+  LUA["Lua writers: a7xapi.lua and the check scripts"] -- "Lua tests: exactly these lines" --> GOLD["test/fixtures: one golden file per prefix"]
+  GOLD -- "test: every line passes its schema" --> SCHT
+  SCH --> SCHT
+  DM["docs/data-model.md: the record's fields"] -- "test: the same fields" --> SPEC["test/model/spec_test.ts"]
+  SCH --> SPEC
+  LOGS["A real session log"] -- "deno task verify: a line that fails its schema fails the run" --> SCH
+```
+
+The Lua side cannot import TypeScript, so the golden files are the link across the language boundary:
+both sides are held to the same bytes. How this design came about is in the learning note
+[one schema for every line](learnings/2026-11-14-central-schemas.md).
 
 ## Boot sequence
 
@@ -146,7 +219,7 @@ sequenceDiagram
   A->>A: Lua state set and idle? if not, wait for the next frame
   A->>L: register the A7X_native table with the game's own Lua API, under its lua_pcallk
   A->>G: from now on, every call passes straight to the real glClear
-  L->>L: on first use, a7x_api captures A7X_native as locals, sets the global to nil
+  L->>L: on first use, a7xapi captures A7X_native as a local, sets the global to nil
   Note over L: A7X.status() is loading until a game is loaded, then ok
 ```
 
