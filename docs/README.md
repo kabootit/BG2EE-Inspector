@@ -66,7 +66,8 @@ Manual tests run at the game, step by step, each with its record of runs:
   [2026-11-06 Phase 3, the party walker](plans/2026-11-06-party-walker.md),
   [2026-11-13 Phase 3, the creature list](plans/2026-11-13-creature-list.md),
   [2026-11-13 Phase 3, the spawn harness](plans/2026-11-13-spawn-harness.md),
-  [2026-11-14 Phase 4, the data API and console output](plans/2026-11-14-data-api.md).
+  [2026-11-14 Phase 4, the data API and console output](plans/2026-11-14-data-api.md),
+  [2026-11-14 one central schema for every line the game writes](plans/2026-11-14-central-schemas.md).
 - Delivery notes, named `YYYY-MM-DD-<topic>.md` so they sort by time:
   [2026-11-01 Step 0, setup](notes/2026-11-01-setup.md),
   [2026-11-01 Step 1, requirements](notes/2026-11-01-requirements.md),
