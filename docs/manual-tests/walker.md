@@ -9,10 +9,10 @@ duration: "about 10 minutes, 6 of them in the game"
 
 This session checks the walker against the engine itself. For every party member, the walker reads
 name, HP, AC and its four modifiers, THAC0 and the five saves from game memory, and the check script
-compares each with `characters[id]`, the table the engine fills for the record screen. The project
-shows no enemy stats until every value matches (the [gate](../README.md#terms) for Phase 3). It also
-settles which of two candidate offsets holds a creature's live EA. What the walker reads and where
-each offset comes from: [docs/re-notes.md](../re-notes.md#engine-structures).
+compares each with `characters[id]`, the table the engine fills for the record screen. The EA, which
+`characters[id]` does not hold, is compared with 2, a PC, which every party member is. The project
+shows no enemy stats until every value matches (the [gate](../README.md#terms) for Phase 3). What the
+walker reads and where each offset comes from: [docs/re-notes.md](../re-notes.md#engine-structures).
 
 The walker's Lua (`a7xoff.lua`, `a7xwalk.lua`) and the check script (`a7xchk.lua`) are copied into the
 game's `override/` folder for the session; the WeiDU component that installs them for good comes in
