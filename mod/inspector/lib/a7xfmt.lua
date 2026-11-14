@@ -8,12 +8,13 @@
 
 A7XFMT = {}
 
--- Colors by side, as 0xAARRGGBB; the byte order is confirmed by eye in the Data API manual test.
+-- Colors by side, as 0xAABBGGRR: alpha, then blue, green and red. The Data API manual test of
+-- 2026-11-14 settled the order: written as 0xAARRGGBB, light blue showed gold and red showed blue.
 local COLORS = {
-  party = 0xff80c0ff,
-  ally = 0xff60e060,
-  neutral = 0xffd0d0a0,
-  enemy = 0xffff6060,
+  party = 0xffffc080, -- light blue
+  ally = 0xff60e060, -- green
+  neutral = 0xffa0d0d0, -- pale yellow
+  enemy = 0xff6060ff, -- red
 }
 
 local AC_MODS = { "crushing", "missile", "piercing", "slashing" }

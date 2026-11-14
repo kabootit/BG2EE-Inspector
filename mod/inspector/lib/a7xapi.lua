@@ -120,8 +120,10 @@ local function list(filter)
   for _, e in ipairs(found) do
     local a = allegiance(e.id, e.ea, party)
     if FILTERS[filter](a.side) then
-      local c = W.creature(e.sprite)
-      out[#out + 1] = { id = e.id, name = c and c.name or "", allegiance = a, sprite = e.sprite }
+      -- Each creature on its own: one whose name cannot be read is listed without one.
+      local ok, c = pcall(W.creature, e.sprite)
+      local name = ok and type(c) == "table" and c.name or ""
+      out[#out + 1] = { id = e.id, name = name, allegiance = a, sprite = e.sprite }
     end
   end
   return { area = area.resref, creatures = out }
@@ -163,8 +165,11 @@ function A7X.list(filter)
   return result
 end
 
+-- A line in the message window, and the same text in the session log, so what the window showed can
+-- be read afterwards: a command that printed nothing, or stopped early, leaves its trace.
 local function say(text)
   if type(Infinity_DisplayString) == "function" then Infinity_DisplayString(text) end
+  if type(Infinity_Log) == "function" then Infinity_Log(text) end
 end
 
 local function emit(r)
@@ -187,10 +192,20 @@ local function show(what)
   if not found then return say("[A7X] " .. tostring(why)) end
   if #found.creatures == 0 then return say("[A7X] no " .. what .. " in " .. tostring(found.area)) end
   local party = party_ids()
+  local shown, unreadable = 0, 0
   for _, c in ipairs(found.creatures) do
-    local r, reason = record(c.sprite, party)
-    if r then emit(r) else say("[A7X] " .. tostring(c.id) .. ": " .. tostring(reason)) end
+    -- Each creature on its own, so one that cannot be read does not stop the rest.
+    local ok, r, reason = pcall(record, c.sprite, party)
+    if ok and r then
+      emit(r)
+      shown = shown + 1
+    else
+      unreadable = unreadable + 1
+      say("[A7X] " .. tostring(c.id) .. ": " .. tostring(ok and reason or r))
+    end
   end
+  say(string.format("[A7X] %s in %s: %d shown, %d not readable", what, tostring(found.area), shown,
+    unreadable))
 end
 
 function A7X.show(what)

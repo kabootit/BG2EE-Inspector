@@ -73,7 +73,9 @@ typed is `Infinity_DoFile("a7x")` and the `A7X.show` commands below.
 
    `enemies` lists the hostile creatures, or says there are none; `all` lists every creature in the
    area; the third line shows the first of them again, found by its id, which tests `A7X.list` and
-   `A7X.get`; `A7X.show()` prints how to call it.
+   `A7X.get`; `A7X.show()` prints how to call it. `enemies` and `all` each end with a summary line,
+   such as `[A7X] all in AR0602: 12 shown, 0 not readable`; a command without one did not finish, so
+   note what it printed instead. Every line the message window shows is also in the session log.
 5. **Check the memory-reading table is private** (1 minute). Type:
 
    ```lua
@@ -131,5 +133,14 @@ The colors are recorded, not judged: their byte order is a fact this run settles
 
 ## Runs
 
-No runs yet. Each run adds a row: the date, the commit it ran against, the result, and a link to the
-delivery note that records it.
+No runs recorded on this page yet; the first run is recorded with the next one. Each run adds a row:
+the date, the commit it ran against, the result, and a link to the delivery note that records it.
+
+### Changes to this test
+
+Each change to the steps or pass criteria after the first run, so a Runs row can be read against the
+version of the test it was judged by.
+
+| Date | Commit | What changed | Runs before it were judged against |
+| --- | --- | --- | --- |
+| 2026-11-14 | the commit that adds the data API, after the first run | Step 4: `enemies` and `all` end with a summary line, and every message-window line is also in the session log, so a command that prints nothing can be told apart from one that never ran; one creature that cannot be read no longer stops the rest; the colors are written as `0xAABBGGRR` | no summary line, and the message window's text only on screen |

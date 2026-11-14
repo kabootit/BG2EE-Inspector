@@ -30,7 +30,7 @@ The functions, all of which return fresh tables and none of which raises:
 | `A7X.status()` | `"ok"`; `"no_native"` when the game was not started with the inspector's library, or the library refused this game build; `"loading"` when no game is loaded or no area is on screen |
 | `A7X.get(id)` | the record for a creature id, or `nil` and a reason: the status, `"stale id"` for an id that no longer names a creature, `"unreadable: <field>"` when a value could not be read |
 | `A7X.list(filter)` | `{ area = "<resref>", creatures = { { id, name, allegiance = { ea, side } }, ... } }` for the area on screen; `filter` is `"all"` (the default), `"enemies"` or `"party"` |
-| `A7X.show(what)` | console output, not data: prints the records for an id, `"enemies"`, `"party"` or `"all"` to the message window, and writes each as an `A7XDATA` line; with no argument it prints how to call it |
+| `A7X.show(what)` | console output, not data: prints the records for an id, `"enemies"`, `"party"` or `"all"` to the message window, and writes each as an `A7XDATA` line; a list ends with a summary line (`[A7X] all in AR0602: 12 shown, 0 not readable`), a creature that cannot be read is named with the reason, and every line it prints also goes to the game's log as plain text; with no argument it prints how to call it |
 
 Rules a consumer can rely on:
 

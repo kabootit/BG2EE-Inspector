@@ -101,11 +101,41 @@ end)
 T.test("show prints each record and logs the golden A7XDATA lines", function()
   load()
   A7X.show("all")
-  local want = golden()
-  T.eq(#logged, #want, "one line per record")
-  for i = 1, #want do T.eq(logged[i], want[i], "A7XDATA line " .. i) end
-  T.eq(#said, 6, "two message-window lines per record")
-  T.eq(said[5], "[A7X] ^0xffff6060Ogre^-  HP 60/60  AC 0  THAC0 0  MR 0%", "the enemy's first line")
+  local want, data = golden(), {}
+  for _, l in ipairs(logged) do if l:find("^A7XDATA\t") then data[#data + 1] = l end end
+  T.eq(#data, #want, "one A7XDATA line per record")
+  for i = 1, #want do T.eq(data[i], want[i], "A7XDATA line " .. i) end
+  T.eq(#said, 7, "two message-window lines per record, then the summary")
+  T.eq(said[5], "[A7X] ^0xff6060ffOgre^-  HP 60/60  AC 0  THAC0 0  MR 0%", "the enemy's first line")
+  T.eq(said[7], "[A7X] all in AR0602: 3 shown, 0 not readable", "the summary")
+end)
+
+T.test("every message-window line is in the session log too", function()
+  load()
+  A7X.show("enemies")
+  A7X.show(12345)
+  local text = {}
+  for _, l in ipairs(logged) do if not l:find("^A7XDATA\t") then text[#text + 1] = l end end
+  T.eq(table.concat(text, "|"), table.concat(said, "|"), "the same lines, in order")
+end)
+
+T.test("a creature that raises is reported and the others are still shown", function()
+  load()
+  A7X.status()
+  local read = NATIVE.Read
+  NATIVE.Read = function(addr, kind)
+    if addr == F.B + O.sprite.hp[1] then error("boom") end
+    return read(addr, kind)
+  end
+  A7X.show("all")
+  NATIVE.Read = read
+  local data = 0
+  for _, l in ipairs(logged) do if l:find("^A7XDATA\t") then data = data + 1 end end
+  T.eq(data, 2, "A and C shown")
+  T.eq(said[#said], "[A7X] all in AR0602: 2 shown, 1 not readable", "the summary counts it")
+  local reported = false
+  for _, l in ipairs(said) do if l:find("^%[A7X%] " .. F.ID_B .. ": .*boom") then reported = true end end
+  T.eq(reported, true, "B's reason")
 end)
 
 T.test("show explains instead of printing nothing", function()
