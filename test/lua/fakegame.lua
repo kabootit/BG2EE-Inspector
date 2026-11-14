@@ -151,6 +151,7 @@ local function crowd()
 end
 
 A7X_native = {
+  Version = function() return 2, "2.7.3 arm64" end,
   Root = function() return ROOT end,
   Objects = function() return ARRAY end,
   Read = function(addr, kind) return get(addr, kind) end,

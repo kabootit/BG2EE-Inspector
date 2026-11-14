@@ -5,16 +5,25 @@
 -- A7XOFF (a7xoff.lua), so this file holds no numbers of its own. Before a pointer is followed it
 -- must look like one; before a sprite is read its type must be a sprite's. Each function returns
 -- nil and a reason instead of raising, so a caller in the game's UI never sees a Lua error from
--- here. A7X_native is looked up on each call: it may be registered after this file loads.
+-- here. The native table is looked up on each call, it may be registered after this file loads:
+-- from the provider given to A7XWALK.use (the API's, which keeps the table private), else the global
+-- A7X_native. Functions call each other through the local W, so the API may clear the global.
 
-A7XWALK = {}
+local W = {}
+A7XWALK = W
 
 local O = A7XOFF
+local provider
 local POINTER_LIMIT = 2 ^ 47 -- user space on arm64 macOS; also rules out -1 read as unsigned
 
 local function native()
-  return type(A7X_native) == "table" and A7X_native or nil
+  local N
+  if provider then N = provider() else N = A7X_native end
+  return type(N) == "table" and N or nil
 end
+
+-- Take the native table from `fn` from now on, instead of the global A7X_native.
+function W.use(fn) provider = fn end
 
 local function valid_pointer(p)
   return type(p) == "number" and p >= 0x1000 and p < POINTER_LIMIT and p % 1 == 0
@@ -57,7 +66,7 @@ function A7XWALK.party()
   local party = {}
   for slot = 0, count - 1 do
     local id = R(game, { O.game.party_ids[1] + 4 * slot, O.game.party_ids[2] })
-    local sprite, why = A7XWALK.lookup(id)
+    local sprite, why = W.lookup(id)
     party[#party + 1] = { slot = slot, id = id, sprite = sprite, why = why }
   end
   return party
@@ -87,7 +96,7 @@ function A7XWALK.visible_area()
   if not index or index >= O.game.area_count then return nil, "bad visible area index" end
   local area = R(game, { O.game.areas[1] + 8 * index, O.game.areas[2] })
   if not valid_pointer(area) then return nil, "no visible area" end
-  local resref = A7XWALK.resref(area + O.area.resref, O.area.resref_size)
+  local resref = W.resref(area + O.area.resref, O.area.resref_size)
   if not resref then return nil, "area unreadable" end
   return { index = index, pointer = area, resref = resref }
 end
@@ -178,7 +187,7 @@ function A7XWALK.creature(sprite)
   local current = allow ~= 0 and derived or sprite + O.sprite.temp
   local c = {
     id = R(sprite, O.object.id),
-    resref = A7XWALK.resref(sprite + O.sprite.resref, O.sprite.resref_size),
+    resref = W.resref(sprite + O.sprite.resref, O.sprite.resref_size),
     name = name_of(sprite),
     ea = R(sprite, O.object.ea),
     stats_block = allow ~= 0 and "derived" or "temp",
