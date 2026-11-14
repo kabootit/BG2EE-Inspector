@@ -119,6 +119,8 @@ that records it.
 | 2026-11-13 | `c823b3c`, local changes | Failed, as planned for evidence: the sprite dumps put the EA at `+0x38` for all six members; the save text was still not found | [Party walker](../notes/2026-11-13-party-walker.md) |
 | 2026-11-13 | `c823b3c`, local changes | Failed: EA equal for all six; the save text found in `proficiencies` and logged, but read as "base (shown)", the wrong way round | [Party walker](../notes/2026-11-13-party-walker.md) |
 | 2026-11-13 | `c823b3c`, local changes | Passed: 6 members, 120 fields, all equal; `0x38` the only offset reading 2 in every dump; summary line shown in the game | [Party walker](../notes/2026-11-13-party-walker.md) |
+| 2026-11-14 | `bc17e13`, local changes (JSON lines) | Failed: 6 members, 120 fields, all equal, `ea` ok for all; the list of offsets reading 2 missing, because the game's log cut every one-line sprite dump at 4084 characters and `verify` skipped the cut lines without a word | [Data API](../notes/2026-11-14-data-api.md) |
+| 2026-11-14 | `bc17e13`, local changes (dumps in 512-byte lines) | Passed: 6 members, 120 fields, all equal; `0x38` among the 43 offsets that read 2 in every dump of this party; no line cut or broken | [Data API](../notes/2026-11-14-data-api.md) |
 
 ### Changes to this test
 

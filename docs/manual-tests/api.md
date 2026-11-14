@@ -133,8 +133,13 @@ The colors are recorded, not judged: their byte order is a fact this run settles
 
 ## Runs
 
-No runs recorded on this page yet; the first run is recorded with the next one. Each run adds a row:
-the date, the commit it ran against, the result, and a link to the delivery note that records it.
+Each run adds a row: the date, the commit it ran against, the result, and a link to the delivery note
+that records it.
+
+| Date | Commit | Result | Delivery note |
+| --- | --- | --- | --- |
+| 2026-11-14 | `bc17e13`, local changes | Failed on step 4: `A7X.show("all")` printed nothing and wrote no record, with no error; the message window's text was not in the log, so the cause could not be read. Otherwise as expected: 12 `A7XDATA` lines, every one a schema-1 record; HP, AC and its modifiers of all six party members equal to the record screen (saves not compared by eye: the Stats tab shows none); `A7X_native` read `nil`; the colors showed with red and blue swapped, which settled the markup as `0xAABBGGRR` and was corrected after the run | [Data API](../notes/2026-11-14-data-api.md) |
+| 2026-11-14 | `bc17e13`, local changes (summary lines, message text logged, colors fixed) | Passed: 25 `A7XDATA` lines, every one a schema-1 record; `party` 6, `enemies` 6 and `all` 12 shown, each with its summary line, in `AR6000`; the colors as intended, party light blue and enemies red; `A7X_native` read `nil`; no record screen compared this run, its party values having matched in the first | [Data API](../notes/2026-11-14-data-api.md) |
 
 ### Changes to this test
 

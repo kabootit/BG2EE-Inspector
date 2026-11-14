@@ -61,6 +61,18 @@ The functions the library calls, in the order of `enum a7x_fn`:
 it stores the value from `d0`, so `lua_Number` is `double` and an address below 2^53 survives a round
 trip through Lua exactly.
 
+**`Infinity_Log` keeps at most 4084 characters of a message** and cuts the rest, with no sign of the
+cut. Measured in the session logs: every party-check sprite dump, in all three Phase 3 runs that wrote
+one and in the run of 2026-11-14, ends at exactly 4084 characters after `LUA: `. The inspector's lines stay
+under 4000 (`A7XJSON.MAX_LINE` in `mod/inspector/lib/a7xjson.lua`), and the dump is written in
+512-byte lines.
+
+**The message window's color markup is `^0x`, eight hex digits as `0xAABBGGRR`, the text, then
+`^-`**: alpha, then blue, green and red. The format string `^%#010x%s^-` in the binary gives the
+shape, as BG2EE-GameLog found; the order of the bytes was settled by the Data API manual test of
+2026-11-14, in which colors written as `0xAARRGGBB` showed with red and blue swapped (light blue as
+gold, red as blue).
+
 ## Globals
 
 The globals and the code that anchors each:

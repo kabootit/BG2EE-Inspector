@@ -28,7 +28,7 @@ covers it.
 ## Later
 
 - **Phase 4, in three parts** ([plan](docs/plans/2026-11-14-data-api.md)): the data API and console
-  output (built; the [Data API](docs/manual-tests/api.md) test decides it), then the hotkey and the
+  output (done on 2026-11-14, [delivery note](docs/notes/2026-11-14-data-api.md)), then the hotkey and the
   WeiDU install (`ui.menu`, the creature under the pointer, portraits, `A7X.hovered` and
   `A7X.portrait`), then `examples/consumer-mod/`.
 

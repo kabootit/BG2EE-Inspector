@@ -81,7 +81,8 @@ Manual tests run at the game, step by step, each with its record of runs:
   [2026-11-06 Phase 2, the bridge](notes/2026-11-06-bridge.md),
   [2026-11-13 Phase 3, the party walker](notes/2026-11-13-party-walker.md),
   [2026-11-13 Phase 3, the creature list](notes/2026-11-13-creature-list.md),
-  [2026-11-13 Phase 3, the spawn harness](notes/2026-11-13-spawn-harness.md).
+  [2026-11-13 Phase 3, the spawn harness](notes/2026-11-13-spawn-harness.md),
+  [2026-11-14 Phase 4, the data API and console output](notes/2026-11-14-data-api.md).
 - Learnings, named `YYYY-MM-DD-<topic>.md` so they sort by time: a lesson from the work, with code
   before and after and why the change is better:
   [2026-11-14 reading data back: the format as data, not as statements](learnings/2026-11-14-declarative-line-parsing.md),

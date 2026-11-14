@@ -1,7 +1,7 @@
 # Plan: one central schema for every line the game writes (`initial/08-output`, continued)
 
-> **Status:** approved 2026-11-14. Edited in place until pushed, per
-> [working-together.md](../rules/working-together.md). It changes how the checks of the
+> **Status:** approved and delivered 2026-11-14: the party check and creature list passed with JSON
+> lines, recorded in the [delivery note](../notes/2026-11-14-data-api.md). It changes how the checks of the
 > [party walker](2026-11-06-party-walker.md), [creature list](2026-11-13-creature-list.md) and
 > [spawn harness](2026-11-13-spawn-harness.md) plans write their lines, and extends the
 > [data API plan](2026-11-14-data-api.md)'s schema to them.

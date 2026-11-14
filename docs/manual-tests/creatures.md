@@ -126,6 +126,7 @@ that records it.
 | Date | Commit | Result | Delivery note |
 | --- | --- | --- | --- |
 | 2026-11-13 | `f8c4fbd`, local changes | Passed: both runs, 15 checks each, in `AR4000` (10 creatures) and `AR4500` (8); the four creatures named on screen, Illasera and three Black Reavers, listed as hostile | [Creature list](../notes/2026-11-13-creature-list.md) |
+| 2026-11-14 | `bc17e13`, local changes (JSON lines) | Passed: both runs, 9 checks each, in `AR0311` and `AR0312` (4 creatures each); the two creatures named on screen, Gaelan Bayle and Arledrian, listed, one in each area; the first area held only one creature outside the party, so three names could not be noted, and no hostile creature was in view | [Data API](../notes/2026-11-14-data-api.md) |
 
 ### Changes to this test
 
