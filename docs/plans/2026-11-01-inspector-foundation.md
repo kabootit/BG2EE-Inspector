@@ -878,6 +878,12 @@ The Phase 3 and 5 gates need repeatable game situations: a known creature, a kno
 
 ### Phase 4: In-game output (hotkey and console; no UI panel)
 
+Split on 2026-11-14 ([data API plan](2026-11-14-data-api.md)): the data API and console output
+first, then the hotkey and the WeiDU install, then the example consumer mod. The file names below are
+longer than `Infinity_DoFile` allows: the API is `a7xapi.lua`, the JSON writer `a7xjson.lua` and the
+formatter `a7xfmt.lua`, loaded by `a7x.lua`; the record's definition outside the game is a Zod schema,
+`src/model/schema.ts` ([ADR-0006](../adr/0006-data-model-and-api.md)).
+
 The data is useful without a UI and stays reusable by one later. What the stock 2.7.3 `ui.menu` offers was checked read-only in `data/Patch2.bif`.
 
 **Data architecture** (ADR-0006, `docs/data-model.md`):

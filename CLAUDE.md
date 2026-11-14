@@ -60,14 +60,16 @@ The tasks available so far; more arrive with each step of the plan:
 | `deno task test` | the test suite in `test/` |
 | `deno task test:native` | compile and run `test/native/*_test.c` (the bridge with a fake Lua API, the `lua_State` layout) |
 | `deno task test:lua` | build stock Lua 5.2.4 from `vendor/` and run `test/lua/*_test.lua` |
-| `deno task verify [log]` | judge the party check, the creature list and the spawn check in a session log (by default the newest): every member compared and equal; every list run's checks ok; every spawned creature equal to its `.cre`, read from the game |
+| `deno task schema` | write `docs/data-model.schema.json` from the Zod schema in `src/model/schema.ts` |
+| `deno task verify [log]` | judge the checks in a session log (by default the newest): the party check, the creature list, the spawn check (against the game's `.cre` files), and every `A7XDATA` line against the record's schema |
 | `deno task check` | type-check |
 
 ## Layout
 
 ```text
 native/          the read-only dylib (C) and builds.h, the per-build address table
-mod/inspector/   the in-game Lua: lib/a7xoff.lua (offsets by name), lib/a7xwalk.lua (the walker);
+mod/inspector/   the in-game Lua, loaded by lib/a7x.lua: a7xoff.lua (offsets by name), a7xwalk.lua (the
+                 walker), a7xjson.lua (JSON writer), a7xfmt.lua (formatter), a7xapi.lua (the public A7X);
                  the WeiDU component from Phase 4
 src/             Deno, grouped by concern; no loose files (test/structure_test.ts)
   tasks/         one entry point per deno task: `await runTask(main)`; the only code that exits
@@ -79,8 +81,9 @@ src/             Deno, grouped by concern; no loose files (test/structure_test.t
   build/         dylib.ts (build and check the library, shared by build and doctor), lua.ts (the test interpreter)
   game/          capture.ts, launch.ts, session.ts (the play launcher)
   gamefiles/     iebinary.ts (KEY, BIFF, CRE readers) and resources.ts (override/ first, then the archives)
-  verify/        checks.ts (the party check), list.ts (the creature list), spawn.ts (the spawn check)
-                 later: model/ (see docs/architecture.md)
+  model/         schema.ts (the record, as one Zod schema: types, validation, JSON Schema)
+  verify/        checks.ts (the party check), list.ts (the creature list), spawn.ts (the spawn check),
+                 data.ts (A7XDATA lines)
 test/            mirrors src/ (test/lint/docs_test.ts tests src/lint/docs.ts); test/native (C), test/lua (Lua); test/e2e later
 docs/            rules, ADRs, plans, delivery notes, specs; start at docs/README.md
 .claude/         committed settings (deny and ask lists) and skills

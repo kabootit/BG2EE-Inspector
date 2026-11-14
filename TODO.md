@@ -27,9 +27,10 @@ covers it.
 
 ## Later
 
-- **Phase 4: the data API and in-game output** (foundation plan). Phase 3 is done: the
-  [spawn check](docs/manual-tests/spawn.md) passed on 2026-11-13
-  ([delivery note](docs/notes/2026-11-13-spawn-harness.md)), so enemy values may be shown.
+- **Phase 4, in three parts** ([plan](docs/plans/2026-11-14-data-api.md)): the data API and console
+  output (built; the [Data API](docs/manual-tests/api.md) test decides it), then the hotkey and the
+  WeiDU install (`ui.menu`, the creature under the pointer, portraits, `A7X.hovered` and
+  `A7X.portrait`), then `examples/consumer-mod/`.
 
 - **`deno task derive`: deferred until a second build.** `native/builds.h` is written by hand and
   checked by `test/re/builds_test.ts`; `docs/re-notes.md` has the recipe for a new build. Automating

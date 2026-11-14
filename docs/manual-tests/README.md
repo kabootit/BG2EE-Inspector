@@ -27,6 +27,12 @@ the tested state can be checked out again:
    run is recorded the same way, followed by the fix and a new run, each its own row; the fix need not
    be committed before the new run.
 
+**The check scripts and the API do not share a session.** The party check, creature list and spawn
+check scripts read memory through the global `A7X_native`; the inspector's API takes that table
+private on its first call ([ADR-0006](../adr/0006-data-model-and-api.md)). Run a check in a session in
+which `Infinity_DoFile("a7x")` has not been typed; a session for the [Data API](api.md) test runs no
+check script.
+
 ## When a test changes
 
 A manual test page always describes how to run it against the current code, because it is run again
@@ -51,3 +57,4 @@ The manual tests so far:
 | [Party check](walker.md) | the walker reads every party member's stats as the engine shows them (Phase 3) | about 10 minutes |
 | [Creature list](creatures.md) | the walker lists the creatures in the area on screen, the party among them, with their EA groups (Phase 3) | about 15 minutes |
 | [Spawn check](spawn.md) | the walker reads creatures outside the party as their `.cre` files give them (Phase 3) | about 15 minutes |
+| [Data API](api.md) | the public `A7X` API and console output give schema-1 records that match the record screen (Phase 4) | about 15 minutes |
