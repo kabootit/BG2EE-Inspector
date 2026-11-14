@@ -32,9 +32,9 @@ A7XOFF = {
   object = {
     type = { 0x8, "u8" },
     id = { 0x48, "i32" },
-    -- Two CAIObjectType EA bytes; which is live is settled by the party check (party members read 2).
-    ea_a = { 0x30, "u8" },
-    ea_b = { 0x78, "u8" },
+    -- The live EA: the EA byte of the CAIObjectType at +0x30. Found by the party check: the only
+    -- offset in the first 2 KB of every party sprite that reads 2 (PC).
+    ea = { 0x38, "u8" },
   },
   sprite_type = 0x31,
 

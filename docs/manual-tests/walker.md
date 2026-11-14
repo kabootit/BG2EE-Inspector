@@ -96,7 +96,7 @@ Say "done" when step 7 has printed its result. The run passes when:
 | --- | --- | --- |
 | Build and registration | `A7X build 2.7.3 arm64 matched, 14 sites checked` and `A7X registered A7X_native` | both present, no `A7X disabled` |
 | Every party member compared, every field equal | `deno task verify` | `verify: passed, <n> members, <fields> fields, all equal`, with `<n>` the party size |
-| The live EA | the `A7XWALK` line of each member, `ea_a=` and `ea_b=` | one of the two is 2 for every party member; that one becomes the walker's EA |
+| The live EA | the `ea` field in `deno task verify`, and its list of offsets that read 2 in every member's sprite dump | `ea` is `ok` (2, a PC) for every party member, and `0x38` is in the list |
 | No Lua errors | the session log | no `LUA ERROR` line |
 
 A `DIFF` is a finding, not only a failure: the delivery note records the field, both values, and the
@@ -104,5 +104,16 @@ stats block the walker read (`block=` on the `A7XWALK` line), before anything is
 
 ## Runs
 
-No runs yet. Each run adds a row: the date, the commit it ran against, the result, and a link to the
-delivery note that records it.
+No runs recorded on this page yet; the first run is recorded with the next one. Each run adds a row:
+the date, the commit it ran against, the result, and a link to the delivery note that records it.
+
+### Changes to this test
+
+Each change to the steps or pass criteria after the first run, so a Runs row can be read against the
+version of the test it was judged by.
+
+| Date | Commit | What changed | Runs before it were judged against |
+| --- | --- | --- | --- |
+| 2026-11-13 | the commit that adds the save text and sprite dumps to the check | Pass criteria: a third EA candidate, the `.cre` header's EA (`ea_cre=`), and `deno task verify`'s list of offsets that read 2 in every party member's sprite; the check also logs the keys of `characters[id]` and the save text it parses | two EA candidates, both of which read other values for the party in the first run |
+| 2026-11-13 | the same commit, after the second run | The walker reads EA at `+0x38`, the offset the second run's dumps found, and the check compares it (every party member is a PC, 2); the save text is read from `characters[id].proficiencies` | three EA candidates, and save text looked for at the top level of `characters[id]` |
+| 2026-11-13 | the same commit, after the third run | The check reads each save line as the third run logged it: the shown save, then, only when not 0, its difference from the base, so the base is the first number less the second | each line read as "base (shown)", which only parsed when a modifier was present, and then as the wrong values |

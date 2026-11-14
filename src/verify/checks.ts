@@ -41,6 +41,27 @@ export function parseChecks(log: string): Run[] {
   return [...runs.values()].sort((a, b) => a.run - b.run);
 }
 
+/** The A7XDUMP lines of one run: each party member's id and the bytes of its sprite. */
+export function parseDumps(log: string, run: number): { id: string; bytes: (number | null)[] }[] {
+  const out: { id: string; bytes: (number | null)[] }[] = [];
+  for (const line of log.split("\n")) {
+    const m = line.match(/A7XDUMP (\d+) (\S+) ([0-9a-f?]+)\s*$/);
+    if (!m || Number(m[1]) !== run) continue;
+    const bytes = (m[3].match(/../g) ?? []).map((h) => (h === "??" ? null : parseInt(h, 16)));
+    out.push({ id: m[2], bytes });
+  }
+  return out;
+}
+
+/** Offsets at which every dump holds `value`: where a field all the creatures share may be. */
+export function offsetsHolding(dumps: { bytes: (number | null)[] }[], value: number): number[] {
+  if (dumps.length === 0) return [];
+  const length = Math.min(...dumps.map((d) => d.bytes.length));
+  return Array.from({ length }, (_, i) => i).filter((i) =>
+    dumps.every((d) => d.bytes[i] === value)
+  );
+}
+
 /** Why a run does not pass; empty when it does. */
 export function problems(run: Run | undefined): string[] {
   if (!run) return ["no A7XCHECK lines in the log"];

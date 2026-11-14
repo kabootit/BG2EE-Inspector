@@ -28,17 +28,38 @@ local function compare(id, field, walker, engine)
     "walker=" .. tostring(walker) .. " | engine=" .. tostring(engine))
 end
 
--- The record screen's save text: five "base (shown)" pairs, death to spell.
-local function save_pairs(text)
-  local pairs_ = {}
-  if type(text) == "string" then
-    for base, shown in text:gmatch("(%-?%d+) %((%-?%d+)%)") do
-      pairs_[#pairs_ + 1] = { tonumber(base), tonumber(shown) }
+-- The record screen's save text, one line per save, death to spell, as the party check's third run
+-- logged it: "Paralysis / Poison / Death: -4 (-7)". The first number is the save as shown; the one
+-- in brackets, present only when it is not 0, is how far that is from the base save. So each line
+-- gives { shown, base }. Signs may be "+" or "-".
+local function save_values(text)
+  local values = {}
+  if type(text) ~= "string" then return values end
+  for line in text:gmatch("[^\n]+") do
+    local shown, diff = line:match(":%s*([+-]?%d+)%s*%(([+-]?%d+)%)%s*$")
+    shown = shown or line:match(":%s*([+-]?%d+)%s*$")
+    if shown then
+      values[#values + 1] = { tonumber(shown), tonumber(shown) - (tonumber(diff) or 0) }
     end
   end
-  return pairs_
+  return values
 end
-A7XCHK_save_pairs = save_pairs
+A7XCHK_save_values = save_values
+
+local DUMP_BYTES = 2048
+local PC = 2 -- EA of a party member
+
+-- The bytes at `addr` in hex, read 256 at a time; "??" for each byte of a block that fails.
+local function hex(addr, n)
+  local out = {}
+  for at = 0, n - 1, 256 do
+    local block = A7X_native.ReadBlock(addr + at, 256)
+    for i = 1, 256 do
+      out[#out + 1] = block and string.format("%02x", block:byte(i)) or "??"
+    end
+  end
+  return table.concat(out)
+end
 
 local function check_member(member)
   local id = member.id
@@ -56,18 +77,35 @@ local function check_member(member)
     compare(id, "ac." .. mod, c.ac[mod], AC[mod])
   end
   compare(id, "thac0", c.thac0_shown, THAC0.current)
-  local shown = save_pairs(e.savingThrows)
+  compare(id, "ea", c.ea, PC) -- not in characters[]: every party member is a PC
+  -- The save text is in the proficiencies subtable, where the record screen's details are.
+  local details = type(e.proficiencies) == "table" and e.proficiencies or {}
+  local saves = save_values(details.savingThrows)
   for i, save in ipairs(A7XWALK.SAVES) do
-    local pair = shown[i] or {}
-    compare(id, "save." .. save .. ".base", c.saves_base[save], pair[1])
-    compare(id, "save." .. save, c.saves_shown[save], pair[2])
+    local value = saves[i] or {}
+    compare(id, "save." .. save, c.saves_shown[save], value[1])
+    compare(id, "save." .. save .. ".base", c.saves_base[save], value[2])
   end
   local extra = {
-    "ea_a=" .. tostring(c.ea.a), "ea_b=" .. tostring(c.ea.b), "block=" .. c.stats_block,
+    "block=" .. c.stats_block,
     "state=" .. tostring(c.state), "thac0_stat=" .. tostring(c.thac0), "mr=" .. tostring(c.mr),
   }
   for _, r in ipairs(A7XWALK.RESISTS) do extra[#extra + 1] = r .. "=" .. tostring(c.resist[r]) end
   log("A7XWALK", run, id, table.concat(extra, " "))
+  -- Evidence for fields still being located: what characters[id] holds, the save text as the
+  -- engine wrote it, and the sprite's first bytes, which deno task verify searches.
+  local function keys_of(t)
+    local keys = {}
+    for k in pairs(type(t) == "table" and t or {}) do keys[#keys + 1] = tostring(k) end
+    table.sort(keys)
+    return table.concat(keys, ",")
+  end
+  log("A7XWALK", run, id, "keys=" .. keys_of(e))
+  log("A7XWALK", run, id, "proficiencies.keys=" .. keys_of(e.proficiencies))
+  local text = details.savingThrows
+  log("A7XWALK", run, id, "savingThrows=" .. type(text) ..
+    (type(text) == "string" and (" " .. text:sub(1, 400):gsub("\n", "\\n")) or ""))
+  log("A7XDUMP", run, id, hex(member.sprite, DUMP_BYTES))
 end
 
 local ok, err = pcall(function()

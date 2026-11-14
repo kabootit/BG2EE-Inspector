@@ -106,7 +106,7 @@ function A7XWALK.creature(sprite)
   local c = {
     id = R(sprite, O.object.id),
     name = name_of(sprite),
-    ea = { a = R(sprite, O.object.ea_a), b = R(sprite, O.object.ea_b) },
+    ea = R(sprite, O.object.ea),
     stats_block = allow ~= 0 and "derived" or "temp",
     state = stat(current, "state"),
     hp = { cur = R(sprite, O.sprite.hp), max = stat(current, "max_hp") },

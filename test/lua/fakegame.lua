@@ -61,8 +61,7 @@ end
 local function sprite(at, id, s)
   field(at, O.object.type, s.type or O.sprite_type)
   field(at, O.object.id, id)
-  field(at, O.object.ea_a, 2)
-  field(at, O.object.ea_b, 2)
+  field(at, O.object.ea, 2)
   field(at, O.sprite.allow_effect_list, s.allow)
   field(at, O.sprite.name_strref, s.strref)
   field(at, O.sprite.name, s.name or 0)
@@ -110,6 +109,12 @@ A7X_native = {
   Root = function() return ROOT end,
   Objects = function() return ARRAY end,
   Read = function(addr, kind) return get(addr, kind) end,
+  -- Bytes never written read as zero here: the fake has no unmapped pages, only sparse writes.
+  ReadBlock = function(addr, n)
+    local chars = {}
+    for i = 0, n - 1 do chars[#chars + 1] = string.char(mem[addr + i] or 0) end
+    return table.concat(chars)
+  end,
 }
 function Infinity_FetchString(strref) return strref == 1234 and "Jaheira" or nil end
 

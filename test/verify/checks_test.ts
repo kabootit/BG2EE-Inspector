@@ -1,5 +1,5 @@
 import { deepStrictEqual } from "node:assert/strict";
-import { parseChecks, problems } from "../../src/verify/checks.ts";
+import { offsetsHolding, parseChecks, parseDumps, problems } from "../../src/verify/checks.ts";
 
 // Lines as the engine logs them: Infinity_Log's text inside the engine's own line format.
 const engine = (s: string) =>
@@ -50,4 +50,18 @@ Deno.test("a difference, a skip, a missing member and an error each fail", () =>
   const error = parseChecks(engine("A7XCHECK 1 party error no game loaded"));
   deepStrictEqual(problems(error.at(-1)), ["the check could not run: no game loaded"]);
   deepStrictEqual(problems(parseChecks("nothing here").at(-1)), ["no A7XCHECK lines in the log"]);
+});
+
+Deno.test("dumps of one run are found, and the offsets every dump shares a value at", () => {
+  const log = [
+    engine("A7XDUMP 1 5 0002ff02"),
+    engine("A7XDUMP 2 5 0002ff02"),
+    engine("A7XDUMP 2 6 01020202"),
+    engine("A7XDUMP 2 7 ??020002"),
+  ].join("\n");
+  const dumps = parseDumps(log, 2);
+  deepStrictEqual(dumps.map((d) => d.id), ["5", "6", "7"]);
+  deepStrictEqual(dumps[2].bytes, [null, 2, 0, 2]);
+  deepStrictEqual(offsetsHolding(dumps, 2), [1, 3]);
+  deepStrictEqual(offsetsHolding([], 2), []);
 });

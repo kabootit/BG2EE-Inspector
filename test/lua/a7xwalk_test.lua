@@ -34,7 +34,7 @@ T.test("a creature on the derived block, with a custom name and a weapon", funct
   T.eq(c.saves_shown.spell, 7, "shown spell save")
   T.eq(c.resist.fire, 25, "fire resistance")
   T.eq(c.mr, 10, "magic resistance")
-  T.eq(c.ea.a, 2, "ea")
+  T.eq(c.ea, 2, "ea")
 end)
 
 T.test("a creature on the temp block, with a strref name, no weapon, improved invisibility", function()
