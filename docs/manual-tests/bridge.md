@@ -23,8 +23,8 @@ to the session log; nothing appears on screen.
 ## Before you start
 
 - **The game is closed.** `play` starts it.
-- **The repo is on the commit under test**, with a clean `git status`. `git log -1 --oneline` names
-  it; that is the commit the Runs row records.
+- **The repo is in the state to test.** Committed or not; the run tests the local working tree, and
+  the Runs row notes the latest commit and whether there were local changes.
 - **`Debug Mode` is 1** in `Baldur.lua`, so Ctrl+Space opens the Lua console in a loaded game.
   `deno task doctor` reports it; edit it only while the game is closed.
 - **The test script is in the game's `override/` folder.** From the repo folder:

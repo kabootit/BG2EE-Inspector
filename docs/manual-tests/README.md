@@ -9,7 +9,10 @@ manual test that is not linked here or that drops a section of the template (`do
 
 ## How a run goes
 
-Every manual test is run the same way, from a committed, clean tree:
+Every manual test is run the same way, on the local working tree as it is, committed or not. A
+passed run is the go-ahead for the next step, not an artifact to trace back later, so the Runs row
+records what happened (the latest commit, and "local changes" when there were any) without claiming
+the tested state can be checked out again:
 
 1. **Run it.** Follow the page from Before you start to the end of Steps. Only the tester launches the
    game.
@@ -21,7 +24,8 @@ Every manual test is run the same way, from a committed, clean tree:
 5. **Draft the record.** A new row in the page's Runs table, and the delivery note for the phase the
    run belongs to, with the evidence. Neither is committed yet.
 6. **Review, then commit.** The tester reviews both, and they are committed only on request. A failed
-   run is recorded the same way, followed by the fix, a new commit and a new run, each its own row.
+   run is recorded the same way, followed by the fix and a new run, each its own row; the fix need not
+   be committed before the new run.
 
 ## When a test changes
 
