@@ -1,8 +1,10 @@
 # Plan: Phase 3, the party walker and the party check (`initial/07-walker`)
 
-> **Status:** approved 2026-11-06. Edited in place until pushed, per
-> [working-together.md](../rules/working-together.md). The project's own terms (gate, walker, site,
-> anchor and others) are defined in [docs/README.md](../README.md#terms).
+> **Status:** approved 2026-11-06, delivered 2026-11-13: the party check passed on its fourth run,
+> recorded in the [delivery note](../notes/2026-11-13-party-walker.md). What changed in delivery: the
+> live EA is at `+0x38`, found from sprite dumps, not at either candidate below; the save text is in
+> `characters[id].proficiencies`, and its bracket is the difference from the base save. The project's
+> own terms (gate, walker, site, anchor and others) are defined in [docs/README.md](../README.md#terms).
 
 ## Context
 

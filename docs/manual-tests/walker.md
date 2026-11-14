@@ -108,8 +108,15 @@ stats block the walker read (`block=` on the `A7XWALK` line), before anything is
 
 ## Runs
 
-No runs recorded on this page yet; the first run is recorded with the next one. Each run adds a row:
-the date, the commit it ran against, the result, and a link to the delivery note that records it.
+Each run adds a row: the date, the commit it ran against, the result, and a link to the delivery note
+that records it.
+
+| Date | Commit | Result | Delivery note |
+| --- | --- | --- | --- |
+| 2026-11-13 | `c823b3c` | Failed: name, HP, AC and THAC0 equal for all six members; every save `nil` on the engine side (the save text was not at the top level of `characters[id]`); neither EA candidate read 2 for the party | [Party walker](../notes/2026-11-13-party-walker.md) |
+| 2026-11-13 | `c823b3c`, local changes | Failed, as planned for evidence: the sprite dumps put the EA at `+0x38` for all six members; the save text was still not found | [Party walker](../notes/2026-11-13-party-walker.md) |
+| 2026-11-13 | `c823b3c`, local changes | Failed: EA equal for all six; the save text found in `proficiencies` and logged, but read as "base (shown)", the wrong way round | [Party walker](../notes/2026-11-13-party-walker.md) |
+| 2026-11-13 | `c823b3c`, local changes | Passed: 6 members, 120 fields, all equal; `0x38` the only offset reading 2 in every dump; summary line shown in the game | [Party walker](../notes/2026-11-13-party-walker.md) |
 
 ### Changes to this test
 
