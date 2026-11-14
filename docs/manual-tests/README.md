@@ -50,3 +50,4 @@ The manual tests so far:
 | [Bridge](bridge.md) | the library registers `A7X_native` and its read functions answer from the game's Lua (Phase 2) | about 10 minutes |
 | [Party check](walker.md) | the walker reads every party member's stats as the engine shows them (Phase 3) | about 10 minutes |
 | [Creature list](creatures.md) | the walker lists the creatures in the area on screen, the party among them, with their EA groups (Phase 3) | about 15 minutes |
+| [Spawn check](spawn.md) | the walker reads creatures outside the party as their `.cre` files give them (Phase 3) | about 15 minutes |
