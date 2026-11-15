@@ -94,7 +94,7 @@ flowchart TD
       RD["A7X_native: Read, ReadBlock, Root via mach_vm_read_overwrite"]
     end
     subgraph LUA["Inspector Lua, in override/"]
-      WK["a7xwalk.lua: named fields, bounded walks, a creature's effect lists"]
+      WK["a7xwalk.lua: named fields, bounded walks, a creature's effect lists, the game's clock"]
       OF["a7xoff.lua: names to numbers"]
       API["a7xapi.lua: public A7X table, schema 1"]
       FM["a7xfmt.lua: text lines"]

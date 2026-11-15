@@ -56,7 +56,9 @@ export function parseEffects(log: string): { runs: EffectRun[]; problems: string
     switch (line.kind) {
       case "party":
         run.size = line.size;
+        run.time = line.time;
         run.ticks = line.ticks;
+        run.clock = line.clock;
         break;
       case "list":
         member(run, line.id).lists.push(line);

@@ -18,8 +18,10 @@ import {
   readBiffHeader,
   readKey,
   readNameStrrefs,
+  readSplEffects,
   readTlk,
   RES_TYPE,
+  type SplEffect,
   type StringTable,
 } from "./iebinary.ts";
 
@@ -168,4 +170,13 @@ export async function readName(
   if (!item) return null;
   const { unidentified, identified } = readNameStrrefs(item.bytes, "itm");
   return strings.get(identified) ?? strings.get(unidentified);
+}
+
+/** A spell file's effects, casting effects first, or null when there is no such spell. */
+export async function readSpellEffects(
+  files: GameFiles,
+  resref: string,
+): Promise<SplEffect[] | null> {
+  const spell = await readResource(files, resref, "spl");
+  return spell ? readSplEffects(spell.bytes) : null;
 }

@@ -68,3 +68,4 @@ The manual tests so far:
 | [Under the pointer](pointer.md) | `A7X.show()` shows the creature or the party portrait under the pointer, from `CGameArea +0x244` and `mouseOverPortrait` (Phase 4) | about 10 minutes |
 | [Hotkey and install](hotkey.md) | `deno task install-mod` installs the WeiDU component, `e` prints the creature or portrait under the pointer with no console, and the uninstall restores `override/` (Phase 4) | about 20 minutes |
 | [Effect presence](effects.md) | each party member's two effect lists read to their end, every effect's fields where the effect file layout puts them, beside the record screen's status icons (Phase 5) | about 15 minutes |
+| [Effect duration](durations.md) | the game's clock stands still while paused, each effect's expiry is its spell file's duration at 15 game ticks a second, and a spell's icon goes when its effect expires (Phase 5) | about 15 minutes |

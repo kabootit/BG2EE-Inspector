@@ -19,6 +19,9 @@ A7XOFF = {
     areas = { 0x6598, "ptr" }, -- CGameArea pointers, 8 bytes each; empty slots are 0
     area_count = 12,
     visible_area = { 0x6590, "u8" }, -- index into areas of the area on screen
+    -- The game's clock, in the unit of an absolute effect's expiry: what Infinity_GetGameTicks
+    -- multiplies (deno task re game-clock); it stands still while paused (Effect duration test).
+    time = { 0x3fa0, "u32" },
   },
 
   -- CGameArea.
@@ -85,6 +88,10 @@ A7XOFF = {
     applied = { 0x6c, "u32" },
     source = 0x94, -- 8 bytes, NUL-padded: the spell or item that applied it
     source_size = 8,
+    absolute = 4096, -- the timing mode whose duration is an expiry on game.time
+    -- Game ticks in a second of game time: a spell file's duration in seconds, times this, is
+    -- expiry minus applied (Effect duration test).
+    ticks_per_second = 15,
   },
 
   -- Fields of a stats block (CDerivedStats), by STATS.IDS name and number.

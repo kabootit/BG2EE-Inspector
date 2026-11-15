@@ -1,7 +1,7 @@
 /**
  * Readers for the Infinity Engine's file formats: the resource index (KEY), the archives (BIFF),
- * creatures (CRE) and tables (2DA). Pure functions over bytes, no I/O; `resources.ts` does the
- * reading.
+ * creatures (CRE), tables (2DA), spells' and items' names and spells' effects (SPL, ITM) and the
+ * string table (TLK). Pure functions over bytes, no I/O; `resources.ts` does the reading.
  *
  * Adapted from BG2EE-GameLog's `src/iebinary.ts` (same author), trimmed to what the spawn check
  * needs, with the CRE reader extended by the AC modifiers, Dexterity, EA, and item and effect
@@ -225,6 +225,53 @@ export function readNameStrrefs(bytes: Uint8Array, kind: "spl" | "itm"): NameStr
   expect(bytes, kind === "spl" ? "SPL" : "ITM", "V1");
   const dv = view(bytes);
   return { unidentified: dv.getInt32(0x08, true), identified: dv.getInt32(0x0c, true) };
+}
+
+// A spell's effects (IESDP's feature blocks): the casting effects, then each ability's, one ability
+// per caster level range. The header gives the abilities' offset at 0x64 (u32) and count at 0x68
+// (u16), the effects' offset at 0x6a (u32), and the casting effects' first index at 0x6e and count
+// at 0x70 (u16). An ability is 0x28 bytes, with its effect count at 0x1e and first index at 0x20
+// (u16). An effect is 0x30 bytes: opcode u16 at 0x00, timing mode u8 at 0x0c, duration u32 at 0x0e
+// (seconds, for timing mode 0).
+
+const SPL_HEADER_SIZE = 0x72;
+const SPL_ABILITY_SIZE = 0x28;
+const SPL_EFFECT_SIZE = 0x30;
+
+/** One effect of a spell file; `ability` is its ability's index, or null for a casting effect. */
+export type SplEffect = {
+  ability: number | null;
+  opcode: number;
+  timing: number;
+  duration: number;
+};
+
+export function readSplEffects(bytes: Uint8Array): SplEffect[] {
+  expect(bytes, "SPL", "V1");
+  if (bytes.length < SPL_HEADER_SIZE) return [];
+  const dv = view(bytes);
+  const effectsAt = dv.getUint32(0x6a, true);
+  // The effects from `first`, `count` of them, that lie inside the file.
+  const block = (first: number, count: number, ability: number | null): SplEffect[] =>
+    Array.from({ length: count }, (_, k) => effectsAt + (first + k) * SPL_EFFECT_SIZE)
+      .filter((at) => at + SPL_EFFECT_SIZE <= bytes.length)
+      .map((at) => ({
+        ability,
+        opcode: dv.getUint16(at, true),
+        timing: dv.getUint8(at + 0x0c),
+        duration: dv.getUint32(at + 0x0e, true),
+      }));
+  const abilitiesAt = dv.getUint32(0x64, true);
+  const abilities = Array.from(
+    { length: dv.getUint16(0x68, true) },
+    (_, a) => abilitiesAt + a * SPL_ABILITY_SIZE,
+  ).filter((at) => at + SPL_ABILITY_SIZE <= bytes.length);
+  return [
+    ...block(dv.getUint16(0x6e, true), dv.getUint16(0x70, true), null),
+    ...abilities.flatMap((at, a) =>
+      block(dv.getUint16(at + 0x20, true), dv.getUint16(at + 0x1e, true), a)
+    ),
+  ];
 }
 
 // TLK: the string table, dialog.tlk, every string the game shows by its strref. Adapted from

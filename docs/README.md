@@ -89,7 +89,8 @@ Manual tests run at the game, step by step, each with its record of runs:
   [2026-11-13 Phase 3, the spawn harness](notes/2026-11-13-spawn-harness.md),
   [2026-11-14 Phase 4, the data API and console output](notes/2026-11-14-data-api.md),
   [2026-11-14 Phase 4, the hotkey and the install](notes/2026-11-14-hotkey-install.md),
-  [2026-11-15 Phase 5, part 1, the effect list](notes/2026-11-15-effect-list.md).
+  [2026-11-15 Phase 5, part 1, the effect list](notes/2026-11-15-effect-list.md),
+  [2026-11-15 Phase 5, part 2, time remaining](notes/2026-11-15-time-remaining.md).
 - Learnings, named `YYYY-MM-DD-<topic>.md` so they sort by time: a lesson from the work, with code
   before and after and why the change is better:
   [2026-11-14 reading data back: the format as data, not as statements](learnings/2026-11-14-declarative-line-parsing.md),

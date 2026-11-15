@@ -194,6 +194,35 @@ T.test("a broken, endless or unknown effect list, or no sprite, gives a reason",
   T.eq(select(2, A7XWALK.effects(0, "timed")), "bad sprite pointer", "no sprite")
 end)
 
+T.test("the game's clock is CInfGame's time; no game or an unreadable clock is refused", function()
+  world()
+  T.eq(A7XWALK.game_time(), F.TIME, "the clock")
+  field(GAME, O.game.time, 12332153)
+  T.eq(A7XWALK.game_time(), 12332153, "read again on each call")
+  field(ROOT, O.chitin.game, 0x900000) -- a pointer to unmapped memory
+  T.eq(select(2, A7XWALK.game_time()), "clock unreadable", "unreadable")
+  field(ROOT, O.chitin.game, 0)
+  T.eq(select(2, A7XWALK.game_time()), "no game loaded", "no game")
+end)
+
+T.test("time remaining: an absolute effect's expiry minus the clock, never below 0", function()
+  world()
+  F.effects(A, "timed", {
+    { opcode = 142, p2 = 17, timing = 4096, duration = F.TIME + 540, source = "SPPR101" },
+    { opcode = 215, timing = 4096, duration = F.TIME - 1, source = "SPPR101" },
+    { opcode = 0, timing = 1, duration = 0, source = "SPCL234D" },
+  })
+  F.effects(A, "equipped", { { opcode = 1, timing = 2, source = "RING02" } })
+  local timed = assert(A7XWALK.effects(A, "timed"))
+  local now = assert(A7XWALK.game_time())
+  T.eq(A7XWALK.remaining(timed[1], now), 540, "Bless, 36 seconds left")
+  T.eq(A7XWALK.remaining(timed[1], now) / O.effect.ticks_per_second, 36, "in seconds")
+  T.eq(A7XWALK.remaining(timed[2], now), 0, "a tick past its expiry, still listed")
+  T.eq(A7XWALK.remaining(timed[3], now), nil, "permanent: no countdown")
+  T.eq(A7XWALK.remaining(assert(A7XWALK.effects(A, "equipped"))[1], now), nil, "equipped")
+  T.eq(A7XWALK.remaining(timed[1], nil), nil, "no clock")
+end)
+
 T.test("without A7X_native every function says so", function()
   local saved = A7X_native
   A7X_native = nil
@@ -202,6 +231,7 @@ T.test("without A7X_native every function says so", function()
   T.eq(select(2, A7XWALK.visible_area()), "no A7X_native", "visible area")
   T.eq(select(2, A7XWALK.creatures(F.AREA1)), "no A7X_native", "creatures")
   T.eq(select(2, A7XWALK.picked()), "no A7X_native", "picked")
+  T.eq(select(2, A7XWALK.game_time()), "no A7X_native", "game time")
   A7X_native = saved
 end)
 

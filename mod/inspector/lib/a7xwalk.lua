@@ -1,5 +1,6 @@
 -- a7xwalk.lua: follow engine structures from A7X_native.Root() to the party, to the creatures in
--- the area on screen and to the one under the pointer, and read a creature and its effects.
+-- the area on screen and to the one under the pointer, and read a creature, its effects and the
+-- game's clock.
 --
 -- Every read goes through A7X_native (read-only, a bad address gives nil) and every field through
 -- A7XOFF (a7xoff.lua), so this file holds no numbers of its own. Before a pointer is followed it
@@ -84,6 +85,17 @@ function A7XWALK.resref(addr, size)
   local N = native()
   local block = N and valid_pointer(addr) and N.ReadBlock(addr, size)
   return block and block:match("^[^\0]*") or nil
+end
+
+-- The game's clock (CInfGame time), or nil and a reason.
+function A7XWALK.game_time()
+  local N = native()
+  if not N then return nil, "no A7X_native" end
+  local game = R(N.Root(), O.chitin.game)
+  if not valid_pointer(game) then return nil, "no game loaded" end
+  local time = R(game, O.game.time)
+  if not time then return nil, "clock unreadable" end
+  return time
 end
 
 -- The area on screen: { index, pointer, resref }, or nil and a reason.
@@ -187,6 +199,15 @@ function A7XWALK.effects(sprite, which)
     if node == nil then return nil, "list unreadable" end
   end
   return out
+end
+
+-- The game ticks left before effect `e` (from A7XWALK.effects) expires at clock `now`
+-- (A7XWALK.game_time()), never below 0; nil for an effect with no expiry (any timing mode but
+-- O.effect.absolute: permanent and equipped effects have no countdown). The engine may list an
+-- effect a tick or so past its expiry, since it removes expired effects creature by creature.
+function A7XWALK.remaining(e, now)
+  if e.timing ~= O.effect.absolute or not e.duration or not now then return nil end
+  return math.max(e.duration - now, 0)
 end
 
 local function stat(block, name)

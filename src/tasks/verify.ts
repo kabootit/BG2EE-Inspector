@@ -6,7 +6,8 @@
  * creatures. The spawn check (src/verify/spawn.ts): the run that spawned, each creature against its
  * .cre file, read from the installed game, and what later runs saw change. The effect probe
  * (src/verify/effects.ts): its latest run, every effect's fields where the effect layout puts them.
- * The A7XDATA records A7X.show writes: every one a schema-1 record. Exits non-zero unless the log
+ * The Effect duration test (src/verify/durations.ts): the probe's last three runs, against the game
+ * clock and the spell files, when the session has three. The A7XDATA records A7X.show writes: every one a schema-1 record. Exits non-zero unless the log
  * holds at least one check and every run judged passed.
  */
 import {
@@ -18,6 +19,12 @@ import {
   type SpawnRun,
 } from "../model/schemas.ts";
 import { memberDump, offsetsHolding, parseChecks, problems } from "../verify/checks.ts";
+import {
+  durationProblems,
+  durationSummary,
+  TEST_RUNS,
+  TICKS_PER_SECOND,
+} from "../verify/durations.ts";
 import { effectRunProblems, memberSummary, parseEffects } from "../verify/effects.ts";
 import { listProblems, parseLists } from "../verify/list.ts";
 import {
@@ -28,13 +35,14 @@ import {
   parseSpawns,
   spawnProblems,
 } from "../verify/spawn.ts";
-import { cell, CRE_HEADER_SIZE, read2da, readCre } from "../gamefiles/iebinary.ts";
+import { cell, CRE_HEADER_SIZE, read2da, readCre, type SplEffect } from "../gamefiles/iebinary.ts";
 import {
   openGameFiles,
   openStringTable,
   readCreature,
   readName,
   readResource,
+  readSpellEffects,
 } from "../gamefiles/resources.ts";
 import { GAME_DIR } from "../shared/config.ts";
 import { runTask } from "../shared/task.ts";
@@ -200,13 +208,15 @@ async function judgeSpawn(runs: SpawnRun[], path: string): Promise<boolean> {
  * game files every name and text is empty.
  */
 async function sourceNames(
-  run: EffectRun,
+  runs: EffectRun[],
 ): Promise<{ nameOf: (resref: string) => string; textOf: (strref: number) => string }> {
   const files = await openGameFiles(GAME_DIR).catch(() => null);
   const strings = files && await openStringTable(files);
   const names = new Map<string, string>();
   if (!files || !strings) return { nameOf: () => "", textOf: () => "" };
-  const sources = new Set(run.members.flatMap((m) => m.effects.map((e) => e.source ?? "")));
+  const sources = new Set(
+    runs.flatMap((r) => r.members.flatMap((m) => m.effects.map((e) => e.source ?? ""))),
+  );
   for (const source of [...sources].filter((s) => s !== "")) {
     const own = await readName(files, strings, source);
     const parent = own ?? await readName(files, strings, source.slice(0, -1));
@@ -225,7 +235,7 @@ async function judgeEffects(runs: EffectRun[], path: string): Promise<boolean> {
     `verify: ${path}, ${runs.length} run(s) of the effect probe; judging run ${run.run}` +
       ` (party ${run.size ?? "?"}, game ticks ${run.ticks ?? "?"})`,
   );
-  const { nameOf, textOf } = await sourceNames(run);
+  const { nameOf, textOf } = await sourceNames([run]);
   for (const m of run.members) {
     console.log(`${m.id}${m.skip ? `  skipped: ${m.skip}` : ""}`);
     for (const line of memberSummary(m, nameOf, textOf)) console.log(line);
@@ -240,6 +250,53 @@ async function judgeEffects(runs: EffectRun[], path: string): Promise<boolean> {
     return true;
   }
   for (const p of found) console.error(`verify: effect probe: ${p}`);
+  return false;
+}
+
+/** The spell file's effects for each source of `runs`' effects, null where there is no spell. */
+async function spellEffects(runs: EffectRun[]): Promise<Map<string, SplEffect[] | null>> {
+  const files = await openGameFiles(GAME_DIR).catch(() => null);
+  const sources = new Set(
+    runs.flatMap((r) => r.members.flatMap((m) => m.effects.map((e) => e.source ?? ""))),
+  );
+  const pairs = await Promise.all(
+    [...sources].filter((s) => s !== "").map(async (s): Promise<[string, SplEffect[] | null]> => [
+      s,
+      files && await readSpellEffects(files, s),
+    ]),
+  );
+  return new Map(pairs);
+}
+
+/**
+ * The Effect duration test: the session's last three runs of the effect probe, judged by the
+ * duration gate; true when it passed. With fewer runs it is not judged: an Effect presence session
+ * has one.
+ */
+async function judgeDurations(runs: EffectRun[]): Promise<boolean> {
+  const test = runs.slice(-TEST_RUNS);
+  // A probe from before the clock (an Effect presence session) has nothing to summarize.
+  if (test.at(-1)!.time !== undefined) {
+    console.log(`verify: effect duration, runs ${test[0].run} to ${test.at(-1)!.run} of the probe`);
+    const spells = await spellEffects(test);
+    const { nameOf } = await sourceNames(test);
+    for (const line of durationSummary(test, spells, nameOf)) console.log(line);
+  }
+  if (runs.length < TEST_RUNS) {
+    console.log(
+      `verify: effect duration not judged: ${runs.length} run(s) of the probe, the Effect duration test needs ${TEST_RUNS}`,
+    );
+    return true;
+  }
+  const spells = await spellEffects(test);
+  const found = durationProblems(test, spells);
+  if (found.length === 0) {
+    console.log(
+      `verify: effect duration passed: paused clock still, every checked effect set to last its spell file's duration at ${TICKS_PER_SECOND} ticks a second, each icon gone at its expiry`,
+    );
+    return true;
+  }
+  for (const p of found) console.error(`verify: effect duration: ${p}`);
   return false;
 }
 
@@ -268,6 +325,7 @@ await runTask(async () => {
   passed = noBadLines("A7XSPAWN", spawns.problems) && passed;
   passed = noBadLines("A7XEFF", effects.problems) && passed;
   if (effects.runs.length > 0) passed = await judgeEffects(effects.runs, path) && passed;
+  if (effects.runs.length > 0) passed = await judgeDurations(effects.runs) && passed;
   if (checks.runs.length > 0) passed = judgeParty(checks.runs, path) && passed;
   if (lists.runs.length > 0) {
     console.log(`verify: ${path}, ${lists.runs.length} run(s) of the creature list`);

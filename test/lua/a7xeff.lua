@@ -8,9 +8,13 @@
 -- be listed. Each result is one line through Infinity_Log: "A7XEFF", a tab, and a JSON object with
 -- the run and a kind. The kinds and their fields are defined in src/model/schemas.ts (EffectLine):
 --
---   party (size, ticks), list (id, head, count, capped, why), effect (id, head, index, opcode,
+--   party (size, time: the game's clock through the walker, ticks: Infinity_GetGameTicks, clock:
+--   Infinity_GetClockTicks, real milliseconds), list (id, head, count, capped, why), effect (id, head, index, opcode,
 --   p1, p2, timing, duration, applied, source), status (id, entries, keys), skip (id, why),
 --   error (why)
+--
+-- Run several times in one session, it is also the Effect duration test's probe
+-- (docs/manual-tests/durations.md): verify compares the clock and the effects across runs.
 --
 -- characters[id] is filled only for a party member whose record screen has been opened. Everything
 -- runs inside pcall, so a failure is logged rather than raised into the game. When it finishes, one
@@ -93,7 +97,8 @@ local ok, err = pcall(function()
   local party, why = A7XWALK.party()
   if not party then failure = why return end
   local ticks = type(Infinity_GetGameTicks) == "function" and Infinity_GetGameTicks() or nil
-  emit({ kind = "party", size = #party, ticks = ticks })
+  local clock = type(Infinity_GetClockTicks) == "function" and Infinity_GetClockTicks() or nil
+  emit({ kind = "party", size = #party, time = A7XWALK.game_time(), ticks = ticks, clock = clock })
   for _, member in ipairs(party) do probe_member(member) end
 end)
 if not ok then failure = tostring(err) end

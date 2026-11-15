@@ -130,6 +130,7 @@ local function world()
   put(GAME + O.game.areas[1], "ptr", AREA1)
   put(GAME + O.game.areas[1] + 8, "ptr", AREA2)
   field(GAME, O.game.visible_area, 0)
+  field(GAME, O.game.time, F.TIME)
   area(AREA1, "AR0602")
   area(AREA2, "AR0603")
   field(AREA1, O.area.picked, -1) -- nothing under the pointer
@@ -203,6 +204,7 @@ function Infinity_FetchString(strref) return NAMES[strref] end
 F.ROOT, F.GAME, F.ARRAY, F.A, F.B, F.ID_A, F.ID_B = ROOT, GAME, ARRAY, A, B, ID_A, ID_B
 F.C, F.D, F.E, F.ID_C, F.ID_D, F.ID_E = C, D, E, ID_C, ID_D, ID_E
 F.AREA1, F.AREA2 = AREA1, AREA2
+F.TIME = 12332152 -- the game's clock, as the fourth Effect presence run read it
 F.fail_blocks = {}
 F.put, F.field, F.world, F.crowd = put, field, world, crowd
 return F

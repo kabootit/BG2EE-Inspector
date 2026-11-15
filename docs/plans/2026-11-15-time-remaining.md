@@ -1,7 +1,7 @@
 # Plan: Phase 5, active spells, part 2: time remaining (`initial/09-spells`)
 
-> **Status:** approved 2026-11-15. Edited in place until pushed, per
-> [working-together.md](../rules/working-together.md). It follows the
+> **Status:** approved and delivered 2026-11-15: the Effect duration test passed on its fourth run,
+> recorded in the [delivery note](../notes/2026-11-15-time-remaining.md). It follows the
 > [effect-list plan](2026-11-15-effect-list.md), Phase 5's first part, delivered.
 
 ## Context

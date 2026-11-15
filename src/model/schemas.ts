@@ -189,7 +189,9 @@ export const EffectLine = z.discriminatedUnion("kind", [
     run: int,
     kind: z.literal("party"),
     size: int,
+    time: int.optional(), // the game's clock, CInfGame +0x3fa0, through the walker
     ticks: int.optional(), // Infinity_GetGameTicks, where the game's Lua has it
+    clock: int.optional(), // Infinity_GetClockTicks: real time, in milliseconds
   }),
   z.strictObject({
     run: int,
@@ -330,7 +332,9 @@ export type EffectMember = {
 export type EffectRun = {
   run: number;
   size?: number;
+  time?: number;
   ticks?: number;
+  clock?: number;
   members: EffectMember[];
   error?: string;
 };

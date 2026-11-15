@@ -8,6 +8,7 @@ import {
   readCre,
   readKey,
   readNameStrrefs,
+  readSplEffects,
   readTlk,
   RES_TYPE,
 } from "../../src/gamefiles/iebinary.ts";
@@ -115,4 +116,48 @@ Deno.test("a spell's and an item's name strrefs are at 0x08 and 0x0c, -1 for non
   });
   deepStrictEqual(readNameStrrefs(header("ITM V1  ", 5, 6), "itm").identified, 6);
   throws(() => readNameStrrefs(header("ITM V1  ", 5, 6), "spl"), /not a SPL V1 file/);
+});
+
+/**
+ * A spell file with one casting effect and two abilities, as IESDP lays it out: the header, the
+ * abilities at 0x72, the effects after them. `effects` is [opcode, timing, duration] each; the
+ * casting effect is the first, then `split` effects for ability 0 and the rest for ability 1.
+ */
+function splFile(effects: [number, number, number][], split: number): Uint8Array {
+  const abilitiesAt = 0x72, effectsAt = abilitiesAt + 2 * 0x28;
+  const bytes = new Uint8Array(effectsAt + effects.length * 0x30);
+  const dv = new DataView(bytes.buffer);
+  bytes.set(new TextEncoder().encode("SPL V1  "), 0);
+  dv.setUint32(0x64, abilitiesAt, true);
+  dv.setUint16(0x68, 2, true);
+  dv.setUint32(0x6a, effectsAt, true);
+  dv.setUint16(0x6e, 0, true); // casting effects: index 0, one of them
+  dv.setUint16(0x70, 1, true);
+  [[split, 1], [effects.length - 1 - split, 1 + split]].forEach(([count, first], a) => {
+    dv.setUint16(abilitiesAt + a * 0x28 + 0x1e, count, true);
+    dv.setUint16(abilitiesAt + a * 0x28 + 0x20, first, true);
+  });
+  effects.forEach(([opcode, timing, duration], i) => {
+    dv.setUint16(effectsAt + i * 0x30, opcode, true);
+    dv.setUint8(effectsAt + i * 0x30 + 0x0c, timing);
+    dv.setUint32(effectsAt + i * 0x30 + 0x0e, duration, true);
+  });
+  return bytes;
+}
+
+Deno.test("a spell's effects: the casting effects, then each ability's, with their durations", () => {
+  const spell = splFile([[215, 1, 0], [142, 0, 48], [16, 0, 48], [142, 0, 54]], 2);
+  deepStrictEqual(readSplEffects(spell), [
+    { ability: null, opcode: 215, timing: 1, duration: 0 },
+    { ability: 0, opcode: 142, timing: 0, duration: 48 },
+    { ability: 0, opcode: 16, timing: 0, duration: 48 },
+    { ability: 1, opcode: 142, timing: 0, duration: 54 },
+  ]);
+});
+
+Deno.test("a spell's effects past the end of its file are left out, and a short file has none", () => {
+  const spell = splFile([[215, 1, 0], [142, 0, 48], [142, 0, 54]], 1);
+  deepStrictEqual(readSplEffects(spell.subarray(0, spell.length - 0x30)).length, 2);
+  deepStrictEqual(readSplEffects(spell.subarray(0, 0x40)), []);
+  throws(() => readSplEffects(new TextEncoder().encode("ITM V1  ")), /not a SPL V1 file/);
 });

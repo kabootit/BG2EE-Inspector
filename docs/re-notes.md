@@ -232,8 +232,8 @@ linked lists walked from a creature whose elements the engine tests against cons
   `{ bam, current, strRef }`; an icon can also come from an opcode other than 142 (icon 92,
   "Spell Sequencer Active", with Spell Sequencer).
 
-**The game's clock** (found statically; not yet checked in the game by its own test).
-`deno task re game-clock` decodes `Infinity_GetGameTicks`, registered at `0x3354b8`, whose closure
+**The game's clock** (found statically, confirmed by the [Effect duration](manual-tests/durations.md)
+test's gate run, 2026-11-15). `deno task re game-clock` decodes `Infinity_GetGameTicks`, registered at `0x3354b8`, whose closure
 at `0x336a68` returns `u32` game `+0x3fa0` × the `u32` at `0x798778` × 2. The root it starts from is
 `builds.h`'s `baldur_chitin`, and `+0x10c0` is the `CInfGame*`, as in the table above.
 
@@ -241,11 +241,19 @@ at `0x336a68` returns `u32` game `+0x3fa0` × the `u32` at `0x798778` × 2. The 
   game can write, and holds 30 in the file, likely the default frame rate. So
   `Infinity_GetGameTicks` is game `+0x3fa0` × 60 only while that value is 30; the walker reads game
   `+0x3fa0` itself.
-- **Leads from the fourth Effect presence run** (2026-11-15), for the
-  [time-remaining plan](plans/2026-11-15-time-remaining.md)'s gate to decide:
-  `Infinity_GetGameTicks` read 60 × 12,332,152, every absolute effect's time applied was below
-  12,332,152 and its expiry above it, and expiry minus applied was 15 × the spell's duration in
-  seconds, plus up to 4.
+- **The expiries' clock, at 15 ticks a second:** an effect with timing mode 4096 holds its expiry
+  (`+0x28`) and the time the engine applied it (`+0x6c`) on game `+0x3fa0`. Expiry minus applied
+  is 15 × the spell file's duration in seconds (timing mode 0), give or take a few ticks, or the
+  file's duration as ticks (timing mode 10). The clock stands still while the player has the game
+  paused.
+- **Removal:** an effect leaves its list when the clock reaches its expiry, and an opcode-142 icon
+  leaves the portrait with it. The engine removes expired effects creature by creature, so a list
+  may hold an effect a tick past its expiry.
+- **Evidence,** from sessions on 2026-11-15: the fourth Effect presence run first showed
+  `Infinity_GetGameTicks` at 60 × 12,332,152, every absolute effect applied before that time and
+  expiring after it. The four Effect duration runs checked 61 to 126 effects each against their
+  spell files, from Spirit Armor's 600 seconds to the bard song's 100 ticks. In the gate run, Bless's
+  icons went 41 and 42 ticks before the run taken when they left the portraits.
 
 EA groups, used to sort the listed creatures: friendly up to 30 (`GOODCUTOFF` in IESDP's `EA.IDS`),
 hostile from 200 (`EVILCUTOFF`), neutral between. The engine's type-matching code (`0x3f3e8` to

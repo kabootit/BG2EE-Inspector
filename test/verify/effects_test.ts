@@ -20,6 +20,7 @@ Deno.test("the probe's lines fold into a run of members, each with its lists, ef
   strictEqual(runs.length, 1);
   const [a, b] = runs[0].members;
   deepStrictEqual([runs[0].size, runs[0].ticks], [2, 54000]);
+  deepStrictEqual([runs[0].time, runs[0].clock], [12332152, 81234567]);
   deepStrictEqual(a.lists.map((l) => [l.head, l.count]), [[0x49a0, 1], [0x49f0, 2]]);
   deepStrictEqual(a.effects.map((e) => [e.opcode, e.source]), [
     [1, "RING02"],

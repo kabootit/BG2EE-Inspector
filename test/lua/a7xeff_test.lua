@@ -11,6 +11,7 @@ function Infinity_Log(s) logged[#logged + 1] = s end
 function Infinity_DoFile(name) dofile("mod/inspector/lib/" .. name .. ".lua") end
 function Infinity_DisplayString(s) shown = s end
 function Infinity_GetGameTicks() return 54000 end
+function Infinity_GetClockTicks() return 81234567 end
 
 -- The fake game with the golden file's effects: A has a ring's effect on the equipped list and a
 -- spell's two on the timed list, the spell's icon among the record screen's statusEffects, keyed by

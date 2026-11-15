@@ -6,6 +6,7 @@ import {
   openStringTable,
   readCreature,
   readName,
+  readSpellEffects,
 } from "../../src/gamefiles/resources.ts";
 import { GAME_DIR } from "../../src/shared/config.ts";
 import { biffFile, creFile, keyFile } from "./fixtures.ts";
@@ -109,4 +110,24 @@ Deno.test("the installed game: spells and items by name, and helper spells witho
     RING39: "Ring of Gaxx",
     NOSUCH: null,
   });
+});
+
+// The durations the fourth Effect presence run (2026-11-15) fits at 15 game ticks a second.
+Deno.test("the installed game: a spell's icon effect lasts longer with each ability level", async () => {
+  let files;
+  try {
+    files = await openGameFiles(GAME_DIR);
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) return;
+    throw error;
+  }
+  const icons = async (resref: string): Promise<number[]> =>
+    ((await readSpellEffects(files, resref)) ?? [])
+      .filter((e) => e.opcode === 142 && e.timing === 0).map((e) => e.duration);
+  // Protection from Evil, 10' Radius: 1 turn a level from level 7; Haste: 6 seconds a level.
+  deepStrictEqual((await icons("SPPR408")).slice(0, 3), [420, 480, 540]);
+  strictEqual((await icons("SPPR408")).includes(1200), true);
+  deepStrictEqual((await icons("SPWI305")).slice(0, 3), [48, 54, 60]);
+  strictEqual((await icons("SPWI305")).includes(108), true);
+  strictEqual(await readSpellEffects(files, "NOSUCH"), null);
 });
