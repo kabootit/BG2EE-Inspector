@@ -120,6 +120,7 @@ image-relative (`0x5499cc`) or absolute (`0x1005499cc`), and output is image-rel
 | `deno task re hash <start> [size]` | a `builds.h` site line: offset, size (by default to the next function start) and FNV-1a hash |
 | `deno task re area-fields` | the object fields the engine compares with the area on screen, most compared first, each with the addresses of its comparisons |
 | `deno task re id-fields` | the area fields the engine compares with an object's own id, read through the object's area, in the same form |
+| `deno task re effect-lists` | the object fields that head a linked list whose elements the engine compares with constants: each with the element field, how many walks and the constants |
 
 `compare` needs the Lua source (`deno task setup-dev`). The steps:
 
@@ -139,8 +140,8 @@ image-relative (`0x5499cc`) or absolute (`0x1005499cc`), and output is image-rel
 4. **Write the entry** in `native/builds.h`, one `hash` line per site, then run `deno task test`: the
    builds test re-hashes every site in the installed binary and names any that differ. Then the
    in-game manual tests for the bridge decide whether the entry is right.
-5. **Re-check the structure fields** found by tally: `area-fields` and `id-fields` should still put
-   the offsets in [Engine structures](#engine-structures) first. `deno task test` fails when their
+5. **Re-check the structure fields** found by tally: `area-fields`, `id-fields` and `effect-lists`
+   should still put the offsets in [Engine structures](#engine-structures) first. `deno task test` fails when their
    counts change (`test/re/fields_test.ts`); the walker's offsets in `mod/inspector/lib/a7xoff.lua`
    follow whatever they print.
 
@@ -197,6 +198,28 @@ first, last and a middle portrait each read their own party member.
 on character creation, receives the key while its menu is open. In the `WORLD_ACTIONBAR` menu, open
 throughout play, `on 'e'` received `e` on the world screen, running and paused, and the game did not
 act on the key itself (the Hotkey and install test, 2026-11-15).
+
+**A creature's effect lists** (static, 2026-11-15; not yet checked in the game, which the effect
+probe of the [effect-list plan](plans/2026-11-15-effect-list.md) does). `deno task re effect-lists`
+finds two linked lists walked from a creature whose elements the engine tests against constants:
+
+| List head | Walks | Element field tested | Constants |
+| --- | --- | --- | --- |
+| sprite `+0x49f0` | 8 | `+0x10` | 159, 208, 211, 218, 313, 322 |
+| sprite `+0x49a0` | 5 | `+0x10` | 159, 211, 218, 322 |
+
+- **They are the effect lists, `+0x10` the opcode:** every constant is an Enhanced Edition opcode
+  number, and the two heads are `0x50` apart, as the timed (`+0x4a00`) and equipped (`+0x49b0`)
+  lists are in the Windows layout. Which is which is for the probe.
+- **The walk:** a list node holds the next node at `+0x0` and its element at `+0x10`; the walk at
+  `0xd1c70` reads the element's `+0x10`, then follows `+0x0` until it is null.
+- **The element likely keeps the effect file's layout:** the opcode at `+0x10` is where `EFF V2.0`
+  puts it, which would place the timing mode at `+0x24`, the duration at `+0x28`, the time applied
+  at `+0x6c` and the source spell (parent resource) at `+0x94` (offsets from IESDP's `EFF V2.0`
+  page), with the object's vtable pointer where the file has its first signature.
+- **The list at sprite `+0x4cb0` is not effects:** the record screen builds `statusEffects` from it
+  (`0x2e3cc8`), reading each element's first field as 32 bits, where an effect object holds a
+  pointer; it is likely the portrait-icon list.
 
 EA groups, used to sort the listed creatures: friendly up to 30 (`GOODCUTOFF` in IESDP's `EA.IDS`),
 hostile from 200 (`EVILCUTOFF`), neutral between. The engine's type-matching code (`0x3f3e8` to

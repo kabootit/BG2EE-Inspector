@@ -18,6 +18,7 @@ Deno.test("required arguments are the ones in angle brackets", () => {
     hash: 1,
     "area-fields": 0,
     "id-fields": 0,
+    "effect-lists": 0,
   });
 });
 

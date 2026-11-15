@@ -8,11 +8,20 @@
  *   area on screen, `CInfGame` areas[visible index].
  * - idFields: which area fields hold an object id? The engine compares them with an object's own id,
  *   reading the area through the object.
+ * - listFields: which object fields head a linked list whose elements the engine tests against
+ *   constants? For a creature these are its effect lists, the element field its opcode.
  *
  * Registers are followed by pattern within a short window, not by data flow: a heuristic, trusted
  * because the winning count stands far above the rest and the result is checked in the game.
  */
-import { cmpRegister, type Code, type Load, loadImmediate, moveWide } from "./arm64.ts";
+import {
+  cmpImmediate,
+  cmpRegister,
+  type Code,
+  type Load,
+  loadImmediate,
+  moveWide,
+} from "./arm64.ts";
 
 /** Field offset to the addresses of the comparisons that use it, most used first. */
 export type Tally = [offset: number, sites: number[]][];
@@ -113,4 +122,51 @@ export function idFields(code: Code, layout = LAYOUT): Tally {
     }
   });
   return tally(hits);
+}
+
+/** A list the engine walks: its head's offset, the element field it tests, where, and against what. */
+export type ListField = { head: number; field: number; sites: number[]; constants: number[] };
+
+/** The object offsets searched for list heads: a creature's large fields, past its stats blocks. */
+export const LIST_HEADS = { from: 0x4000, to: 0x6000 };
+
+/**
+ * The fields of linked-list elements the engine compares with a constant, by the object offset of the
+ * list's head, most used first. The pattern: `ldr xH, [xS, #head]`, then within 8 instructions
+ * `ldr xE, [xH, #0x10]` (a list node holds its element at +0x10, after the next and previous
+ * pointers), within 4 more `ldr wF, [xE, #field]`, and within 3 more `cmp wF, #imm`.
+ */
+export function listFields(code: Code, heads = LIST_HEADS): ListField[] {
+  const { words, addr } = instructions(code);
+  const found = new Map<string, ListField>();
+  const load = (i: number): Load | undefined => loadImmediate(words[i]);
+  words.forEach((_, i) => {
+    const head = load(i);
+    if (head?.size !== 8 || head.rn === 31 || head.offset < heads.from || head.offset > heads.to) {
+      return;
+    }
+    const e = [1, 2, 3, 4, 5, 6, 7, 8].map((d) => i + d).find((j) => {
+      const l = load(j);
+      return l?.size === 8 && l.rn === head.rt && l.offset === 0x10;
+    });
+    if (e === undefined) return;
+    const element = load(e)!.rt;
+    const f = [1, 2, 3, 4].map((d) => e + d).find((k) => {
+      const l = load(k);
+      return l?.size === 4 && !l.signed && l.rn === element;
+    });
+    if (f === undefined) return;
+    const field = load(f)!;
+    const cmp = [1, 2, 3].map((d) => cmpImmediate(words[f + d])).find((c) => c?.rn === field.rt);
+    if (!cmp) return;
+    const key = `${head.offset}:${field.offset}`;
+    const list = found.get(key) ??
+      { head: head.offset, field: field.offset, sites: [], constants: [] };
+    list.sites.push(addr(i));
+    if (!list.constants.includes(cmp.imm)) list.constants.push(cmp.imm);
+    found.set(key, list);
+  });
+  return [...found.values()]
+    .map((l): ListField => ({ ...l, constants: l.constants.sort((a, b) => a - b) }))
+    .sort((a, b) => b.sites.length - a.sites.length || a.head - b.head);
 }

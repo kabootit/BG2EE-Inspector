@@ -77,6 +77,7 @@ Deno.test("the test encoders produce the game's own words", () => {
   strictEqual(encode.cmp(8, 9, 8), GAME.cmpX);
   strictEqual(encode.movz(10, 0x6590), GAME.movz);
   strictEqual(encode.ldr(9, 9, 0x6598, 8), GAME.ldrX);
+  strictEqual(encode.cmpImm(8, 0xc9), GAME.cmp);
 });
 
 const at = 0x100335450;

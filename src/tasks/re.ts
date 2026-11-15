@@ -9,7 +9,7 @@
 import { decodeStatGetter, referencesTo } from "../re/arm64.ts";
 import { fnv1a64, parseBuilds } from "../re/builds.ts";
 import { commandFor, type CommandName, usage } from "../re/commands.ts";
-import { areaFields, idFields, type Tally } from "../re/fields.ts";
+import { areaFields, idFields, listFields, type Tally } from "../re/fields.ts";
 import { archSlice, cstringAt, functionStarts, section, segment } from "../re/macho.ts";
 import {
   annotate,
@@ -161,6 +161,18 @@ await runTask(async () => {
     },
     "area-fields": () => printTally(areaFields(code)),
     "id-fields": () => printTally(idFields(code)),
+    "effect-lists": () => {
+      // One line per list: head offset, element field, walks, the constants compared, the sites.
+      for (const l of listFields(code)) {
+        const sites = l.sites.map((s) => hex(s - IMAGE_BASE)).join(" ");
+        console.log(
+          `+${hex(l.head)}\t+${hex(l.field)}\t${l.sites.length}\t${
+            l.constants.join(" ")
+          }\t${sites}`,
+        );
+      }
+      return 0;
+    },
   };
   return await run[command.name]();
 });

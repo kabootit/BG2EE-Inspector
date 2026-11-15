@@ -133,5 +133,7 @@ export const encode = {
   cmp: (rn: number, rm: number, size: 4 | 8) =>
     ((size === 8 ? 0xeb00001f : 0x6b00001f) | (rm << 16) | (rn << 5)) >>> 0,
   movz: (rd: number, imm: number) => (0x52800000 | (imm << 5) | rd) >>> 0,
+  /** cmp wn, #imm: a 12-bit immediate, unshifted. */
+  cmpImm: (rn: number, imm: number) => (0x7100001f | (imm << 10) | (rn << 5)) >>> 0,
   nop: 0xd503201f,
 };

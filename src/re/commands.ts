@@ -55,6 +55,12 @@ export const COMMANDS = [
     prints:
       "the area fields the engine compares with an object's own id, read through the object's area, in the same form",
   },
+  {
+    name: "effect-lists",
+    args: "",
+    prints:
+      "the object fields that head a linked list whose elements the engine compares with constants: each with the element field, how many walks and the constants",
+  },
 ] as const satisfies readonly Command[];
 
 /** One of the listed commands, with its literal name, arguments and description. */

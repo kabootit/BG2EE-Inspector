@@ -1,13 +1,13 @@
 import { deepStrictEqual, strictEqual } from "node:assert/strict";
 import type { Code } from "../../src/re/arm64.ts";
-import { areaFields, idFields } from "../../src/re/fields.ts";
+import { areaFields, idFields, listFields } from "../../src/re/fields.ts";
 import { archSlice, section } from "../../src/re/macho.ts";
 import { GAME_BINARY } from "../../src/shared/config.ts";
 import { encode, words } from "./macho_fixture.ts";
 
 const AT = 0x100001000;
 const code = (ws: number[]): Code => ({ bytes: words(ws), addr: AT });
-const { ldr, cmp, movz, nop } = encode;
+const { ldr, cmp, cmpImm, movz, nop } = encode;
 
 // The shape of the comparison at 0x100086824: the object's area against the area on screen.
 const visibleArea = (objectField: number) => [
@@ -54,6 +54,38 @@ Deno.test("a tally lists the most used field first, each with its sites", () => 
   deepStrictEqual(idFields(code(ws)), [[0x244, [AT + 28, AT + 44]], [0x248, [AT + 12]]]);
 });
 
+// The shape of the walk at 0x1000d1c70: a creature's list head, the first node's element, its
+// opcode tested against 0x142.
+const listWalk = (head: number, element = 8, constant = 0x142) => [
+  ldr(8, 19, head, 8), // ldr x8, [x19, #head]
+  nop, // cbz x8, ...
+  ldr(16, element, 0x10, 8), // ldr x16, [x8, #0x10]
+  ldr(16, 16, 0x10, 4), // ldr w16, [x16, #0x10]
+  cmpImm(16, constant), // cmp w16, #0x142
+];
+
+Deno.test("list fields: a list head, its element's field and the constant it is tested against", () => {
+  deepStrictEqual(listFields(code(listWalk(0x49a0))), [
+    { head: 0x49a0, field: 0x10, sites: [AT], constants: [0x142] },
+  ]);
+});
+
+Deno.test("list fields: an element not from the head's node, or a head out of range, is not counted", () => {
+  deepStrictEqual(listFields(code(listWalk(0x49a0, 9))), []);
+  deepStrictEqual(listFields(code(listWalk(0x100))), []);
+  const other = listWalk(0x49a0);
+  other[4] = cmpImm(17, 0x142);
+  deepStrictEqual(listFields(code(other)), []);
+});
+
+Deno.test("list fields: walks of the same list gather their constants, most walked first", () => {
+  const ws = [...listWalk(0x49a0), ...listWalk(0x49f0, 8, 218), ...listWalk(0x49f0, 8, 159)];
+  deepStrictEqual(listFields(code(ws)).map((l) => [l.head, l.sites.length, l.constants]), [
+    [0x49f0, 2, [159, 218]],
+    [0x49a0, 1, [0x142]],
+  ]);
+});
+
 /** The installed game's code, or undefined when the game is not installed. */
 async function gameCode(): Promise<Code | undefined> {
   try {
@@ -79,4 +111,15 @@ Deno.test("the installed game: the object's area at +0x18, the picked object at 
     [0x248, 11],
   ]);
   strictEqual(ids[0][1].includes(0x1000beba4), true);
+});
+
+Deno.test("the installed game: a creature's two effect lists, their element's opcode at +0x10", async () => {
+  const game = await gameCode();
+  if (!game) return;
+  const lists = listFields(game);
+  deepStrictEqual(lists.map((l) => [l.head, l.field, l.sites.length, l.constants]), [
+    [0x49f0, 0x10, 8, [159, 208, 211, 218, 313, 322]],
+    [0x49a0, 0x10, 5, [159, 211, 218, 322]],
+  ]);
+  strictEqual(lists[1].sites.includes(0x1000d1c70), true);
 });
