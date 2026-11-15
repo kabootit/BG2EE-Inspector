@@ -1,4 +1,7 @@
-/** An in-memory `System` for tests: files in a map, commands answered by a handler. */
+/**
+ * An in-memory `System` for tests: files in a map, commands answered by a handler. `ran` records
+ * each command with its arguments, and `ranIn` the working directory each ran in.
+ */
 import type { RunResult, System } from "../../src/setup/system.ts";
 
 export type Handler = (cmd: string, args: string[]) => RunResult | undefined;
@@ -7,12 +10,13 @@ export function fakeSystem(
   files: Record<string, Uint8Array | string> = {},
   handler: Handler = () => undefined,
   overrides: Partial<Pick<System, "os" | "arch" | "denoVersion">> = {},
-): System & { files: Map<string, Uint8Array>; ran: string[][] } {
+): System & { files: Map<string, Uint8Array>; ran: string[][]; ranIn: (string | undefined)[] } {
   const encoder = new TextEncoder();
   const store = new Map<string, Uint8Array>(
     Object.entries(files).map(([k, v]) => [k, typeof v === "string" ? encoder.encode(v) : v]),
   );
   const ran: string[][] = [];
+  const ranIn: (string | undefined)[] = [];
   return {
     os: "darwin",
     arch: "aarch64",
@@ -20,8 +24,10 @@ export function fakeSystem(
     ...overrides,
     files: store,
     ran,
-    run(cmd, args): Promise<RunResult> {
+    ranIn,
+    run(cmd, args, cwd): Promise<RunResult> {
       ran.push([cmd, ...args]);
+      ranIn.push(cwd);
       return Promise.resolve(handler(cmd, args) ?? { code: 1, stdout: "", stderr: "not handled" });
     },
     readBytes: (path) => Promise.resolve(store.get(path) ?? null),

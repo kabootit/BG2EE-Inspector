@@ -13,9 +13,11 @@ import {
   checkTestLocation,
   importAllowed,
   importsIn,
+  PINNED_RUNNABLE,
   REQUIRED_ASK,
   REQUIRED_DENY,
 } from "../../src/lint/security.ts";
+import { WEIDU_BINARY } from "../../src/shared/config.ts";
 
 // Probe strings are assembled at runtime so this file never trips the linters itself.
 const TRAILER = "Co-Authored" + "-By: Someone";
@@ -69,16 +71,20 @@ Deno.test("permissions: no -A and no unscoped --allow-*", () => {
   );
 });
 
-Deno.test("a binary built here may be named by its ./build/ path, and nothing else relative", () => {
+Deno.test("a binary built here may be named by its ./build/ path, the pinned WeiDU by its own", () => {
   deepStrictEqual(
-    checkPermissions({ a: "deno run --allow-run=./build/lua,/usr/bin/xcrun x.ts" }),
+    checkPermissions({
+      a: "deno run --allow-run=./build/lua,./vendor/weidu/weidu,/usr/bin/xcrun x.ts",
+    }),
     [],
   );
-  for (const bin of ["./vendor/weidu/weidu", "./build/../x", "build/lua", "./build/"]) {
+  const others = ["./vendor/weidu/other", "./vendor/lua-5.2.4/x", "./vendor/weidu/weidu/../x"];
+  for (const bin of [...others, "./build/../x", "build/lua", "./build/", "vendor/weidu/weidu"]) {
     deepStrictEqual(checks(checkPermissions({ a: `deno run --allow-run=${bin} x.ts` })), [
       "permissions",
     ], bin);
   }
+  strictEqual(WEIDU_BINARY.endsWith(PINNED_RUNNABLE.slice(1)), true, "the path setup-weidu writes");
 });
 
 Deno.test("servers must bind loopback", () => {

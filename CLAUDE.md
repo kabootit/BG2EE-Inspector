@@ -58,6 +58,7 @@ The tasks available so far; more arrive with each step of the plan:
 | `deno task setup-dev` | download the Lua 5.2.4 source into `vendor/` (contributors only) |
 | `deno task build` | build `build/a7x.dylib` (arm64, ad-hoc signed) from `native/` |
 | `deno task play` | launch the game with the library, log redacted output to `logs/`; `--no-inject` for a control run. Only when asked |
+| `deno task install-mod` | install the WeiDU component (`mod/inspector/`) into the game with the pinned WeiDU, refusing any other binary; `--uninstall` restores `ui.menu`. Only when asked |
 | `deno task re <command>` | reverse-engineering tools on the installed game's arm64 slice; `deno task re` alone lists them, as `src/re/commands.ts` and the table in [docs/re-notes.md](docs/re-notes.md) do |
 | `deno task lint` | fmt check, lint, type-check, the Deno, native and Lua tests, `lint:docs`, `lint:security`. Run before every commit |
 | `deno task lint:docs` | the mechanical docs rules |

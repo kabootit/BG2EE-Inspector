@@ -40,6 +40,9 @@ export const WEIDU_DIR = `${VENDOR_DIR}/weidu`;
 export const WEIDU_BINARY = `${WEIDU_DIR}/weidu`;
 export const LUA_DIR = `${VENDOR_DIR}/lua-5.2.4`;
 
+/** The inspector's WeiDU component, copied into the game folder as `inspector/` by install-mod. */
+export const MOD_DIR = `${ROOT}mod/inspector`;
+
 /** Build output (gitignored). */
 export const BUILD_DIR = `${ROOT}build`;
 

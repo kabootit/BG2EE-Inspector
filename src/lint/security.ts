@@ -153,9 +153,20 @@ export function checkImportMap(config: Record<string, unknown>): Finding[] {
 
 // --- permissions -----------------------------------------------------------
 
-/** An --allow-run entry that cannot resolve through PATH: absolute, or a repo build output. */
+/**
+ * The one downloaded binary a task may run, by its repo-relative path: the pinned WeiDU, which
+ * install-mod runs only after checking its SHA-256 against the release's (src/game/install_mod.ts).
+ * Nothing else under ./vendor/ is runnable.
+ */
+export const PINNED_RUNNABLE = "./vendor/weidu/weidu";
+
+/**
+ * An --allow-run entry that cannot resolve through PATH: absolute, a repo build output, or the
+ * pinned WeiDU.
+ */
 export const runPathAllowed = (bin: string): boolean =>
-  bin.startsWith("/") || (/^\.\/build\/[\w./-]+$/.test(bin) && !bin.includes(".."));
+  bin.startsWith("/") || bin === PINNED_RUNNABLE ||
+  (/^\.\/build\/[\w./-]+$/.test(bin) && !bin.includes(".."));
 
 /** No -A, and every --allow-* flag scoped with =value. */
 export function checkPermissions(tasks: Record<string, string>): Finding[] {
@@ -177,7 +188,7 @@ export function checkPermissions(tasks: Record<string, string>): Finding[] {
           check: "permissions",
           file: "deno.json",
           detail:
-            `task "${task}" allows running "${bin}" by name; use its absolute path, or ./build/ for a binary built here`,
+            `task "${task}" allows running "${bin}" by name; use its absolute path, or ./build/ for a binary built here (the pinned WeiDU is the one other)`,
         });
       }
     }

@@ -17,8 +17,8 @@ export interface System {
   os: string;
   arch: string;
   denoVersion: string;
-  /** Run a binary with an argument array (never a shell string). */
-  run(cmd: string, args: string[]): Promise<RunResult>;
+  /** Run a binary with an argument array (never a shell string), in `cwd` when given. */
+  run(cmd: string, args: string[], cwd?: string): Promise<RunResult>;
   /** File bytes, or null if missing or unreadable. */
   readBytes(path: string): Promise<Uint8Array | null>;
   readText(path: string): Promise<string | null>;
@@ -39,9 +39,10 @@ export const realSystem: System = {
   arch: Deno.build.arch,
   denoVersion: Deno.version.deno,
 
-  async run(cmd, args): Promise<RunResult> {
+  async run(cmd, args, cwd): Promise<RunResult> {
     try {
-      const out = await new Deno.Command(cmd, { args, stdout: "piped", stderr: "piped" }).output();
+      const out = await new Deno.Command(cmd, { args, cwd, stdout: "piped", stderr: "piped" })
+        .output();
       return {
         code: out.code,
         stdout: decoder.decode(out.stdout),
