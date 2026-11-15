@@ -23,6 +23,14 @@ settings change (BG2EE-GameLog, gotcha 8c).
   what was tried.
 - **Plans start in plan mode** and are iterated there before any code changes. An approved plan is saved
   in `docs/plans/` (see [docs.md](docs.md)).
+- **Work visibly.** The chat shows the tester a summary of each tool call, so how work is done decides
+  what can be seen ([the learning note](../learnings/2026-11-14-visible-work.md)):
+  - file changes go through the Edit tool, so each appears as a diff; a script is used only for an
+    edit too large or repetitive for it, and is then named with its path when it runs;
+  - analysis whose results the docs cite becomes tested project tooling, as `deno task re` did, so a
+    finding can be re-checked after a game update;
+  - any other one-off script stays in the scratchpad, named with its full path and its purpose when it
+    runs.
 - **Edit in place before a push.** Anything not yet pushed (ADRs, docs, notes, plans) is rewritten in
   place when a decision changes, with no amendment notes or dated changelog. A dropped approach appears,
   at most, in an ADR's "Options considered".

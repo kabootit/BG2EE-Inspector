@@ -19,6 +19,9 @@ walks engine memory and prints creature stats and active spells, with time left,
   first; **no AI attribution anywhere.** [docs/rules/git.md](docs/rules/git.md)
 - **Make the change, say what to test in-game, and wait.** Never launch, quit or restart the game unless
   asked. Manual tests longer than a few steps are written in `docs/manual-tests/`. [docs/rules/working-together.md](docs/rules/working-together.md)
+- **Work visibly:** file changes through the Edit tool; analysis the docs cite becomes tested tooling
+  (`deno task re`); any other one-off script is named with its full path and purpose when it runs.
+  [docs/rules/working-together.md](docs/rules/working-together.md)
 - **Verify before stating:** a derived value is checked against an observable before it is reported as
   fact. [docs/rules/verify-derived-values.md](docs/rules/verify-derived-values.md)
 - **No em dashes, impersonal, plain and specific.** [docs/rules/writing-style.md](docs/rules/writing-style.md)

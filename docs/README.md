@@ -45,7 +45,7 @@ How work is done on this project. [CLAUDE.md](../CLAUDE.md) summarizes them.
 
 | Rule | Covers |
 | --- | --- |
-| [working-together.md](rules/working-together.md) | testing by hand first, pace, editing in place before a push |
+| [working-together.md](rules/working-together.md) | testing by hand first, pace, working visibly, editing in place before a push |
 | [git.md](rules/git.md) | git only when asked, no AI attribution, one branch |
 | [writing-style.md](rules/writing-style.md) | no em dashes, impersonal, plain, footnotes |
 | [security-first.md](rules/security-first.md) | default-deny, the read-only native library, licensing |
@@ -87,4 +87,5 @@ Manual tests run at the game, step by step, each with its record of runs:
 - Learnings, named `YYYY-MM-DD-<topic>.md` so they sort by time: a lesson from the work, with code
   before and after and why the change is better:
   [2026-11-14 reading data back: the format as data, not as statements](learnings/2026-11-14-declarative-line-parsing.md),
-  [2026-11-14 one schema for every line: catching drift between two languages](learnings/2026-11-14-central-schemas.md).
+  [2026-11-14 one schema for every line: catching drift between two languages](learnings/2026-11-14-central-schemas.md),
+  [2026-11-14 working visibly: what the chat shows decides what can be reviewed](learnings/2026-11-14-visible-work.md).
