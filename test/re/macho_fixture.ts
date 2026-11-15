@@ -135,5 +135,10 @@ export const encode = {
   movz: (rd: number, imm: number) => (0x52800000 | (imm << 5) | rd) >>> 0,
   /** cmp wn, #imm: a 12-bit immediate, unshifted. */
   cmpImm: (rn: number, imm: number) => (0x7100001f | (imm << 10) | (rn << 5)) >>> 0,
+  /** mul wd, wn, wm. */
+  mul: (rd: number, rn: number, rm: number) => (0x1b007c00 | (rm << 16) | (rn << 5) | rd) >>> 0,
+  /** lsl wd, wn, #shift: UBFM with immr (32 - shift) % 32 and imms 31 - shift. */
+  lsl: (rd: number, rn: number, shift: number) =>
+    (0x53000000 | (((32 - shift) % 32) << 16) | ((31 - shift) << 10) | (rn << 5) | rd) >>> 0,
   nop: 0xd503201f,
 };

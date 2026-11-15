@@ -228,6 +228,27 @@ export function functionStarts(slice: Uint8Array): number[] {
   return starts;
 }
 
+/** Each index of `byte` in `bytes`, in order, found lazily with the native `indexOf`. */
+export function* indicesOf(bytes: Uint8Array, byte: number): Generator<number> {
+  for (let i = bytes.indexOf(byte); i >= 0; i = bytes.indexOf(byte, i + 1)) yield i;
+}
+
+/**
+ * Every address in __TEXT,__cstring where `text` and its terminating NUL sit. Not only at string
+ * starts: the linker merges a string into the tail of a longer one. Matched within the section, so a
+ * string cut off at its end is not found.
+ */
+export function cstringAddresses(slice: Uint8Array, text: string): number[] {
+  const cs = section(slice, "__TEXT", "__cstring");
+  if (!cs) return [];
+  const target = new TextEncoder().encode(`${text}\0`);
+  const strings = slice.subarray(cs.offset, cs.offset + cs.size);
+  return indicesOf(strings, target[0])
+    .filter((i) => target.every((b, k) => strings[i + k] === b))
+    .map((i) => cs.addr + i)
+    .toArray();
+}
+
 /** The NUL-terminated string at `addr` when it lies in __TEXT,__cstring, else undefined. */
 export function cstringAt(slice: Uint8Array, addr: number): string | undefined {
   const cs = section(slice, "__TEXT", "__cstring");

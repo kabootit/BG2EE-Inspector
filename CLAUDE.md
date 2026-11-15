@@ -28,6 +28,9 @@ walks engine memory and prints creature stats and active spells, with time left,
 - **Smallest surface that does the job.** [docs/rules/minimal-surface.md](docs/rules/minimal-surface.md)
 - **Every function states its return type, and nothing is `any`;** `deno task lint` enforces it.
   [docs/rules/return-types.md](docs/rules/return-types.md)
+- **Declarative Deno code:** expressions over accumulating loops, data over repeated statements, a
+  small generator plus iterator helpers for a stepwise sequence.
+  [docs/rules/declarative-style.md](docs/rules/declarative-style.md)
 
 ## Read before
 

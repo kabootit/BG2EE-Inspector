@@ -19,6 +19,7 @@ Deno.test("required arguments are the ones in angle brackets", () => {
     "area-fields": 0,
     "id-fields": 0,
     "effect-lists": 0,
+    "game-clock": 0,
   });
 });
 

@@ -2,7 +2,8 @@
  * Decoding the few arm64 instructions the reverse-engineering tools need.
  *
  * Only the forms the analysis relies on: ADRP, ADR, ADD (immediate), the
- * unsigned-offset loads, BL, CMP with an immediate or a register, and MOVZ. Every mask
+ * unsigned-offset loads, BL, CMP with an immediate or a register, MOVZ, MUL and LSL
+ * (immediate), the last two 32-bit only. Every mask
  * comparison goes through `>>> 0`: JavaScript's `&` returns a signed 32-bit
  * number, so an encoding at or above 0x80000000 (ADRP, LDR) would otherwise
  * never compare equal, which once hid every cross-reference.
@@ -90,6 +91,20 @@ export function cmpRegister(word: number): { rn: number; rm: number; size: 4 | 8
 export function moveWide(word: number): { rd: number; value: number } | undefined {
   if (u32(word & 0x7f800000) !== 0x52800000) return undefined;
   return { rd: word & 31, value: ((word >>> 5) & 0xffff) * 2 ** (16 * ((word >>> 21) & 3)) };
+}
+
+/** MUL wd, wn, wm (MADD with wzr as the addend, 32-bit). */
+export function multiply(word: number): { rd: number; rn: number; rm: number } | undefined {
+  if (u32(word & 0xffe0fc00) !== 0x1b007c00) return undefined;
+  return { rd: word & 31, rn: (word >>> 5) & 31, rm: (word >>> 16) & 31 };
+}
+
+/** LSL wd, wn, #shift (UBFM wd, wn, #(32 - shift) % 32, #(31 - shift), 32-bit). */
+export function shiftLeft(word: number): { rd: number; rn: number; shift: number } | undefined {
+  if (u32(word & 0xffc00000) !== 0x53000000) return undefined;
+  const immr = (word >>> 16) & 63, imms = (word >>> 10) & 63;
+  if (imms === 31 || immr !== imms + 1) return undefined;
+  return { rd: word & 31, rn: (word >>> 5) & 31, shift: 31 - imms };
 }
 
 /** A run of code: its bytes and the address of the first one. */

@@ -1,10 +1,12 @@
 import { deepStrictEqual, strictEqual } from "node:assert/strict";
 import {
   archSlice,
+  cstringAddresses,
   cstringAt,
   fatEntryOffsets,
   functionStarts,
   imageUuid,
+  indicesOf,
   loadCommands,
   machoArchs,
   readHeader,
@@ -128,6 +130,26 @@ Deno.test("sections and function starts come from the load commands", () => {
   deepStrictEqual(functionStarts(bytes), [0x100001000, 0x100001010]);
   strictEqual(cstringAt(bytes, cstringVa), "AC");
   strictEqual(cstringAt(bytes, 0x100001000), undefined); // code, not a string
+});
+
+Deno.test("a string is found at its start and in the tail of a longer one, only with its NUL", () => {
+  const { bytes, cstringVa } = richImage(new Uint8Array(32), ["GetTicks", "Ticks", "Tic"], []);
+  deepStrictEqual(cstringAddresses(bytes, "Ticks"), [cstringVa + 3, cstringVa + 9]);
+  deepStrictEqual(cstringAddresses(bytes, "Tick"), []);
+});
+
+Deno.test("a string cut off at the end of __cstring is not found", () => {
+  const { bytes } = richImage(new Uint8Array(32), ["Ticks"], []);
+  const view = new DataView(bytes.buffer);
+  const sizeAt = 32 + 72 + 80 + 40; // the second section's size
+  view.setUint32(sizeAt, view.getUint32(sizeAt, true) - 1, true); // drop the NUL
+  deepStrictEqual(cstringAddresses(bytes, "Ticks"), []);
+});
+
+Deno.test("indicesOf yields every index of a byte, in order, and nothing when it is absent", () => {
+  const bytes = new Uint8Array([7, 1, 7, 7, 2]);
+  deepStrictEqual(indicesOf(bytes, 7).toArray(), [0, 2, 3]);
+  deepStrictEqual(indicesOf(bytes, 9).toArray(), []);
 });
 
 Deno.test("a section count past its load command is cut, and starts stop at the data's end", () => {

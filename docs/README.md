@@ -52,6 +52,7 @@ How work is done on this project. [CLAUDE.md](../CLAUDE.md) summarizes them.
 | [toolchain.md](rules/toolchain.md) | Deno, C and Lua only; install nothing without asking; Deno 2.9.8+ |
 | [minimal-surface.md](rules/minimal-surface.md) | the smallest surface that does the job |
 | [return-types.md](rules/return-types.md) | a stated return type on every function, no `any`, enforced by `deno lint` |
+| [declarative-style.md](rules/declarative-style.md) | expressions over accumulating loops, data over repeated statements, a small generator for a stepwise sequence |
 | [verify-derived-values.md](rules/verify-derived-values.md) | validation gates before stating values as fact |
 | [tests.md](rules/tests.md) | tests in `test/`, probes for every check |
 | [docs.md](rules/docs.md) | page types, ADRs, plans, delivery notes, diagrams |
@@ -71,7 +72,8 @@ Manual tests run at the game, step by step, each with its record of runs:
   [2026-11-14 Phase 4, the data API and console output](plans/2026-11-14-data-api.md),
   [2026-11-14 one central schema for every line the game writes](plans/2026-11-14-central-schemas.md),
   [2026-11-14 Phase 4, the hotkey and the install](plans/2026-11-14-hotkey-install.md),
-  [2026-11-15 Phase 5, part 1: finding and proving the effect list](plans/2026-11-15-effect-list.md).
+  [2026-11-15 Phase 5, part 1: finding and proving the effect list](plans/2026-11-15-effect-list.md),
+  [2026-11-15 Phase 5, part 2: time remaining](plans/2026-11-15-time-remaining.md).
 - Delivery notes, named `YYYY-MM-DD-<topic>.md` so they sort by time:
   [2026-11-01 Step 0, setup](notes/2026-11-01-setup.md),
   [2026-11-01 Step 1, requirements](notes/2026-11-01-requirements.md),
@@ -92,4 +94,5 @@ Manual tests run at the game, step by step, each with its record of runs:
   before and after and why the change is better:
   [2026-11-14 reading data back: the format as data, not as statements](learnings/2026-11-14-declarative-line-parsing.md),
   [2026-11-14 one schema for every line: catching drift between two languages](learnings/2026-11-14-central-schemas.md),
-  [2026-11-14 working visibly: what the chat shows decides what can be reviewed](learnings/2026-11-14-visible-work.md).
+  [2026-11-14 working visibly: what the chat shows decides what can be reviewed](learnings/2026-11-14-visible-work.md),
+  [2026-11-15 searching declaratively: a generator for the candidates, iterator helpers for the rest](learnings/2026-11-15-generators-for-searching.md).

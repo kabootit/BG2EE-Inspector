@@ -9,8 +9,17 @@
 import { decodeStatGetter, referencesTo } from "../re/arm64.ts";
 import { fnv1a64, parseBuilds } from "../re/builds.ts";
 import { commandFor, type CommandName, usage } from "../re/commands.ts";
+import { gameClock } from "../re/clock.ts";
 import { areaFields, idFields, listFields, type Tally } from "../re/fields.ts";
-import { archSlice, cstringAt, functionStarts, section, segment } from "../re/macho.ts";
+import {
+  archSlice,
+  cstringAddresses,
+  cstringAt,
+  functionStarts,
+  section,
+  sections,
+  segment,
+} from "../re/macho.ts";
 import {
   annotate,
   differingLines,
@@ -28,6 +37,7 @@ const IMAGE_BASE = 0x100000000;
 const RE_DIR = `${BUILD_DIR}/re`;
 const SLICE_PATH = `${RE_DIR}/game-arm64`;
 const REFERENCE_PATH = `${RE_DIR}/lapi.o`;
+const CLOCK_FUNCTION = "Infinity_GetGameTicks";
 
 const hex = (n: number) => `0x${n.toString(16)}`;
 const absolute = (arg: string) => {
@@ -83,16 +93,7 @@ await runTask(async () => {
       return 0;
     },
     xrefs: () => {
-      const target = new TextEncoder().encode(`${args[0]}\0`);
-      const cs = section(slice, "__TEXT", "__cstring")!;
-      const hits: number[] = [];
-      for (let at = cs.offset; at < cs.offset + cs.size;) {
-        const i = slice.indexOf(target[0], at);
-        if (i < 0 || i >= cs.offset + cs.size) break;
-        // Not only at string starts: the linker merges a string into the tail of a longer one.
-        if (target.every((b, k) => slice[i + k] === b)) hits.push(cs.addr + i - cs.offset);
-        at = i + 1;
-      }
+      const hits = cstringAddresses(slice, args[0]);
       for (const s of hits) {
         const refs = referencesTo(code, s).map((r) => hex(r - IMAGE_BASE));
         console.log(
@@ -171,6 +172,47 @@ await runTask(async () => {
           }\t${sites}`,
         );
       }
+      return 0;
+    },
+    "game-clock": async () => {
+      const name = cstringAddresses(slice, CLOCK_FUNCTION)[0];
+      const clock = name === undefined ? undefined : gameClock(code, name);
+      if (!clock) {
+        console.error(`re: ${CLOCK_FUNCTION} is not registered in the shape src/re/clock.ts reads`);
+        return 1;
+      }
+      const rel = (a: number) => hex(a - IMAGE_BASE);
+      const chitin = (await readRepoFile("native/builds.h")).match(
+        /\.baldur_chitin = (0x[0-9a-f]+)/,
+      );
+      const where = sections(slice).find((s) =>
+        clock.multiplier >= s.addr && clock.multiplier < s.addr + s.size
+      );
+      // A zero-fill section (__bss, __common) has no bytes in the file.
+      const stored = where && where.offset > 0
+        ? new DataView(slice.buffer, slice.byteOffset).getUint32(
+          where.offset + clock.multiplier - where.addr,
+          true,
+        )
+        : undefined;
+      console.log(
+        `${CLOCK_FUNCTION}\tname ${rel(name)}\tregistered at ${rel(clock.registration)}\t` +
+          `closure ${rel(clock.closure)}`,
+      );
+      console.log(
+        `clock\t[${rel(clock.root)}] ${clock.chain.map((o) => `+${hex(o)}`).join(" ")}\t` +
+          `u${clock.width * 8}\t${
+            chitin && Number(chitin[1]) === clock.root - IMAGE_BASE
+              ? "root is builds.h baldur_chitin"
+              : "root is not builds.h baldur_chitin"
+          }`,
+      );
+      console.log(
+        `multiplier\t[${rel(clock.multiplier)}]\t${
+          where ? `${where.segname},${where.sectname}` : "no section"
+        }\t${stored === undefined ? "zero-filled" : `${stored} in the file`}`,
+      );
+      console.log(`returns\tclock × multiplier × ${2 ** clock.shift}`);
       return 0;
     },
   };

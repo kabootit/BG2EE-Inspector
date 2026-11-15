@@ -121,6 +121,7 @@ image-relative (`0x5499cc`) or absolute (`0x1005499cc`), and output is image-rel
 | `deno task re area-fields` | the object fields the engine compares with the area on screen, most compared first, each with the addresses of its comparisons |
 | `deno task re id-fields` | the area fields the engine compares with an object's own id, read through the object's area, in the same form |
 | `deno task re effect-lists` | the object fields that head a linked list whose elements the engine compares with constants: each with the element field, how many walks and the constants |
+| `deno task re game-clock` | what `Infinity_GetGameTicks` returns: the global and pointer chain to the clock field, the global that multiplies it (its section and value in the file) and the shift |
 
 `compare` needs the Lua source (`deno task setup-dev`). The steps:
 
@@ -143,7 +144,8 @@ image-relative (`0x5499cc`) or absolute (`0x1005499cc`), and output is image-rel
 5. **Re-check the structure fields** found by tally: `area-fields`, `id-fields` and `effect-lists`
    should still put the offsets in [Engine structures](#engine-structures) first. `deno task test` fails when their
    counts change (`test/re/fields_test.ts`); the walker's offsets in `mod/inspector/lib/a7xoff.lua`
-   follow whatever they print.
+   follow whatever they print. `game-clock` gives the clock's offset from `CInfGame` the same way
+   (`test/re/clock_test.ts`).
 
 ## Engine structures
 
@@ -229,6 +231,21 @@ linked lists walked from a creature whose elements the engine tests against cons
   pointer. In the game's Lua, `characters[id].statusEffects` is keyed by icon number, each entry
   `{ bam, current, strRef }`; an icon can also come from an opcode other than 142 (icon 92,
   "Spell Sequencer Active", with Spell Sequencer).
+
+**The game's clock** (found statically; not yet checked in the game by its own test).
+`deno task re game-clock` decodes `Infinity_GetGameTicks`, registered at `0x3354b8`, whose closure
+at `0x336a68` returns `u32` game `+0x3fa0` × the `u32` at `0x798778` × 2. The root it starts from is
+`builds.h`'s `baldur_chitin`, and `+0x10c0` is the `CInfGame*`, as in the table above.
+
+- **The multiplier is a setting, not a constant:** `0x798778` lies in `__DATA,__data`, which the
+  game can write, and holds 30 in the file, likely the default frame rate. So
+  `Infinity_GetGameTicks` is game `+0x3fa0` × 60 only while that value is 30; the walker reads game
+  `+0x3fa0` itself.
+- **Leads from the fourth Effect presence run** (2026-11-15), for the
+  [time-remaining plan](plans/2026-11-15-time-remaining.md)'s gate to decide:
+  `Infinity_GetGameTicks` read 60 × 12,332,152, every absolute effect's time applied was below
+  12,332,152 and its expiry above it, and expiry minus applied was 15 × the spell's duration in
+  seconds, plus up to 4.
 
 EA groups, used to sort the listed creatures: friendly up to 30 (`GOODCUTOFF` in IESDP's `EA.IDS`),
 hostile from 200 (`EVILCUTOFF`), neutral between. The engine's type-matching code (`0x3f3e8` to

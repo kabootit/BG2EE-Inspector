@@ -9,8 +9,10 @@ import {
   decodeStatGetter,
   loadImmediate,
   moveWide,
+  multiply,
   referencesTo,
   resolvedReferences,
+  shiftLeft,
 } from "../../src/re/arm64.ts";
 import { parseBuilds } from "../../src/re/builds.ts";
 import { archSlice, functionStarts, section } from "../../src/re/macho.ts";
@@ -31,6 +33,8 @@ const GAME = {
   cmpX: 0xeb09011f, // cmp x8, x9 (at 0x100086824)
   movz: 0x528cb20a, // mov w10, #0x6590 (at 0x100086814)
   ldrX: 0xf972cd29, // ldr x9, [x9, #0x6598] (at 0x100086820)
+  mul: 0x1b097d08, // mul w8, w8, w9 (at 0x100336a90)
+  lsl: 0x531f7908, // lsl w8, w8, #1 (at 0x100336a94)
 };
 
 Deno.test("each decoder reads its form from real game words", () => {
@@ -58,6 +62,14 @@ Deno.test("each decoder reads its form from real game words", () => {
   deepStrictEqual(cmpRegister(GAME.cmpW), { rn: 12, rm: 13, size: 4 });
   deepStrictEqual(cmpRegister(GAME.cmpX), { rn: 8, rm: 9, size: 8 });
   deepStrictEqual(moveWide(GAME.movz), { rd: 10, value: 0x6590 });
+  deepStrictEqual(multiply(GAME.mul), { rd: 8, rn: 8, rm: 9 });
+  deepStrictEqual(shiftLeft(GAME.lsl), { rd: 8, rn: 8, shift: 1 });
+});
+
+Deno.test("a shift right or a bitfield extract is not a shift left", () => {
+  strictEqual(shiftLeft(0x53017d08), undefined); // lsr w8, w8, #1
+  strictEqual(shiftLeft(0x53001d08), undefined); // uxtb w8, w8
+  deepStrictEqual(shiftLeft(encode.lsl(3, 4, 12)), { rd: 3, rn: 4, shift: 12 });
 });
 
 Deno.test("a word of another form decodes as nothing", () => {
@@ -67,6 +79,8 @@ Deno.test("a word of another form decodes as nothing", () => {
   strictEqual(cmpImmediate(GAME.addX21), undefined);
   strictEqual(cmpRegister(GAME.cmp), undefined);
   strictEqual(moveWide(GAME.ret), undefined);
+  strictEqual(multiply(GAME.ret), undefined);
+  strictEqual(shiftLeft(GAME.ret), undefined);
 });
 
 Deno.test("the test encoders produce the game's own words", () => {
@@ -78,6 +92,8 @@ Deno.test("the test encoders produce the game's own words", () => {
   strictEqual(encode.movz(10, 0x6590), GAME.movz);
   strictEqual(encode.ldr(9, 9, 0x6598, 8), GAME.ldrX);
   strictEqual(encode.cmpImm(8, 0xc9), GAME.cmp);
+  strictEqual(encode.mul(8, 8, 9), GAME.mul);
+  strictEqual(encode.lsl(8, 8, 1), GAME.lsl);
 });
 
 const at = 0x100335450;

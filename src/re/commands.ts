@@ -61,6 +61,12 @@ export const COMMANDS = [
     prints:
       "the object fields that head a linked list whose elements the engine compares with constants: each with the element field, how many walks and the constants",
   },
+  {
+    name: "game-clock",
+    args: "",
+    prints:
+      "what `Infinity_GetGameTicks` returns: the global and pointer chain to the clock field, the global that multiplies it (its section and value in the file) and the shift",
+  },
 ] as const satisfies readonly Command[];
 
 /** One of the listed commands, with its literal name, arguments and description. */
