@@ -59,9 +59,12 @@ in-game check below.
 - **A probe script** (`test/lua/a7xeff.lua`, a developer tool like the check scripts): for each
   party member, the list's length and, for each node, the candidate fields, logged as `A7XEFF`
   JSON lines defined in `src/model/schemas.ts`.
-- **The presence gate**: the spells the walker finds for each party member equal the engine's
-  `characters[id].statusEffects`, as the party check compared stats. A manual test casts known
-  spells (Bless, Blur, Armor, a potion) on party members, and `deno task verify` judges it.
+- **The presence gate**: `characters[id].statusEffects` lists status icons, not spells (step 2
+  found the record screen builds it from a separate icon list), and an effect shows an icon through
+  opcode 142 with the icon number in parameter 2. So for each party member, every icon the engine
+  lists must have an opcode-142 effect with that icon in the walked lists, and the walked effects'
+  source spells must include the spells cast. A manual test casts known spells (Bless, Blur, Armor,
+  a potion) on party members, and `deno task verify` judges it.
 
 ### The walker
 
@@ -92,9 +95,12 @@ Commits on a new marker branch `initial/09-spells` from `initial/08-output`, eac
 1. This plan, linked from `docs/README.md`; `TODO.md`: the consumer mod moved after Phase 5, with
    the research into established UI mods kept.
 2. The reverse-engineering subcommands and their tests, one finding at a time; `docs/re-notes.md`.
-3. The probe script, its schema and its verify module.
-4. The walker, the fake game's effect lists and the Lua tests.
-5. The manual test page and the other docs.
+3. The probe script, its schema and its verify module, and the manual test page
+   (`effects.md`); the tester's first run is the probe run, before the walker, since the walker's
+   offsets come from it.
+4. The walker, the fake game's effect lists and the Lua tests; the presence gate written into
+   `effects.md` from the probe run, then the gate run.
+5. The other docs.
 
 Then the tester runs the manual test; I draft the record for review, and commit and push on request.
 Parts 2 and 3 get their own plans.

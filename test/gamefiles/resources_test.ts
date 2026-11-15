@@ -1,6 +1,12 @@
 import { deepStrictEqual, strictEqual } from "node:assert/strict";
 import { readCre, RES_TYPE } from "../../src/gamefiles/iebinary.ts";
-import { type Disk, openGameFiles, readCreature } from "../../src/gamefiles/resources.ts";
+import {
+  type Disk,
+  openGameFiles,
+  openStringTable,
+  readCreature,
+  readName,
+} from "../../src/gamefiles/resources.ts";
 import { GAME_DIR } from "../../src/shared/config.ts";
 import { biffFile, creFile, keyFile } from "./fixtures.ts";
 
@@ -78,4 +84,29 @@ Deno.test("each spawn fixture is in the installed game, with no items and no eff
     deepStrictEqual([resref, c.itemCount, c.effectCount], [resref, 0, 0]);
     strictEqual(c.acNatural, c.acEffective, `${resref}: one AC to compare with`);
   }
+});
+
+// Names the first effect probe run (2026-11-15) met, as the game shows them.
+Deno.test("the installed game: spells and items by name, and helper spells without one", async () => {
+  let files;
+  try {
+    files = await openGameFiles(GAME_DIR);
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) return;
+    throw error;
+  }
+  const strings = await openStringTable(files);
+  strictEqual(strings === null, false, "lang/en_US/dialog.tlk");
+  const names: Record<string, string | null> = {};
+  for (const resref of ["SPWI112", "SPCL920", "SPCL920A", "SPCL321", "RING39", "NOSUCH"]) {
+    names[resref] = await readName(files, strings!, resref);
+  }
+  deepStrictEqual(names, {
+    SPWI112: "Magic Missile",
+    SPCL920: "Enhanced Bard Song",
+    SPCL920A: null,
+    SPCL321: "Enrage",
+    RING39: "Ring of Gaxx",
+    NOSUCH: null,
+  });
 });

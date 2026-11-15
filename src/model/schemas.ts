@@ -1,8 +1,8 @@
 /**
  * Every data shape in the project, in one place (ADR-0006, docs/plans/2026-11-14-central-schemas.md).
  *
- * The game writes each line as `<PREFIX>\t<json>`: the public record (A7XDATA) and the lines of the
- * three checks (A7XCHECK, A7XLIST, A7XSPAWN). Each is defined here once, as a Zod schema; every type
+ * The game writes each line as `<PREFIX>\t<json>`: the public record (A7XDATA), the lines of the
+ * three checks (A7XCHECK, A7XLIST, A7XSPAWN) and the effect probe's (A7XEFF). Each is defined here once, as a Zod schema; every type
  * is inferred from a schema, never written by hand beside it, so a type and its schema cannot drift.
  * The Lua that writes each prefix is tied to its schema by a golden file in test/fixtures/, which
  * both the Lua test and test/model/schemas_test.ts check. The run types the verify modules build
@@ -179,6 +179,59 @@ export const SpawnLine = z.discriminatedUnion("kind", [
 
 export type SpawnLine = z.infer<typeof SpawnLine>;
 
+// The effect probe: A7XEFF (test/lua/a7xeff.lua, docs/manual-tests/effects.md). Each party member's
+// two effect lists with every effect's candidate fields, read at their EFF V2.0 offsets, and the
+// record screen's statusEffects as the engine holds them. Evidence for the effect-list plan: a field
+// is left out when it could not be read.
+
+export const EffectLine = z.discriminatedUnion("kind", [
+  z.strictObject({
+    run: int,
+    kind: z.literal("party"),
+    size: int,
+    ticks: int.optional(), // Infinity_GetGameTicks, where the game's Lua has it
+  }),
+  z.strictObject({
+    run: int,
+    kind: z.literal("list"),
+    id: int,
+    head: int, // the list head's sprite offset
+    count: int,
+    capped: z.boolean(), // the walk stopped at its node cap
+    why: z.string().optional(), // only when the walk stopped on a bad pointer
+  }),
+  z.strictObject({
+    run: int,
+    kind: z.literal("effect"),
+    id: int,
+    head: int,
+    index: int,
+    first: z.string().optional(), // the effect's first 16 bytes, in hex
+    opcode: int.optional(),
+    target: int.optional(),
+    power: int.optional(),
+    p1: int.optional(),
+    p2: int.optional(),
+    timing: int.optional(),
+    duration: int.optional(),
+    applied: int.optional(),
+    parent_type: int.optional(),
+    resource: z.string().optional(),
+    source: z.string().optional(),
+  }),
+  z.strictObject({
+    run: int,
+    kind: z.literal("status"),
+    id: int,
+    entries: z.array(z.string()), // statusEffects as "key: value", sorted
+    keys: z.array(z.string()), // every key of characters[id]
+  }),
+  z.strictObject({ run: int, kind: z.literal("skip"), id: int, why: z.string() }),
+  z.strictObject({ run: int, kind: z.literal("error"), why: z.string() }),
+]);
+
+export type EffectLine = z.infer<typeof EffectLine>;
+
 /** One kind of line of a union, by its `kind`. */
 export type Kind<L extends { kind: string }, K extends L["kind"]> = Extract<L, { kind: K }>;
 
@@ -263,6 +316,22 @@ export type SpawnRun = {
   spawned: Kind<SpawnLine, "spawn">[];
   creatures: SpawnCreature[];
   headers: Map<number, Uint8Array | null>;
+  error?: string;
+};
+
+/** A party member in a run of the effect probe: its lists, their effects, and the engine's icons. */
+export type EffectMember = {
+  id: number;
+  lists: Kind<EffectLine, "list">[];
+  effects: Kind<EffectLine, "effect">[];
+  status?: Kind<EffectLine, "status">;
+  skip?: string;
+};
+export type EffectRun = {
+  run: number;
+  size?: number;
+  ticks?: number;
+  members: EffectMember[];
   error?: string;
 };
 

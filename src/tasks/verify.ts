@@ -4,18 +4,21 @@
  * its schema fails the run. The party check (src/verify/checks.ts): every compared field of its
  * latest run. The creature list check (src/verify/list.ts): every run, each with its area and
  * creatures. The spawn check (src/verify/spawn.ts): the run that spawned, each creature against its
- * .cre file, read from the installed game, and what later runs saw change. The A7XDATA records
- * A7X.show writes: every one a schema-1 record. Exits non-zero unless the log holds at least one check
- * and every run judged passed.
+ * .cre file, read from the installed game, and what later runs saw change. The effect probe
+ * (src/verify/effects.ts): its latest run, every effect's fields where the effect layout puts them.
+ * The A7XDATA records A7X.show writes: every one a schema-1 record. Exits non-zero unless the log
+ * holds at least one check and every run judged passed.
  */
 import {
   type CheckRun,
+  type EffectRun,
   type ListRun,
   parseLines,
   RecordSchema,
   type SpawnRun,
 } from "../model/schemas.ts";
 import { memberDump, offsetsHolding, parseChecks, problems } from "../verify/checks.ts";
+import { effectRunProblems, memberSummary, parseEffects } from "../verify/effects.ts";
 import { listProblems, parseLists } from "../verify/list.ts";
 import {
   changesSince,
@@ -26,7 +29,13 @@ import {
   spawnProblems,
 } from "../verify/spawn.ts";
 import { cell, CRE_HEADER_SIZE, read2da, readCre } from "../gamefiles/iebinary.ts";
-import { openGameFiles, readCreature, readResource } from "../gamefiles/resources.ts";
+import {
+  openGameFiles,
+  openStringTable,
+  readCreature,
+  readName,
+  readResource,
+} from "../gamefiles/resources.ts";
 import { GAME_DIR } from "../shared/config.ts";
 import { runTask } from "../shared/task.ts";
 
@@ -183,6 +192,50 @@ async function judgeSpawn(runs: SpawnRun[], path: string): Promise<boolean> {
   return false;
 }
 
+/**
+ * The name the game shows for each source of a run's effects, from the installed game's spell and
+ * item files and dialog.tlk. A helper spell often has none (SPCL920A, the effects of SPCL920,
+ * Enhanced Bard Song), so a source without a name tries the resref without its last character,
+ * shown as a guess. Without the game files every name is empty.
+ */
+async function sourceNames(run: EffectRun): Promise<(resref: string) => string> {
+  const files = await openGameFiles(GAME_DIR).catch(() => null);
+  const strings = files && await openStringTable(files);
+  const names = new Map<string, string>();
+  if (!files || !strings) return () => "";
+  const sources = new Set(run.members.flatMap((m) => m.effects.map((e) => e.source ?? "")));
+  for (const source of [...sources].filter((s) => s !== "")) {
+    const own = await readName(files, strings, source);
+    const parent = own ?? await readName(files, strings, source.slice(0, -1));
+    names.set(source, own ?? (parent ? `part of ${parent}?` : "(no name)"));
+  }
+  return (resref: string): string => names.get(resref) ?? "";
+}
+
+/** The effect probe's latest run: each member's lists, effects and status icons; true when it passed. */
+async function judgeEffects(runs: EffectRun[], path: string): Promise<boolean> {
+  const run = runs.at(-1)!;
+  console.log(
+    `verify: ${path}, ${runs.length} run(s) of the effect probe; judging run ${run.run}` +
+      ` (party ${run.size ?? "?"}, game ticks ${run.ticks ?? "?"})`,
+  );
+  const nameOf = await sourceNames(run);
+  for (const m of run.members) {
+    console.log(`${m.id}${m.skip ? `  skipped: ${m.skip}` : ""}`);
+    for (const line of memberSummary(m, nameOf)) console.log(line);
+  }
+  const found = effectRunProblems(run);
+  if (found.length === 0) {
+    const effects = run.members.reduce((n, m) => n + m.effects.length, 0);
+    console.log(
+      `verify: effect probe passed, ${run.members.length} members, ${effects} effects, every field plausible`,
+    );
+    return true;
+  }
+  for (const p of found) console.error(`verify: effect probe: ${p}`);
+  return false;
+}
+
 await runTask(async () => {
   const path = Deno.args[0] ?? await newestLog();
   if (!path) {
@@ -193,17 +246,21 @@ await runTask(async () => {
   const checks = parseChecks(log);
   const lists = parseLists(log);
   const spawns = parseSpawns(log);
+  const effects = parseEffects(log);
   const data = parseLines(log, "A7XDATA", RecordSchema);
-  const lines = checks.runs.length + lists.runs.length + spawns.runs.length + data.count +
-    checks.problems.length + lists.problems.length + spawns.problems.length;
+  const lines = checks.runs.length + lists.runs.length + spawns.runs.length + effects.runs.length +
+    data.count + checks.problems.length + lists.problems.length + spawns.problems.length +
+    effects.problems.length;
   if (lines === 0) {
-    console.error(`verify: ${path} has no A7XCHECK, A7XLIST, A7XSPAWN or A7XDATA lines`);
+    console.error(`verify: ${path} has no A7XCHECK, A7XLIST, A7XSPAWN, A7XEFF or A7XDATA lines`);
     return 1;
   }
   // Every line must match its schema, whatever else is judged.
   let passed = noBadLines("A7XCHECK", checks.problems);
   passed = noBadLines("A7XLIST", lists.problems) && passed;
   passed = noBadLines("A7XSPAWN", spawns.problems) && passed;
+  passed = noBadLines("A7XEFF", effects.problems) && passed;
+  if (effects.runs.length > 0) passed = await judgeEffects(effects.runs, path) && passed;
   if (checks.runs.length > 0) passed = judgeParty(checks.runs, path) && passed;
   if (lists.runs.length > 0) {
     console.log(`verify: ${path}, ${lists.runs.length} run(s) of the creature list`);

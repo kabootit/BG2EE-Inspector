@@ -86,6 +86,38 @@ local function sprite(at, id, s)
   if s.item then put(at + O.sprite.items + 8 * 3, "ptr", s.item) end
   stats(at + O.sprite.derived, s.derived)
   stats(at + O.sprite.temp, s.temp)
+  for _, head in ipairs(F.EFFECT_HEADS) do put(at + head, "ptr", 0) end -- empty effect lists
+end
+
+-- The two effect list heads on a sprite (docs/re-notes.md, re effect-lists); not yet in a7xoff.lua.
+F.EFFECT_HEADS = { 0x49a0, 0x49f0 }
+local next_effect = 0x700000
+
+-- A list of effects at sprite `at`'s `head`: each node holds the next node at +0x0 and its effect at
+-- +0x10; each effect is laid out as an EFF V2.0 file, a vtable pointer in its first 8 bytes. `list`
+-- holds { opcode, p2, timing, duration, source } tables.
+function F.effects(at, head, list)
+  local first = 0
+  for i = #list, 1, -1 do
+    local e, node, effect = list[i], next_effect, next_effect + 0x20
+    next_effect = next_effect + 0x200
+    put(node, "ptr", first)
+    put(node + 0x8, "ptr", 0)
+    put(node + 0x10, "ptr", effect)
+    put(effect, "ptr", 0x1009a0000) -- the vtable
+    for off = 0x8, 0x10c, 4 do put(effect + off, "u32", 0) end
+    put(effect + 0x10, "u32", e.opcode)
+    put(effect + 0x14, "u32", 1)
+    put(effect + 0x20, "i32", e.p2 or 0)
+    put(effect + 0x24, "u16", e.timing or 0)
+    put(effect + 0x28, "u32", e.duration or 0)
+    put(effect + 0x6c, "u32", 900)
+    put(effect + 0x90, "u32", e.source and 1 or 0)
+    local source = e.source or ""
+    for k = 1, #source do mem[effect + 0x94 + k - 1] = source:byte(k) end
+    first = node
+  end
+  put(at + head, "ptr", first)
 end
 
 local function area(at, resref)

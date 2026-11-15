@@ -1,6 +1,7 @@
 import { deepStrictEqual, strictEqual } from "node:assert/strict";
 import {
   CheckLine,
+  EffectLine,
   ListLine,
   parseLines,
   parseRecord,
@@ -76,6 +77,8 @@ Deno.test("every line of every golden file passes its schema", async () => {
   deepStrictEqual(passes("a7xlist.txt", list), ["a7xlist.txt", 12, 12, []]);
   const spawn = parseLines(await fixture("a7xspawn.txt"), "A7XSPAWN", SpawnLine);
   deepStrictEqual(passes("a7xspawn.txt", spawn), ["a7xspawn.txt", 6, 6, []]);
+  const effects = parseLines(await fixture("a7xeff.txt"), "A7XEFF", EffectLine);
+  deepStrictEqual(passes("a7xeff.txt", effects), ["a7xeff.txt", 10, 10, []]);
   const data = parseLines(await fixture("a7xdata.txt"), "A7XDATA", RecordSchema);
   deepStrictEqual(passes("a7xdata.txt", data), ["a7xdata.txt", 3, 3, []]);
 });

@@ -4,9 +4,9 @@
  * archives alone would describe an unmodded game.
  *
  * Adapted from BG2EE-GameLog's `src/resources.ts` (same author): plain path joins instead of
- * `jsr:@std/path`, file access through a `Disk` so tests need no files, and only what reading a
- * creature needs. Reads only; an archive's file table is read once, and a resource is read by
- * seeking to it, never by loading a whole archive.
+ * `jsr:@std/path`, file access through a `Disk` so tests need no files, and only what the checks
+ * need: creatures, tables, the menu, and spells' and items' names. Reads only; an archive's file
+ * table is read once, and a resource is read by seeking to it, never by loading a whole archive.
  */
 import {
   BIFF_ENTRY_SIZE,
@@ -17,7 +17,10 @@ import {
   readBiffEntries,
   readBiffHeader,
   readKey,
+  readNameStrrefs,
+  readTlk,
   RES_TYPE,
+  type StringTable,
 } from "./iebinary.ts";
 
 /** File access, as the readers need it. `realDisk` is the only one that touches files. */
@@ -128,4 +131,41 @@ export async function readResource(
 /** A creature's file. */
 export function readCreature(files: GameFiles, resref: string): Promise<Resource | null> {
   return readResource(files, resref, "cre");
+}
+
+/**
+ * The game's strings in one language, from `lang/<language>/dialog.tlk` (not in the archives);
+ * null when the game has no such file.
+ */
+export async function openStringTable(
+  files: GameFiles,
+  language = "en_US",
+): Promise<StringTable | null> {
+  try {
+    return readTlk(await files.disk.readFile(`${files.gameDir}/lang/${language}/dialog.tlk`));
+  } catch (err) {
+    if (err instanceof Deno.errors.NotFound) return null;
+    throw err;
+  }
+}
+
+/**
+ * The name the game shows for a spell or an item: a spell file's name if there is one (the
+ * unidentified name, a spell's only one), else an item file's (identified first); null when there
+ * is neither or the name has no string.
+ */
+export async function readName(
+  files: GameFiles,
+  strings: StringTable,
+  resref: string,
+): Promise<string | null> {
+  const spell = await readResource(files, resref, "spl");
+  if (spell) {
+    const { unidentified, identified } = readNameStrrefs(spell.bytes, "spl");
+    return strings.get(unidentified) ?? strings.get(identified);
+  }
+  const item = await readResource(files, resref, "itm");
+  if (!item) return null;
+  const { unidentified, identified } = readNameStrrefs(item.bytes, "itm");
+  return strings.get(identified) ?? strings.get(unidentified);
 }

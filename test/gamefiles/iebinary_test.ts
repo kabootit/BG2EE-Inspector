@@ -7,6 +7,8 @@ import {
   readBiffHeader,
   readCre,
   readKey,
+  readNameStrrefs,
+  readTlk,
   RES_TYPE,
 } from "../../src/gamefiles/iebinary.ts";
 import { biffFile, creFile, keyFile } from "./fixtures.ts";
@@ -67,4 +69,50 @@ Deno.test("a 2DA gives its cells by row label and column name", () => {
   strictEqual(cell(table, "30", "AC"), null);
   strictEqual(cell(table, "18", "SPEED"), null);
   throws(() => read2da(new TextEncoder().encode("CRE V1.0")), /not a 2DA V1.0 file/);
+});
+
+/** A TLK V1 file of these strings, laid out as IESDP has it; an empty string has length 0. */
+function tlkFile(strings: string[]): Uint8Array {
+  const text = strings.map((s) => new TextEncoder().encode(s));
+  const stringsAt = 18 + 26 * strings.length;
+  const bytes = new Uint8Array(stringsAt + text.reduce((n, t) => n + t.length, 0));
+  const dv = new DataView(bytes.buffer);
+  bytes.set(new TextEncoder().encode("TLK V1  "), 0);
+  dv.setUint32(0x0a, strings.length, true);
+  dv.setUint32(0x0e, stringsAt, true);
+  let offset = 0;
+  text.forEach((t, i) => {
+    dv.setUint32(18 + 26 * i + 0x12, offset, true); // relative to the strings, not the file
+    dv.setUint32(18 + 26 * i + 0x16, t.length, true);
+    bytes.set(t, stringsAt + offset);
+    offset += t.length;
+  });
+  return bytes;
+}
+
+Deno.test("a TLK gives each string by its strref, and null for none, -1 or out of range", () => {
+  const tlk = readTlk(tlkFile(["<NO TEXT>", "Magic Missile", "", "Blur"]));
+  strictEqual(tlk.count, 4);
+  strictEqual(tlk.get(1), "Magic Missile");
+  strictEqual(tlk.get(3), "Blur");
+  strictEqual(tlk.get(2), null);
+  strictEqual(tlk.get(-1), null);
+  strictEqual(tlk.get(4), null);
+  throws(() => readTlk(new TextEncoder().encode("CRE V1.0")), /not a TLK V1 file/);
+});
+
+Deno.test("a spell's and an item's name strrefs are at 0x08 and 0x0c, -1 for none", () => {
+  const header = (signature: string, unidentified: number, identified: number): Uint8Array => {
+    const bytes = new Uint8Array(0x10);
+    bytes.set(new TextEncoder().encode(signature), 0);
+    new DataView(bytes.buffer).setInt32(0x08, unidentified, true);
+    new DataView(bytes.buffer).setInt32(0x0c, identified, true);
+    return bytes;
+  };
+  deepStrictEqual(readNameStrrefs(header("SPL V1  ", 1, -1), "spl"), {
+    unidentified: 1,
+    identified: -1,
+  });
+  deepStrictEqual(readNameStrrefs(header("ITM V1  ", 5, 6), "itm").identified, 6);
+  throws(() => readNameStrrefs(header("ITM V1  ", 5, 6), "spl"), /not a SPL V1 file/);
 });

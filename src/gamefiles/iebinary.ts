@@ -33,7 +33,13 @@ function expect(bytes: Uint8Array, signature: string, version: string): void {
 }
 
 /** Resource type codes in the KEY, for the types read here. */
-export const RES_TYPE = { cre: 0x03f1, "2da": 0x03f4, menu: 0x0408 } as const;
+export const RES_TYPE = {
+  itm: 0x03ed,
+  spl: 0x03ee,
+  cre: 0x03f1,
+  "2da": 0x03f4,
+  menu: 0x0408,
+} as const;
 
 // KEY: chitin.key, the index of every resource in the archives.
 
@@ -207,4 +213,48 @@ export function cell(table: Table, row: string, column: string): number | null {
   const at = table.columns.indexOf(column);
   const raw = at === -1 ? undefined : table.rows.get(row.toUpperCase())?.[at];
   return raw === undefined || !/^-?\d+$/.test(raw) ? null : Number(raw);
+}
+
+// SPL and ITM: spells and items. Only their names here: two string references in the header,
+// "SPL V1  " or "ITM V1  " then the unidentified name at 0x08 and the identified name at 0x0c.
+
+/** A spell's or item's name strrefs; -1 (0xffffffff) is the engine's "no string". */
+export type NameStrrefs = { unidentified: number; identified: number };
+
+export function readNameStrrefs(bytes: Uint8Array, kind: "spl" | "itm"): NameStrrefs {
+  expect(bytes, kind === "spl" ? "SPL" : "ITM", "V1");
+  const dv = view(bytes);
+  return { unidentified: dv.getInt32(0x08, true), identified: dv.getInt32(0x0c, true) };
+}
+
+// TLK: the string table, dialog.tlk, every string the game shows by its strref. Adapted from
+// BG2EE-GameLog's Tlk class as a function. An 18-byte header ("TLK V1  ", the language, the entry
+// count at 0x0a, the strings' offset at 0x0e), then 26-byte entries, each with its string's offset
+// (relative to the strings, not the file) at 0x12 and length at 0x16.
+
+const UTF8 = new TextDecoder("utf-8", { fatal: true });
+const TLK_HEADER = 18;
+const TLK_ENTRY = 26;
+
+/** The string table: how many strings, and each by its strref, or null when it has none. */
+export type StringTable = { count: number; get: (strref: number) => string | null };
+
+export function readTlk(bytes: Uint8Array): StringTable {
+  expect(bytes, "TLK", "V1");
+  const dv = view(bytes);
+  const count = dv.getUint32(0x0a, true);
+  const stringsAt = dv.getUint32(0x0e, true);
+  const get = (strref: number): string | null => {
+    if (!Number.isInteger(strref) || strref < 0 || strref >= count) return null;
+    const entry = TLK_HEADER + strref * TLK_ENTRY;
+    const start = stringsAt + dv.getUint32(entry + 0x12, true);
+    const length = dv.getUint32(entry + 0x16, true);
+    if (length === 0 || start + length > bytes.length) return null;
+    try {
+      return UTF8.decode(bytes.subarray(start, start + length));
+    } catch {
+      return null; // not UTF-8: no name rather than a garbled one
+    }
+  };
+  return { count, get };
 }
