@@ -127,5 +127,11 @@ export const encode = {
   },
   add: (rd: number, rn: number, imm: number) => (0x91000000 | (imm << 10) | (rn << 5) | rd) >>> 0,
   bl: (pc: number, target: number) => (0x94000000 | (((target - pc) / 4) & 0x3ffffff)) >>> 0,
+  /** ldr wt|xt, [xn, #offset]: 4 or 8 bytes, unsigned offset. */
+  ldr: (rt: number, rn: number, offset: number, size: 4 | 8) =>
+    ((size === 8 ? 0xf9400000 : 0xb9400000) | ((offset / size) << 10) | (rn << 5) | rt) >>> 0,
+  cmp: (rn: number, rm: number, size: 4 | 8) =>
+    ((size === 8 ? 0xeb00001f : 0x6b00001f) | (rm << 16) | (rn << 5)) >>> 0,
+  movz: (rd: number, imm: number) => (0x52800000 | (imm << 5) | rd) >>> 0,
   nop: 0xd503201f,
 };

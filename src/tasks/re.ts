@@ -9,11 +9,14 @@
  *   re stats <getter>              a GetAtOffset-style stat table: id, offset, width, signedness
  *   re compare <symbol> <start> [end]   a game function against stock lapi.c built at -O2
  *   re hash <start> [size]         a builds.h site line: offset, size and FNV-1a hash
+ *   re area-fields                 object fields compared with the area on screen (src/re/fields.ts)
+ *   re id-fields                   area fields compared with an object's own id (src/re/fields.ts)
  *
  * A range's end defaults to the next function start. Writes only to build/re/.
  */
 import { decodeStatGetter, referencesTo } from "../re/arm64.ts";
 import { fnv1a64, parseBuilds } from "../re/builds.ts";
+import { areaFields, idFields } from "../re/fields.ts";
 import { archSlice, cstringAt, functionStarts, section, segment } from "../re/macho.ts";
 import {
   annotate,
@@ -34,7 +37,8 @@ const SLICE_PATH = `${RE_DIR}/game-arm64`;
 const REFERENCE_PATH = `${RE_DIR}/lapi.o`;
 
 const USAGE =
-  "usage: deno task re starts|xrefs|annotate|stats|compare|hash … (see src/tasks/re.ts)";
+  "usage: deno task re starts|xrefs|annotate|stats|compare|hash|area-fields|id-fields … " +
+  "(see src/tasks/re.ts)";
 
 const hex = (n: number) => `0x${n.toString(16)}`;
 const absolute = (arg: string) => {
@@ -153,6 +157,18 @@ await runTask(async () => {
       const size = args[1] ? Number(args[1]) : endOf(start) - start;
       const h = fnv1a64(read(start, size)).toString(16).padStart(16, "0");
       console.log(`{"<name>", ${hex(start - IMAGE_BASE)}, ${hex(size)}, 0x${h}ULL},`);
+      return 0;
+    }
+    case "area-fields":
+    case "id-fields": {
+      const code = { bytes: slice.subarray(text.offset, text.offset + text.size), addr: text.addr };
+      const tally = command === "area-fields" ? areaFields(code) : idFields(code);
+      // One line per field, most compared first: offset, count, then each comparison's address.
+      for (const [offset, sites] of tally) {
+        console.log(
+          `+${hex(offset)}\t${sites.length}\t${sites.map((s) => hex(s - IMAGE_BASE)).join(" ")}`,
+        );
+      }
       return 0;
     }
   }

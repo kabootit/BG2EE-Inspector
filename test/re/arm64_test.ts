@@ -5,8 +5,10 @@ import {
   adrp,
   bl,
   cmpImmediate,
+  cmpRegister,
   decodeStatGetter,
   loadImmediate,
+  moveWide,
   referencesTo,
   resolvedReferences,
 } from "../../src/re/arm64.ts";
@@ -25,6 +27,10 @@ const GAME = {
   cmp: 0x7103251f, // cmp w8, #0xc9
   ldrsh: 0x79c00800, // ldrsh w0, [x0, #0x4]
   ret: 0xd65f03c0,
+  cmpW: 0x6b0d019f, // cmp w12, w13 (at 0x1000beba4)
+  cmpX: 0xeb09011f, // cmp x8, x9 (at 0x100086824)
+  movz: 0x528cb20a, // mov w10, #0x6590 (at 0x100086814)
+  ldrX: 0xf972cd29, // ldr x9, [x9, #0x6598] (at 0x100086820)
 };
 
 Deno.test("each decoder reads its form from real game words", () => {
@@ -49,6 +55,9 @@ Deno.test("each decoder reads its form from real game words", () => {
     signed: true,
     name: "ldrsh",
   });
+  deepStrictEqual(cmpRegister(GAME.cmpW), { rn: 12, rm: 13, size: 4 });
+  deepStrictEqual(cmpRegister(GAME.cmpX), { rn: 8, rm: 9, size: 8 });
+  deepStrictEqual(moveWide(GAME.movz), { rd: 10, value: 0x6590 });
 });
 
 Deno.test("a word of another form decodes as nothing", () => {
@@ -56,12 +65,18 @@ Deno.test("a word of another form decodes as nothing", () => {
   strictEqual(addImmediate(GAME.ret), undefined);
   strictEqual(loadImmediate(GAME.ret), undefined);
   strictEqual(cmpImmediate(GAME.addX21), undefined);
+  strictEqual(cmpRegister(GAME.cmp), undefined);
+  strictEqual(moveWide(GAME.ret), undefined);
 });
 
 Deno.test("the test encoders produce the game's own words", () => {
   strictEqual(encode.adrp(21, GAME.adrpX21.pc, 0x1035d7000), GAME.adrpX21.word);
   strictEqual(encode.add(21, 21, 0x478), GAME.addX21);
   strictEqual(encode.bl(GAME.bl.pc, 0x10054b520), GAME.bl.word);
+  strictEqual(encode.cmp(12, 13, 4), GAME.cmpW);
+  strictEqual(encode.cmp(8, 9, 8), GAME.cmpX);
+  strictEqual(encode.movz(10, 0x6590), GAME.movz);
+  strictEqual(encode.ldr(9, 9, 0x6598, 8), GAME.ldrX);
 });
 
 const at = 0x100335450;
