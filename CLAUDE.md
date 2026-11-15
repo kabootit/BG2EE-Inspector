@@ -26,6 +26,8 @@ walks engine memory and prints creature stats and active spells, with time left,
   fact. [docs/rules/verify-derived-values.md](docs/rules/verify-derived-values.md)
 - **No em dashes, impersonal, plain and specific.** [docs/rules/writing-style.md](docs/rules/writing-style.md)
 - **Smallest surface that does the job.** [docs/rules/minimal-surface.md](docs/rules/minimal-surface.md)
+- **Every function states its return type, and nothing is `any`;** `deno task lint` enforces it.
+  [docs/rules/return-types.md](docs/rules/return-types.md)
 
 ## Read before
 

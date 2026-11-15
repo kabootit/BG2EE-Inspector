@@ -154,7 +154,7 @@ export function checkImportMap(config: Record<string, unknown>): Finding[] {
 // --- permissions -----------------------------------------------------------
 
 /** An --allow-run entry that cannot resolve through PATH: absolute, or a repo build output. */
-export const runPathAllowed = (bin: string) =>
+export const runPathAllowed = (bin: string): boolean =>
   bin.startsWith("/") || (/^\.\/build\/[\w./-]+$/.test(bin) && !bin.includes(".."));
 
 /** No -A, and every --allow-* flag scoped with =value. */

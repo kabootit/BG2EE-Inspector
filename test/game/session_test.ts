@@ -6,7 +6,9 @@ const HOME = "/Us" + "ers/alice";
 const LAUNCH = { cmd: "/usr/bin/script", args: [] };
 
 /** A stream the test writes to; it stays open, like a running game's output, until closed. */
-function pipe() {
+type Pipe = { stream: ReadableStream<Uint8Array>; write(text: string): void; close(): void };
+
+function pipe(): Pipe {
   const encoder = new TextEncoder();
   let controller!: ReadableStreamDefaultController<Uint8Array>;
   const stream = new ReadableStream<Uint8Array>({ start: (c) => (controller = c) });
@@ -22,7 +24,17 @@ function pipe() {
 }
 
 /** A game that runs until it exits or is killed, and counts Ctrl+C subscriptions. */
-function fakeGame() {
+type FakeGame = {
+  host: Host;
+  stdout: Pipe;
+  stderr: Pipe;
+  exit(code: number): void;
+  kills: Deno.Signal[];
+  subscribed(): number;
+  interrupt(): void;
+};
+
+function fakeGame(): FakeGame {
   const stdout = pipe();
   const stderr = pipe();
   const kills: Deno.Signal[] = [];

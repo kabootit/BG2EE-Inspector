@@ -23,16 +23,16 @@ function fakeDisk(withOverride: boolean): Disk {
     files.set("/game/override/CowH.CRE", patched);
   }
   return {
-    readFile(path) {
+    readFile(path): Promise<Uint8Array> {
       const bytes = files.get(path);
       return bytes ? Promise.resolve(bytes) : Promise.reject(new Deno.errors.NotFound(path));
     },
-    readAt(path, offset, length) {
+    readAt(path, offset, length): Promise<Uint8Array | null> {
       const bytes = files.get(path);
       if (!bytes || offset + length > bytes.length) return Promise.resolve(null);
       return Promise.resolve(bytes.slice(offset, offset + length));
     },
-    listDir(path) {
+    listDir(path): Promise<string[]> {
       const prefix = `${path}/`;
       return Promise.resolve(
         [...files.keys()].filter((p) => p.startsWith(prefix)).map((p) => p.slice(prefix.length)),

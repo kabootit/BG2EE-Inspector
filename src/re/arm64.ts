@@ -131,7 +131,7 @@ export function resolvedReferences(code: Code, window = 32): { at: number; targe
 }
 
 /** The ADRP addresses of every reference that resolves to `target`. */
-export const referencesTo = (code: Code, target: number) =>
+export const referencesTo = (code: Code, target: number): number[] =>
   resolvedReferences(code).filter((r) => r.target === target).map((r) => r.at);
 
 /** One case of a stat getter's jump table: the field it returns. */

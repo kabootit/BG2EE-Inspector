@@ -191,7 +191,11 @@ export function sections(slice: Uint8Array): Section[] {
 }
 
 /** The named section, or undefined. */
-export const section = (slice: Uint8Array, segname: string, sectname: string) =>
+export const section = (
+  slice: Uint8Array,
+  segname: string,
+  sectname: string,
+): Section | undefined =>
   sections(slice).find((s) => s.segname === segname && s.sectname === sectname);
 
 /**

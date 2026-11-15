@@ -51,6 +51,7 @@ How work is done on this project. [CLAUDE.md](../CLAUDE.md) summarizes them.
 | [security-first.md](rules/security-first.md) | default-deny, the read-only native library, licensing |
 | [toolchain.md](rules/toolchain.md) | Deno, C and Lua only; install nothing without asking; Deno 2.9.8+ |
 | [minimal-surface.md](rules/minimal-surface.md) | the smallest surface that does the job |
+| [return-types.md](rules/return-types.md) | a stated return type on every function, no `any`, enforced by `deno lint` |
 | [verify-derived-values.md](rules/verify-derived-values.md) | validation gates before stating values as fact |
 | [tests.md](rules/tests.md) | tests in `test/`, probes for every check |
 | [docs.md](rules/docs.md) | page types, ADRs, plans, delivery notes, diagrams |

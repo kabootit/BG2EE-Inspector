@@ -27,8 +27,11 @@ export const LAYOUT = {
 
 type Found = { at: number; load: Load };
 
+/** Instruction words, and the address of the word at an index. */
+type Instructions = { words: number[]; addr: (i: number) => number };
+
 /** The code as instruction words, with the address of each. */
-function instructions(code: Code) {
+function instructions(code: Code): Instructions {
   const view = new DataView(code.bytes.buffer, code.bytes.byteOffset, code.bytes.byteLength);
   const words = Array.from(
     { length: code.bytes.length >>> 2 },
@@ -41,7 +44,13 @@ function instructions(code: Code) {
  * The nearest unsigned-offset `ldr` into register `rt` of `size` bytes, looking back from `before`
  * (exclusive) to `from` (inclusive).
  */
-function loadInto(words: number[], rt: number, size: number, before: number, from: number) {
+function loadInto(
+  words: number[],
+  rt: number,
+  size: number,
+  before: number,
+  from: number,
+): Found | undefined {
   for (let at = before - 1; at >= Math.max(from, 0); at--) {
     const load = loadImmediate(words[at]);
     if (load && load.rt === rt && load.size === size && !load.signed) return { at, load };

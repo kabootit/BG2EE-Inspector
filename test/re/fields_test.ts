@@ -1,11 +1,12 @@
 import { deepStrictEqual, strictEqual } from "node:assert/strict";
+import type { Code } from "../../src/re/arm64.ts";
 import { areaFields, idFields } from "../../src/re/fields.ts";
 import { archSlice, section } from "../../src/re/macho.ts";
 import { GAME_BINARY } from "../../src/shared/config.ts";
 import { encode, words } from "./macho_fixture.ts";
 
 const AT = 0x100001000;
-const code = (ws: number[]) => ({ bytes: words(ws), addr: AT });
+const code = (ws: number[]): Code => ({ bytes: words(ws), addr: AT });
 const { ldr, cmp, movz, nop } = encode;
 
 // The shape of the comparison at 0x100086824: the object's area against the area on screen.
@@ -54,7 +55,7 @@ Deno.test("a tally lists the most used field first, each with its sites", () => 
 });
 
 /** The installed game's code, or undefined when the game is not installed. */
-async function gameCode() {
+async function gameCode(): Promise<Code | undefined> {
   try {
     const slice = archSlice(await Deno.readFile(GAME_BINARY), "arm64")!;
     const text = section(slice, "__TEXT", "__text")!;

@@ -57,24 +57,29 @@ export const COMMANDS = [
   },
 ] as const satisfies readonly Command[];
 
-export type CommandName = (typeof COMMANDS)[number]["name"];
+/** One of the listed commands, with its literal name, arguments and description. */
+export type ListedCommand = (typeof COMMANDS)[number];
+
+export type CommandName = ListedCommand["name"];
 
 /** The command as typed: `deno task re hash <start> [size]`. */
-export const invocation = (c: Command) => `deno task re ${c.name}${c.args ? ` ${c.args}` : ""}`;
+export const invocation = (c: Command): string =>
+  `deno task re ${c.name}${c.args ? ` ${c.args}` : ""}`;
 
 /** How many arguments a command cannot run without. */
-export const requiredArgs = (c: Command) => c.args.match(/<[^>]+>/g)?.length ?? 0;
+export const requiredArgs = (c: Command): number => c.args.match(/<[^>]+>/g)?.length ?? 0;
 
 /** The named command, if it is one and has its required arguments. */
-export const commandFor = (name: string | undefined, args: string[]) =>
+export const commandFor = (name: string | undefined, args: string[]): ListedCommand | undefined =>
   COMMANDS.find((c) => c.name === name && args.length >= requiredArgs(c));
 
 /** The usage text: every command with what it prints, markdown backticks removed. */
-export const usage = () =>
+export const usage = (): string =>
   [
     "usage:",
     ...COMMANDS.map((c) => `  ${invocation(c)}\n      ${c.prints.replaceAll("`", "")}`),
   ].join("\n");
 
 /** The commands table's rows, as docs/re-notes.md must have them. */
-export const notesRows = () => COMMANDS.map((c) => `| \`${invocation(c)}\` | ${c.prints} |`);
+export const notesRows = (): string[] =>
+  COMMANDS.map((c) => `| \`${invocation(c)}\` | ${c.prints} |`);

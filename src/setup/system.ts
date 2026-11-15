@@ -39,7 +39,7 @@ export const realSystem: System = {
   arch: Deno.build.arch,
   denoVersion: Deno.version.deno,
 
-  async run(cmd, args) {
+  async run(cmd, args): Promise<RunResult> {
     try {
       const out = await new Deno.Command(cmd, { args, stdout: "piped", stderr: "piped" }).output();
       return {
@@ -52,7 +52,7 @@ export const realSystem: System = {
     }
   },
 
-  async readBytes(path) {
+  async readBytes(path): Promise<Uint8Array | null> {
     try {
       return await Deno.readFile(path);
     } catch {
@@ -60,7 +60,7 @@ export const realSystem: System = {
     }
   },
 
-  async readText(path) {
+  async readText(path): Promise<string | null> {
     try {
       return await Deno.readTextFile(path);
     } catch {
@@ -71,7 +71,7 @@ export const realSystem: System = {
   writeBytes: (path, bytes) => Deno.writeFile(path, bytes),
   writeText: (path, text) => Deno.writeTextFile(path, text),
 
-  async exists(path) {
+  async exists(path): Promise<boolean> {
     try {
       await Deno.stat(path);
       return true;
@@ -82,7 +82,7 @@ export const realSystem: System = {
 
   makeDir: (path) => Deno.mkdir(path, { recursive: true }),
 
-  async remove(path) {
+  async remove(path): Promise<void> {
     try {
       await Deno.remove(path, { recursive: true });
     } catch (error) {
@@ -92,9 +92,9 @@ export const realSystem: System = {
 
   chmod: (path, mode) => Deno.chmod(path, mode),
 
-  async listFiles(dir) {
+  async listFiles(dir): Promise<string[]> {
     const found: string[] = [];
-    async function walk(at: string) {
+    async function walk(at: string): Promise<void> {
       for await (const entry of Deno.readDir(at)) {
         const path = `${at}/${entry.name}`;
         if (entry.isDirectory) await walk(path);

@@ -113,7 +113,7 @@ export function richImage(code: Uint8Array, strings: string[], starts: number[])
 }
 
 /** Little-endian bytes of 32-bit instruction words. */
-export const words = (ws: number[]) => {
+export const words = (ws: number[]): Uint8Array => {
   const out = new Uint8Array(ws.length * 4);
   ws.forEach((w, i) => new DataView(out.buffer).setUint32(i * 4, w >>> 0, true));
   return out;

@@ -22,7 +22,7 @@ export interface RepoFiles {
 export async function walkRepo(root: string = ROOT): Promise<RepoFiles> {
   const files: string[] = [];
   const dirs: string[] = [];
-  async function walk(rel: string) {
+  async function walk(rel: string): Promise<void> {
     for await (const entry of Deno.readDir(rel === "" ? root : `${root}${rel}`)) {
       const path = rel === "" ? entry.name : `${rel}/${entry.name}`;
       if (entry.isDirectory) {

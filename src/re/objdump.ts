@@ -11,7 +11,7 @@ import { bl, type Code, resolvedReferences } from "./arm64.ts";
 export type Line = { addr: number; text: string };
 
 /** `xcrun llvm-objdump` arguments for a range of a thin slice. */
-export const rangeArgs = (file: string, start: number, end: number) => [
+export const rangeArgs = (file: string, start: number, end: number): string[] => [
   "llvm-objdump",
   "-d",
   "--no-show-raw-insn",
@@ -21,7 +21,7 @@ export const rangeArgs = (file: string, start: number, end: number) => [
 ];
 
 /** `xcrun llvm-objdump` arguments for one symbol of an object file. */
-export const symbolArgs = (file: string, symbol: string) => [
+export const symbolArgs = (file: string, symbol: string): string[] => [
   "llvm-objdump",
   "-d",
   "--no-show-raw-insn",
@@ -75,7 +75,7 @@ export function annotate(
  * Instructions with what a linked image and an object file legitimately differ in taken out:
  * addresses and immediates that are PC-relative or relocated become `ADDR`.
  */
-export const normalize = (lines: Line[]) =>
+export const normalize = (lines: Line[]): string[] =>
   lines.map((l) => l.text.replace(/0x[0-9a-f]+/g, "ADDR"));
 
 /** How many lines of `a` and `b` are outside their longest common subsequence. */

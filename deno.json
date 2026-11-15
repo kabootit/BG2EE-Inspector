@@ -31,7 +31,11 @@
     "include": ["src/", "test/"],
     "rules": {
       "tags": ["recommended"],
-      "include": ["no-explicit-any"]
+      "include": [
+        "no-explicit-any",
+        "explicit-function-return-type",
+        "explicit-module-boundary-types"
+      ]
     }
   }
 }

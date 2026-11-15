@@ -20,7 +20,7 @@ export function fakeSystem(
     ...overrides,
     files: store,
     ran,
-    run(cmd, args) {
+    run(cmd, args): Promise<RunResult> {
       ran.push([cmd, ...args]);
       return Promise.resolve(handler(cmd, args) ?? { code: 1, stdout: "", stderr: "not handled" });
     },

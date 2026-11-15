@@ -32,7 +32,7 @@ export type Disk = {
 
 export const realDisk: Disk = {
   readFile: (path) => Deno.readFile(path),
-  async readAt(path, offset, length) {
+  async readAt(path, offset, length): Promise<Uint8Array | null> {
     let file: Deno.FsFile;
     try {
       file = await Deno.open(path, { read: true });
@@ -54,7 +54,7 @@ export const realDisk: Disk = {
       file.close();
     }
   },
-  async listDir(path) {
+  async listDir(path): Promise<string[]> {
     const names: string[] = [];
     try {
       for await (const e of Deno.readDir(path)) if (e.isFile) names.push(e.name);
