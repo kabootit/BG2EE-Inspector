@@ -160,6 +160,7 @@ sprite-relative unless stated:
 | Party ids, count | game `+0x6618` (6 `int32`), game `+0x6630` (`int16`) | `Infinity_UpdateLuaStats` indexes the ids by slot after checking the count |
 | Areas, and the one on screen | game `+0x6598`: 12 `CGameArea*`, 8 bytes each; the area on screen is entry `u8` game `+0x6590` | `CLUAConsole::ExploreArea` (`0x130de4`, bound at `0x1bf50`) reads `areas[game[+0x6590]]`; a function at `0x243ec0` compares a pointer with each of the 12 in turn. In the creature list's runs (2026-11-13) the index was 0, then 1 after an area change, and the party was in the indexed area both times |
 | An area's resref | 8 bytes, NUL-padded, at `CGameArea +0x204` | `ExploreArea` copies it into its result string (`0x369558`); the creature list's runs read `AR4000` and then `AR4500`, the area the party had walked into |
+| The object under the pointer | `int32` object id at `CGameArea +0x244`; below 0 when the pointer is on no object | `deno task re id-fields`: 24 engine sites compare an object's id with its own area's `+0x244`, among them `0xbeba4`, in code that draws a highlight; `0x904ac` writes it; `+0x248`, a related id, at 11. The Under the pointer test (2026-11-14) read the creature, the party member and the door or container the pointer rested on, and an id below 0 over empty ground |
 | Object array slots | 16 bytes each from `0x35d8360`: `u16` generation at `+0`, pointer at `+8`; an empty slot has generation `0xffff` | the lookup `0x1ae26c`: an id's high 16 bits (masked to 15) are the slot, its low 16 bits the generation, which must match |
 | Object array bounds | `int16` at `0x35d8350` (capacity), `0x35d8352` (highest slot in use), `0x35d8354` (next generation, from 2000) | the lookup, and the functions that add (`0x1ae3xx`) and clear (`0x1aeb1x`) objects |
 | Object type | `u8` at `+0x8`; a sprite is `0x31` | ten engine sites compare it with `0x31` |
@@ -185,6 +186,12 @@ by the party, a neutral creature read EA 255, and the dead read HP 0 and stay in
 `Infinity_DoFile`: `CLUAConsole::CreateCreature` (`0x1304e4`, bound at `0x1bc64`) checks the
 `.cre` exists, builds the creature in the area on screen, and it can be read straight away. In the
 spawn check's first run the creatures appeared east of the party.
+
+**The portrait under the pointer** is not in engine memory but in `ui.menu`'s Lua: the global
+`mouseOverPortrait`, set to the portrait's slot, 0 to 5, by each portrait button's `actionEnter` and
+back to -1 by its `actionExit` (stock `ui.menu`, from `data/Patch2.bif` on this install). Portrait N is
+party slot N, the order of the ids at game `+0x6618`: in the Under the pointer test (2026-11-14) the
+first, last and a middle portrait each read their own party member.
 
 EA groups, used to sort the listed creatures: friendly up to 30 (`GOODCUTOFF` in IESDP's `EA.IDS`),
 hostile from 200 (`EVILCUTOFF`), neutral between. The engine's type-matching code (`0x3f3e8` to

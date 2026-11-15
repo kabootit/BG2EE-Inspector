@@ -58,3 +58,4 @@ The manual tests so far:
 | [Creature list](creatures.md) | the walker lists the creatures in the area on screen, the party among them, with their EA groups (Phase 3) | about 15 minutes |
 | [Spawn check](spawn.md) | the walker reads creatures outside the party as their `.cre` files give them (Phase 3) | about 15 minutes |
 | [Data API](api.md) | the public `A7X` API and console output give schema-1 records that match the record screen (Phase 4) | about 15 minutes |
+| [Under the pointer](pointer.md) | `A7X.show()` shows the creature or the party portrait under the pointer, from `CGameArea +0x244` and `mouseOverPortrait` (Phase 4) | about 10 minutes |

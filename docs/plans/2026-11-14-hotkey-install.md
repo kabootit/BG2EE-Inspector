@@ -143,7 +143,8 @@ Commits on `initial/08-output`, each passing `deno task lint`, messages shown fi
 3. `re area-fields` and `re id-fields`, with tests on synthetic code and a real-data test that
    finds `+0x18` and `+0x244` in the installed game; `docs/re-notes.md` cites them.
 4. `area.picked`, `A7XWALK.picked`, API 1.1 (`hovered`, `portrait`, `show()`), their tests and
-   `docs/api.md`.
+   `docs/api.md`; then the manual test [Under the pointer](../manual-tests/pointer.md), `A7X.show()`
+   typed in the console, settles `+0x244` and the portrait slots before anything is built on them.
 5. `mod/inspector/inspector.tp2` and its anchor test.
 6. `deno task install-mod` and its tests.
 7. The manual test page and the other docs.
