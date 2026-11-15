@@ -31,8 +31,29 @@ covers it.
 
 - **Phase 4, in three parts** ([plan](docs/plans/2026-11-14-data-api.md)): the data API and console
   output (done on 2026-11-14, [delivery note](docs/notes/2026-11-14-data-api.md)), then the hotkey and the
-  WeiDU install (done on 2026-11-15, [delivery note](docs/notes/2026-11-14-hotkey-install.md)), then
-  `examples/consumer-mod/`.
+  WeiDU install (done on 2026-11-15, [delivery note](docs/notes/2026-11-14-hotkey-install.md)); the
+  third part, `examples/consumer-mod/`, moved to after Phase 5 (below).
+- **Phase 5, in three parts:** finding and proving the effect list
+  ([plan](docs/plans/2026-11-15-effect-list.md)), then time remaining and its duration gate, then the
+  output: spell names, `A7X.show` and the record's `effects`.
+- **`examples/consumer-mod/`, after Phase 5.** Moved on 2026-11-15: it needs its own design, not
+  the 30-line example the foundation plan assumed. What research found so far, to start from:
+  - **Lua loads without a `ui.menu` patch.** "The v2.2 update adds native support for M_*.lua files.
+    Drop any .lua file with a prefix of M_ into override, and the engine will load it just like
+    BGEE.lua" (Beamdog, <https://forums.beamdog.com/discussion/57210>); EEex installs
+    `M___EEex.lua`. The same post says it "only lets you make changes to BGEE.lua, not UI.menu", so
+    whether `A7X` loaded this way is visible to `ui.menu`'s Lua must be checked in the game. If it
+    is, the inspector itself could drop its `Infinity_DoFile` patch and one anchor.
+  - **Established mods patch `ui.menu` by menu name**, through libraries: SFO's `lib_ui.tph` (used by
+    Stratagems and iwdification) pulls a named `menu` out, patches it and puts it back; Mods Options
+    uses `ACuimenulib.tph`; Infinity UI++ replaces the whole file, and mods that patch `ui.menu` may
+    not work with it. Others install after the overhauls they name.
+  - **There is no timer callback in the base game**, only polling from a drawn element's `text lua`;
+    an element in the action bar likely stops ticking while the bar is hidden (cutscenes, dialogue).
+    SFO hooks menus' `onOpen` instead.
+  - **The dependency line works as planned**, `REQUIRE_PREDICATE MOD_IS_INSTALLED
+    ~inspector/inspector.tp2~ ~0~`, as iwdification's own lines do; current practice (EEex)
+    references a component `LABEL` through `ID_OF_LABEL`, which the inspector's tp2 would need.
 - **`deno task check-mod`:** run the pinned WeiDU on a scratch copy of the game folder, install and
   uninstall, so a tp2 WeiDU cannot parse fails before a manual test (the first Hotkey and install
   run).
@@ -43,7 +64,8 @@ covers it.
 
 - **UI panel: a separate external mod, not part of this project.** A world-screen `menu` in its own repo,
   built only on the public `A7X` API (`docs/api.md`, Phase 4) and declared with
-  `REQUIRE_PREDICATE MOD_IS_INSTALLED`. `examples/consumer-mod/` is its starting point.
+  `REQUIRE_PREDICATE MOD_IS_INSTALLED`. `examples/consumer-mod/` is its starting point, and the
+  research above applies to it.
 - **Launching without Deno.** Test Steam launch options (`DYLD_INSERT_LIBRARIES=<path> %command%`) and a
   small `.command` launcher. Prebuilt, ad-hoc-signed releases would also remove the Command Line Tools
   requirement for players.
