@@ -7,9 +7,9 @@ portrait, or type a console command, and it prints that creature's stats (HP, AC
 resistances, MR); its active spells, with the time left until each wears off, are planned.
 
 **Status: under construction,** in the phases of the
-[foundation plan](docs/plans/2026-11-01-inspector-foundation.md). The stats work from the console and
-through the API other mods use, both checked in the game. The WeiDU install and the `e` hotkey are
-built and wait for their manual test; active spells come in Phase 5.
+[foundation plan](docs/plans/2026-11-01-inspector-foundation.md). The stats work with the `e` hotkey,
+from the console and through the API other mods use, installed with WeiDU, all checked in the game;
+active spells come in Phase 5.
 
 ## Why
 
@@ -22,8 +22,8 @@ with two code-signing entitlements, `allow-dyld-environment-variables` and
 
 ## Installation
 
-Steps 1 to 4 and 6 have been run against the game. Step 5 is built and has not been run yet; its
-[manual test](docs/manual-tests/hotkey.md) is next.
+Every step has been run against the game; step 5 in the
+[Hotkey and install](docs/manual-tests/hotkey.md) manual test.
 
 1. Install the [requirements](docs/requirements.md), including **Deno 2.9.8** or later.
 2. `deno task setup-weidu`: fetch the pinned WeiDU release.

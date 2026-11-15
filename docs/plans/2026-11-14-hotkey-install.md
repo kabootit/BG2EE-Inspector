@@ -1,7 +1,8 @@
 # Plan: Phase 4, the hotkey and the install (`initial/08-output`, continued)
 
-> **Status:** approved 2026-11-14. Edited in place until pushed, per
-> [working-together.md](../rules/working-together.md). It follows the
+> **Status:** approved 2026-11-14 and delivered 2026-11-15: the Under the pointer test passed on its
+> first run and the Hotkey and install test on its second, recorded in the
+> [delivery note](../notes/2026-11-14-hotkey-install.md). It follows the
 > [data API plan](2026-11-14-data-api.md), the first part of Phase 4.
 
 ## Context

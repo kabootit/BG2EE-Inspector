@@ -31,8 +31,11 @@ covers it.
 
 - **Phase 4, in three parts** ([plan](docs/plans/2026-11-14-data-api.md)): the data API and console
   output (done on 2026-11-14, [delivery note](docs/notes/2026-11-14-data-api.md)), then the hotkey and the
-  WeiDU install (built; its [manual test](docs/manual-tests/hotkey.md) is next,
-  [delivery note](docs/notes/2026-11-14-hotkey-install.md)), then `examples/consumer-mod/`.
+  WeiDU install (done on 2026-11-15, [delivery note](docs/notes/2026-11-14-hotkey-install.md)), then
+  `examples/consumer-mod/`.
+- **`deno task check-mod`:** run the pinned WeiDU on a scratch copy of the game folder, install and
+  uninstall, so a tp2 WeiDU cannot parse fails before a manual test (the first Hotkey and install
+  run).
 
 - **`deno task derive`: deferred until a second build.** `native/builds.h` is written by hand and
   checked by `test/re/builds_test.ts`; `docs/re-notes.md` has the recipe for a new build. Automating

@@ -1,6 +1,6 @@
 ---
 title: "Phase 4, the hotkey and the install: Delivery Notes"
-description: "The second part of Phase 4, in progress: the creature under the pointer from CGameArea +0x244 and the party member behind a hovered portrait, as A7X.hovered, A7X.portrait and A7X.show() (API 1.1); deno task re area-fields and id-fields for the two tallied fields; working-visibly rules. The Under the pointer test passed on its first run. The WeiDU component, the hotkey and deno task install-mod are next."
+description: "The second part of Phase 4: the creature under the pointer from CGameArea +0x244 and the party member behind a hovered portrait, as A7X.hovered, A7X.portrait and A7X.show() (API 1.1); a WeiDU component that loads the inspector from ui.menu and binds e; deno task install-mod with the pinned WeiDU; deno task re area-fields and id-fields; a return-type rule; working-visibly rules. Under the pointer passed on its first run; Hotkey and install passed on its second, after WeiDU rejected the tp2 in the first while exiting 0."
 ---
 
 # Phase 4, the hotkey and the install: Delivery Notes
@@ -13,18 +13,23 @@ description: "The second part of Phase 4, in progress: the creature under the po
 
 ## Status
 
-**In progress.** The API answers for the creature and the portrait under the pointer, confirmed in the
-game from the console; the WeiDU component and the hotkey that will call it are not built yet.
+**Manual tests passed.** A player installs the inspector with `deno task install-mod`, the game
+loads it at startup, and `e` over a creature or a party portrait prints its record, running or
+paused; the uninstall puts the game back. Not yet committed: the fixes from the first Hotkey and
+install run, the idempotent load, the step 7 docs and this record.
 
 | Piece | State |
 | --- | --- |
-| Working visibly: rules, `CLAUDE.md`, learning note | Done, committed |
-| `deno task re area-fields`, `re id-fields`; the `re` subcommands as data | Done, committed |
-| `area.picked`, `A7XWALK.picked`, API 1.1: `hovered`, `portrait`, `show()` | Done, not committed |
+| Working visibly: rules, `CLAUDE.md`, learning note | Done |
+| `deno task re area-fields`, `re id-fields`; the `re` subcommands as data | Done |
+| `area.picked`, `A7XWALK.picked`, API 1.1: `hovered`, `portrait`, `show()` | Done |
 | [Under the pointer](../manual-tests/pointer.md) manual test | Passed on the first run |
-| `mod/inspector/inspector.tp2` and its anchor test | Next (plan step 5) |
-| `deno task install-mod` | Plan step 6 |
-| [Hotkey and install](../plans/2026-11-14-hotkey-install.md#docs) manual test and the other docs | Plan step 7 |
+| `mod/inspector/inspector.tp2` and its anchor test | Done; fixed after the first Hotkey and install run |
+| A stated return type on every function, enforced by `deno lint` | Done |
+| `deno task install-mod` | Done; checks `WeiDU.log` since the first Hotkey and install run |
+| Loading `a7x` twice keeps the first API | Done |
+| [Hotkey and install](../manual-tests/hotkey.md) manual test | Passed on the second run |
+| The example consumer mod | The third part of Phase 4 (`TODO.md`) |
 
 ## Plan summary
 
@@ -38,7 +43,7 @@ console, before anything was built on it.
 
 ### Code
 
-The changes so far, by file:
+The changes, by file:
 
 | Path | Change |
 | --- | --- |
@@ -50,11 +55,18 @@ The changes so far, by file:
 | `mod/inspector/lib/a7xwalk.lua` | `picked()`: the sprite under the pointer, or why not (nothing, a stale id, not a creature) |
 | `mod/inspector/lib/a7xapi.lua` | API 1.1: `hovered()`, `portrait()`, and `show()` with no argument showing the portrait, else the creature, else the usage line or the reason |
 | `test/re/fields_test.ts`, `commands_test.ts` | New: synthetic code shaped like the real sites, the installed game's counts, the re-notes table against the list |
-| `test/lua/a7xwalk_test.lua`, `a7xapi_test.lua`, `fakegame.lua` | The fake areas hold `-1` under the pointer; tests for each case of `picked`, `hovered`, `portrait` and `show()` |
+| `test/lua/a7xwalk_test.lua`, `a7xapi_test.lua`, `fakegame.lua` | The fake areas hold `-1` under the pointer; tests for each case of `picked`, `hovered`, `portrait` and `show()`, and for loading twice |
+| `mod/inspector/lib/a7x.lua` | Returns at once when `A7X` is already loaded |
+| `mod/inspector/inspector.tp2` | New: copies the six Lua files, loads `a7x` after `combatLog = {}`, adds the `e` button to `WORLD_ACTIONBAR`; each anchor must occur once |
+| `src/game/tp2.ts`, `test/game/tp2_test.ts` | New: the tp2's copies, patterns and replacements, checked against `mod/inspector/lib`, a stock-shaped menu and the game's own `ui.menu`; `patch()` gives the bytes WeiDU writes |
+| `src/game/install_mod.ts`, `src/tasks/install_mod.ts`, `test/game/install_mod_test.ts` | New: `deno task install-mod`: the game folder and the pinned WeiDU checked first, a merge that keeps WeiDU's backup, WeiDU run in the game folder, success read from `WeiDU.log` |
+| `src/lint/security.ts` | `./vendor/weidu/weidu`, the pinned WeiDU, as the one runnable path under `vendor/` |
+| `src/setup/system.ts`, `src/shared/config.ts`, `src/gamefiles/iebinary.ts` | `System.run` takes a working directory; `MOD_DIR`; the `menu` resource type |
+| `deno.json` and 18 files | `explicit-function-return-type` and `explicit-module-boundary-types` on, and the 32 missing return types added |
 
 ### Docs
 
-The pages added or changed so far:
+The pages added or changed:
 
 | Path | Change |
 | --- | --- |
@@ -65,6 +77,13 @@ The pages added or changed so far:
 | `docs/api.md` | API 1.1 |
 | `docs/manual-tests/pointer.md` | New: Under the pointer |
 | `docs/manual-tests/api.md` | Step 4: what `A7X.show()` does now, with a Changes row |
+| `docs/manual-tests/hotkey.md` | New: Hotkey and install |
+| `docs/manual-tests/README.md` | The check scripts need a session in which `e` has not been pressed; loading `a7x` again is harmless |
+| `docs/rules/return-types.md`, `CLAUDE.md` | New rule: a stated return type on every function |
+| `docs/adr/0002-read-only-bridge-lua-walker.md` | The triggers as built; `e` then a portrait click, not needed |
+| `docs/architecture.md` | The `e` key in the runtime layers, the data flow, the boot sequence and the inspect workflow |
+| `docs/requirements.md` | WeiDU is run by `install-mod`, only from `vendor/weidu/weidu` |
+| `README.md`, `TODO.md` | Status, installation and a Use section; Phase 4 progress |
 
 ## Gotchas worth remembering
 
@@ -79,6 +98,24 @@ The pages added or changed so far:
 - **The tallies decode bytes, not disassembly text.** The scratch scripts searched `llvm-objdump`
   output; the test task may not run it, so `fields.ts` decodes the instruction words as the rest of
   `re` does. Both gave the same counts.
+- **WeiDU exits 0 after a FATAL ERROR.** In the first Hotkey and install run it could not parse the
+  tp2, wrote nothing, and exited 0; `install-mod` took that as success. Success is now read from
+  `WeiDU.log`, which WeiDU writes only when a component installs.
+- **`REPLACE_TEXTUALLY` takes no `EVALUATE_BUFFER`, and needs none:** WeiDU substitutes `%var%` in
+  the replacement by itself. The tests passed with the keyword because `tp2.ts` was written to
+  accept it; a simulation of a tool can only be as right as what it was told. `tp2.ts` now reads
+  only the plain form, and its `patch()` gives the same bytes as WeiDU, checked by running the pinned
+  WeiDU on a scratch copy of the game folder (copied `chitin.key`, `weidu.conf` and English
+  `dialog.tlk`, the `data/` folder linked).
+- **An uninstall leaves traces by design.** WeiDU leaves `override/` as an empty folder and adds a
+  `// Recently Uninstalled: ~INSPECTOR/INSPECTOR.TP2~ #0 #0 ...` comment to `WeiDU.log`; it deletes
+  `inspector/backup/`. A second uninstall does nothing and exits 0.
+- **`e` reaches a button in `ui.menu`.** A button with no area and `on 'e'`, in the
+  `WORLD_ACTIONBAR` menu, receives the key on the world screen, running and paused; the game does
+  not take it first.
+- **The preview may not draw a Mermaid diagram on first render.** The Roadmap diagram drew only
+  after the preview re-rendered (opening and closing the developer tools forced it); its text was
+  fine. Reload the preview before changing a diagram that does not draw.
 
 ## Verification
 
@@ -101,12 +138,31 @@ The pages added or changed so far:
 
   The tester confirmed the names in steps 4, 5 and 8 by eye. `deno task verify`: data passed, 5
   lines, every one a schema-1 record. No `LUA ERROR` line.
+- **[Hotkey and install](../manual-tests/hotkey.md), 2026-11-14, failed** (`session-20261114-235025`,
+  on `0cdd610` with the step 7 docs uncommitted). In step 2 WeiDU printed
+  `PARSE ERROR at line 47 column 1-35 Near Text: EVALUATE_BUFFER` and `FATAL ERROR:
+  Parsing.Parse_error`, then exited 0, and `install-mod` printed `installed`; `override/` stayed
+  empty and `WeiDU.log` unchanged, so `e` did nothing in step 5. Fixed: the keyword removed, the
+  `WeiDU.log` check added with a test replaying this run, both checked with the real WeiDU on a
+  scratch game folder, install and uninstall.
+- **[Hotkey and install](../manual-tests/hotkey.md), 2026-11-15, passed** (`session-20261115-000921`,
+  on `0cdd610` with the fixes and the step 7 docs uncommitted). The install wrote `ui.menu` and the
+  six files and the `WeiDU.log` line; the build matched with 14 sites checked and `A7X_native`
+  registered. `e` printed, in order: party members Sticker and Boom Boom; Hobgoblin Elite and Hobgoblin
+  Captain (HP 40/40); the usage line; the Captain again (HP 14/40, in a fight); Hobgoblin Shaman; the
+  usage line; `not a creature` twice; party members Pinner and Edwin. The tester confirmed every
+  name against the tooltip or portrait it was pressed over, and the same result paused.
+  `deno task verify`: data passed, 8 lines, every one a schema-1 record. No `LUA ERROR` line. After
+  the uninstall `override/` was empty and `WeiDU.log` as before, plus the `Recently Uninstalled`
+  comment.
 
 ### Still to check by hand
 
-1. The hotkey and the install, in the Hotkey and install manual test, once steps 5 to 7 are built.
+1. The BG2EE-GameLog tap and the inspector in the same `ui.menu`, installed in either order
+   (`TODO.md`).
 
 ## Follow-ups
 
-- Plan steps 5 to 7: the WeiDU component, `deno task install-mod`, the Hotkey and install manual test.
-- Whether `e` reaches `ui.menu` on the world screen, which the next manual test settles.
+- **`deno task check-mod`:** the scratch-game WeiDU run as project tooling, so a tp2 WeiDU cannot
+  parse fails before a manual test instead of in one.
+- The third part of Phase 4: `examples/consumer-mod/`.

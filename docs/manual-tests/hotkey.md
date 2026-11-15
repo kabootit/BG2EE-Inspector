@@ -128,3 +128,14 @@ that records it.
 
 | Date | Commit | Result | Delivery note |
 | --- | --- | --- | --- |
+| 2026-11-14 | `0cdd610`, local changes (step 7 docs) | Failed on step 5: `e` did nothing because nothing was installed. In step 2 WeiDU could not parse the tp2 (`PARSE ERROR at line 47 ... Near Text: EVALUATE_BUFFER`) and wrote nothing, but exited 0, so `install-mod` printed `installed`. Fixed after the run: the tp2 without `EVALUATE_BUFFER`, and `install-mod` checking `WeiDU.log` | [the hotkey and the install](../notes/2026-11-14-hotkey-install.md) |
+| 2026-11-15 | `0cdd610`, local changes (the tp2 fix, the `WeiDU.log` check, the step 7 docs) | Passed: the install wrote `ui.menu` and the six files and its `WeiDU.log` line; `e` showed every creature and portrait it was pressed over, as the tooltips and portraits named them (party Sticker, Boom Boom, Pinner, Edwin; Hobgoblin Elite, Captain and Shaman), paused too; the usage line twice over empty ground and `not a creature` twice; 8 `A7XDATA` lines, every one a schema-1 record; no Lua errors; the uninstall left `override/` empty and `WeiDU.log` as before plus its `Recently Uninstalled` comment | [the hotkey and the install](../notes/2026-11-14-hotkey-install.md) |
+
+### Changes to this test
+
+Each change to the steps or pass criteria after the first run, so a Runs row can be read against the
+version of the test it was judged by.
+
+| Date | Commit | What changed | Runs before it were judged against |
+| --- | --- | --- | --- |
+| 2026-11-14 | the commit that adds this test, after the first run | Step 12 and its pass criterion: `override/` is left as an empty folder, and `WeiDU.log` gains a `Recently Uninstalled` comment, as WeiDU did in a scratch game folder | `override/` and `WeiDU.log` exactly as in step 1 |

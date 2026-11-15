@@ -193,6 +193,11 @@ back to -1 by its `actionExit` (stock `ui.menu`, from `data/Patch2.bif` on this 
 party slot N, the order of the ids at game `+0x6618`: in the Under the pointer test (2026-11-14) the
 first, last and a middle portrait each read their own party member.
 
+**A key in `ui.menu`:** a `button` with no `area` and `on '<key>'`, as stock `ui.menu` binds `on '8'`
+on character creation, receives the key while its menu is open. In the `WORLD_ACTIONBAR` menu, open
+throughout play, `on 'e'` received `e` on the world screen, running and paused, and the game did not
+act on the key itself (the Hotkey and install test, 2026-11-15).
+
 EA groups, used to sort the listed creatures: friendly up to 30 (`GOODCUTOFF` in IESDP's `EA.IDS`),
 hostile from 200 (`EVILCUTOFF`), neutral between. The engine's type-matching code (`0x3f3e8` to
 `0x3f5c4`) compares EA with `0x1e`/`0x1f` and `0xc7`/`0xc8`. In the creature list's runs the party
