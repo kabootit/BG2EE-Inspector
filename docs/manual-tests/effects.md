@@ -121,7 +121,7 @@ that records it.
 | Date | Commit | Result | Delivery note |
 | --- | --- | --- | --- |
 | 2026-11-15 | `9d07cb4`, local changes (effect-lists, the probe) | Passed: 6 members, 862 effects, every field plausible. `+0x49a0` is the equipped list (every effect timing mode 2, every source an item) and `+0x49f0` the timed list (the spells' and abilities' effects, timing modes 1, 7, 9 and 4096). Enhanced Bard Song (`SPCL920A`) and Neera's `OHNSHLDX` on all six, Enrage (`SPCL321`) on the second, Spell Trigger (`SPWI809`) on the sixth, each with its icon effects (opcode 142). `statusEffects` read as none for every member: the probe read only a list | the effect-list delivery note, after the gate run |
-
+| 2026-11-15 | `9d07cb4`, local changes (as above, the probe logging `statusEffects` whatever its shape, names in `verify`) | Passed: 6 members, 863 effects, every field plausible. `statusEffects` is keyed by icon number, each entry an icon image, frame and strref; filled for the last three members only, the first three skipped as not populated. For those three, every icon an opcode-142 effect shows (parameter 2) was listed, and the only icon listed without one was 92, "Spell Sequencer Active", from Spell Sequencer (`SPWI710`). Mirror Image (`SPWI212`) found on the sixth member | the effect-list delivery note, after the gate run |
 
 ### Changes to this test
 

@@ -199,9 +199,9 @@ on character creation, receives the key while its menu is open. In the `WORLD_AC
 throughout play, `on 'e'` received `e` on the world screen, running and paused, and the game did not
 act on the key itself (the Hotkey and install test, 2026-11-15).
 
-**A creature's effect lists** (static, 2026-11-15; not yet checked in the game, which the effect
-probe of the [effect-list plan](plans/2026-11-15-effect-list.md) does). `deno task re effect-lists`
-finds two linked lists walked from a creature whose elements the engine tests against constants:
+**A creature's effect lists** (found statically, then checked in the game by two runs of the
+[Effect presence](manual-tests/effects.md) probe, 2026-11-15). `deno task re effect-lists` finds two
+linked lists walked from a creature whose elements the engine tests against constants:
 
 | List head | Walks | Element field tested | Constants |
 | --- | --- | --- | --- |
@@ -210,16 +210,25 @@ finds two linked lists walked from a creature whose elements the engine tests ag
 
 - **They are the effect lists, `+0x10` the opcode:** every constant is an Enhanced Edition opcode
   number, and the two heads are `0x50` apart, as the timed (`+0x4a00`) and equipped (`+0x49b0`)
-  lists are in the Windows layout. Which is which is for the probe.
+  lists are in the Windows layout.
+- **`+0x49a0` is the equipped list, `+0x49f0` the timed list.** In the game every effect on
+  `+0x49a0` had timing mode 2 (while equipped) and an item worn as its source; `+0x49f0` held the
+  spells' and abilities' effects, with timing modes 1, 7 and 9 (permanent) and 4096 (absolute).
 - **The walk:** a list node holds the next node at `+0x0` and its element at `+0x10`; the walk at
-  `0xd1c70` reads the element's `+0x10`, then follows `+0x0` until it is null.
-- **The element likely keeps the effect file's layout:** the opcode at `+0x10` is where `EFF V2.0`
-  puts it, which would place the timing mode at `+0x24`, the duration at `+0x28`, the time applied
-  at `+0x6c` and the source spell (parent resource) at `+0x94` (offsets from IESDP's `EFF V2.0`
-  page), with the object's vtable pointer where the file has its first signature.
+  `0xd1c70` reads the element's `+0x10`, then follows `+0x0` until it is null. 862 and 863
+  effects walked to their end for six party members.
+- **The element keeps the effect file's layout** (IESDP's `EFF V2.0`), the object's vtable pointer
+  in place of the file's first signature (it differs by opcode: one class per opcode) and the body
+  signature zeroed: opcode `+0x10`, parameter 2 `+0x20`, timing mode `u16` `+0x24`, duration
+  `+0x28` (for timing mode 4096, an absolute expiry time), time applied `+0x6c`, source spell
+  `+0x94`. Checked: every opcode-142 effect's parameter 2 was an icon the record screen listed, and
+  the sources named the items worn and the spells cast. How the expiry relates to the game's clock
+  is part 2.
 - **The list at sprite `+0x4cb0` is not effects:** the record screen builds `statusEffects` from it
   (`0x2e3cc8`), reading each element's first field as 32 bits, where an effect object holds a
-  pointer; it is likely the portrait-icon list.
+  pointer. In the game's Lua, `characters[id].statusEffects` is keyed by icon number, each entry
+  `{ bam, current, strRef }`; an icon can also come from an opcode other than 142 (icon 92,
+  "Spell Sequencer Active", with Spell Sequencer).
 
 EA groups, used to sort the listed creatures: friendly up to 30 (`GOODCUTOFF` in IESDP's `EA.IDS`),
 hostile from 200 (`EVILCUTOFF`), neutral between. The engine's type-matching code (`0x3f3e8` to
