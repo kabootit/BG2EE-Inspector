@@ -49,6 +49,18 @@ T.test("the API loaded before the library registers waits for it", function()
   T.eq(A7X.status(), "ok", "registered later")
 end)
 
+T.test("a second load keeps the first API, before a call and after one", function()
+  load()
+  local first = A7X
+  dofile("mod/inspector/lib/a7x.lua")
+  T.eq(A7X, first, "before a call: the same table")
+  T.eq(A7X.status(), "ok", "the first call takes the table")
+  dofile("mod/inspector/lib/a7x.lua")
+  T.eq(A7X, first, "after a call: the same table")
+  T.eq(A7X.status(), "ok", "still ok, from the first API's private copy")
+  T.eq(A7XOFF == nil and A7XWALK == nil, true, "no module loaded again")
+end)
+
 T.test("status is loading with no game or no area on screen", function()
   load()
   F.field(F.GAME, O.game.visible_area, O.game.area_count)
