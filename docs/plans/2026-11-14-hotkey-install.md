@@ -122,7 +122,8 @@ Adapted from BG2EE-GameLog's `gamelog.tp2`:
   record, and the uninstall leaves `override/` as it was.
 - `docs/api.md` (API 1.1), ADR-0002 (triggers as built), `docs/architecture.md` (the install, the
   hotkey and `ui.menu` in the data flow and the runtime layers), `docs/requirements.md` (WeiDU now used
-  by `install-mod`), `docs/re-notes.md` once confirmed, `TODO.md`, `CLAUDE.md`, the manual tests'
+  by `install-mod`), `docs/re-notes.md` once confirmed, `TODO.md`, `CLAUDE.md`, `README.md` (status,
+  installation and a Use section, claiming only what a manual test has confirmed), the manual tests'
   README (the check scripts need a session in which nothing has called `A7X` yet, now that `a7x`
   loads at startup).
 - Delivery note after the manual test.

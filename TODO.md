@@ -11,7 +11,9 @@ covers it.
     order matters.
   - Mods that change spell files (SCS/Stratagems, Ascension, iwdification) change names and effects; the
     generated spell-name table must be regenerated after mod changes.
-  - The BG2EE-GameLog tap should coexist in the same `ui.menu`.
+  - The BG2EE-GameLog tap should coexist in the same `ui.menu`: both patches leave the line they
+    anchor on (`combatLog = {}`) in place, so either may install first, but neither order has been
+    tried.
   - The engine mounts every `*.zip` in the game folder, its `dlc/` folder and the user folder at startup
     (see the Phase 0 delivery note). A DLC-style zip, one with its own `mod.key`, supplies resources the
     engine uses. Check whether the spell-name lookup must read them too.
@@ -29,8 +31,8 @@ covers it.
 
 - **Phase 4, in three parts** ([plan](docs/plans/2026-11-14-data-api.md)): the data API and console
   output (done on 2026-11-14, [delivery note](docs/notes/2026-11-14-data-api.md)), then the hotkey and the
-  WeiDU install (`ui.menu`, the creature under the pointer, portraits, `A7X.hovered` and
-  `A7X.portrait`), then `examples/consumer-mod/`.
+  WeiDU install (built; its [manual test](docs/manual-tests/hotkey.md) is next,
+  [delivery note](docs/notes/2026-11-14-hotkey-install.md)), then `examples/consumer-mod/`.
 
 - **`deno task derive`: deferred until a second build.** `native/builds.h` is written by hand and
   checked by `test/re/builds_test.ts`; `docs/re-notes.md` has the recipe for a new build. Automating

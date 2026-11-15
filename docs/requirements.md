@@ -15,7 +15,7 @@ Each requirement, the version it was tested with, how to get it, and how `doctor
 | Baldur's Gate II: Enhanced Edition | **2.7.3**, Steam build | Steam, default branch | engine addresses are specific to one executable; GOG and App Store builds are untested | SHA-256 of the executable against the supported list; arm64 slice present; both entitlements set |
 | Xcode Command Line Tools, or full Xcode | tested with CLT 16.2 and Apple clang 16 | `xcode-select --install` (smaller), or Xcode from the App Store | `clang` builds the library from source and the linker ad-hoc signs it; no prebuilt binaries are shipped yet | `xcode-select -p`, `xcrun clang --version`, and a test build that must come out arm64 and `Signature=adhoc` |
 | Deno | **2.9.8 or later** | the installer at deno.com, or `deno upgrade` | every task is a Deno program | the running version against `MIN_DENO`; every task checks this before it starts |
-| WeiDU | **v251.00**, native arm64 | `deno task setup-weidu` (see below) | installs the inspector's patch to the game UI | SHA-256 of the binary against known builds, and its Mach-O architecture; WeiDU is never run to check it |
+| WeiDU | **v251.00**, native arm64 | `deno task setup-weidu` (see below) | `deno task install-mod` runs it to install the inspector's patch to the game UI | SHA-256 of the binary against known builds, and its Mach-O architecture; WeiDU is never run to check it |
 
 **Optional:** `Debug Mode` set to `1` under `Program Options` in
 `~/Documents/Baldur's Gate II - Enhanced Edition/Baldur.lua`. It turns on the Ctrl+Space console, which the
@@ -63,10 +63,12 @@ Files downloaded this way do not get macOS's quarantine attribute, so nothing ne
 2. Check it: `shasum -a 256 WeiDU-Mac-ARM-251.zip` must print the digest above.
 3. Unzip it. If a browser downloaded it, clear the quarantine flag:
    `xattr -d com.apple.quarantine WeiDU-Mac/weidu`.
-4. Point the project at it: `export BG2EE_WEIDU=/path/to/WeiDU-Mac/weidu`.
+4. Put it where the project runs it from: `vendor/weidu/weidu` in the repo folder.
 
-WeiDU binaries left in the game folder by other mods (`setup-*`) are not used: they are whatever version
-a mod shipped, often x86_64 only, which needs Rosetta.
+`deno task install-mod` runs only `vendor/weidu/weidu`, and only when its SHA-256 is the pinned
+binary's. `BG2EE_WEIDU` points `deno task doctor` at a WeiDU elsewhere, to identify it, but
+`install-mod` does not run it. WeiDU binaries left in the game folder by other mods (`setup-*`) are
+not used either: they are whatever version a mod shipped, often x86_64 only, which needs Rosetta.
 
 ## What has been verified
 

@@ -7,10 +7,10 @@ same record, defined in [docs/data-model.md](data-model.md). Why it is shaped th
 
 ## Inside the game: the `A7X` table
 
-The inspector loads with `Infinity_DoFile("a7x")`; for now that line is typed in the Ctrl+Space console
-(the WeiDU component that loads it from `ui.menu` comes with the next part of Phase 4). It leaves one
-global, `A7X`. A consumer looks it up when it needs it, never at file load, so the order mods load in
-does not matter:
+The inspector loads with `Infinity_DoFile("a7x")`. The WeiDU component (`deno task install-mod`) puts
+that line in `ui.menu`, so the game loads it at startup; without the component it can be typed in the
+Ctrl+Space console. It leaves one global, `A7X`. A consumer looks it up when it needs it, never at file
+load, so the order mods load in does not matter:
 
 ```lua
 if A7X and A7X.status() == "ok" then
@@ -42,6 +42,9 @@ Rules a consumer can rely on:
   tick, not every frame.
 - **No raw reads.** The inspector's memory-reading table is private once the API has been called;
   other mods get records, never addresses.
+- **Loading again changes nothing.** When `A7X` is already loaded, by `ui.menu` or an earlier
+  `Infinity_DoFile("a7x")`, a second load returns at once and the first API stays in place. A second
+  API could not work: the first one took the library's table private.
 - **The pointer is read when you call.** `hovered` and `portrait` answer for where the pointer is at
   that moment, so call them from a key press or a click, not from a timer.
 

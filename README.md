@@ -4,10 +4,12 @@
 
 An in-game inspector for Baldur's Gate II: Enhanced Edition on macOS. Press a hotkey over a creature or
 portrait, or type a console command, and it prints that creature's stats (HP, AC, THAC0, saves,
-resistances, MR) and active spells, with the time left until each wears off.
+resistances, MR); its active spells, with the time left until each wears off, are planned.
 
-**Status: under construction.** The project conventions are in place; the inspector itself is built in
-the phases of the [foundation plan](docs/plans/2026-11-01-inspector-foundation.md).
+**Status: under construction,** in the phases of the
+[foundation plan](docs/plans/2026-11-01-inspector-foundation.md). The stats work from the console and
+through the API other mods use, both checked in the game. The WeiDU install and the `e` hotkey are
+built and wait for their manual test; active spells come in Phase 5.
 
 ## Why
 
@@ -20,18 +22,31 @@ with two code-signing entitlements, `allow-dyld-environment-variables` and
 
 ## Installation
 
-Steps 1 to 4 and 6 work today, though the library so far only registers its read functions into the
-game's Lua and shows nothing in the game; step 5 arrives in a later phase.
+Steps 1 to 4 and 6 have been run against the game. Step 5 is built and has not been run yet; its
+[manual test](docs/manual-tests/hotkey.md) is next.
 
 1. Install the [requirements](docs/requirements.md), including **Deno 2.9.8** or later.
 2. `deno task setup-weidu`: fetch the pinned WeiDU release.
 3. `deno task doctor`: check every requirement.
 4. `deno task build`: build the read-only library.
-5. `deno task install-mod`: install the WeiDU component (`--uninstall` removes it).
+5. `deno task install-mod`: install the WeiDU component, which loads the inspector when the game
+   starts and adds the hotkey (`--uninstall` removes it).
 6. `deno task play`: launch the game with the library loaded.
 
 Only the BG2:EE 2.7.3 Steam build is supported, because engine addresses are binary-specific.
 Compatibility with other mods has not been tested yet; see [TODO.md](TODO.md).
+
+## Use
+
+In a loaded game:
+
+- **Press `e`** with the pointer over a creature or a party portrait: its stats appear in the message
+  window. Over anything else, the inspector says how to use it.
+- **Or type in the console** (Ctrl+Space, with `Debug Mode` on, see the
+  [requirements](docs/requirements.md)): `A7X.show("enemies")`, `A7X.show("party")`,
+  `A7X.show("all")`, or `A7X.show(id)` for one creature.
+
+Other mods read the same records through the `A7X` table: [docs/api.md](docs/api.md).
 
 Documentation starts at [docs/README.md](docs/README.md).
 

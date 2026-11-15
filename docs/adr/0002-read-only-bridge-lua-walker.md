@@ -82,12 +82,16 @@ Lua; output on request as a data API and message-window text.**
 ### Output
 
 - **A versioned public data API.** `A7X.get`, `A7X.list`, `A7X.status` and `A7X.version` return
-  fresh schema-1 tables (API 1.0, Phase 4); `A7X.hovered` and `A7X.portrait` follow with the hotkey as
-  API 1.1. The record and the API are [ADR-0006](0006-data-model-and-api.md); the foundation plan's
+  fresh schema-1 tables (API 1.0, Phase 4), and `A7X.hovered` and `A7X.portrait` the creature and the
+  party member under the pointer (API 1.1). The record and the API are
+  [ADR-0006](0006-data-model-and-api.md); the foundation plan's
   `"unknown_build"` status is folded into `"no_native"`, because on an unknown build the library
   registers nothing and Lua cannot tell the two apart.
-- **Triggers.** The `e` key over a creature or portrait, `e` followed by a portrait click, and console
-  commands, all printing through `Infinity_DisplayString`.
+- **Triggers.** The `e` key over a creature or a portrait, and console commands, all printing through
+  `Infinity_DisplayString`. As built: the WeiDU component adds a button with no area to `ui.menu`'s
+  `WORLD_ACTIONBAR` menu, bound to the key set once in `inspector.tp2`, and it calls `A7X.show()`.
+  That reads the portrait under the pointer from `ui.menu`'s `mouseOverPortrait`, else the creature
+  from the id the area on screen keeps at `CGameArea +0x244` (`docs/re-notes.md`).
 - **No automatic output**, and no UI panel in this project: external mods build on the API.
 
 ## Options considered
@@ -105,6 +109,8 @@ Lua; output on request as a data API and message-window text.**
 - **Shift-click on a creature**: not possible; world clicks are handled in C++, buttons have no modifier
   variant, and Lua cannot read keyboard state.
 - **"e" then a click on a creature in the world**: not taken; the click would issue an attack order.
+- **"e" then a click on a portrait**: planned, not needed; `ui.menu` already knows the portrait under
+  the pointer, so `e` over it is enough, and the click would select that party member.
 - **Auto-print on hover**: dropped; output happens only on an explicit request.
 - **Exposing raw reads to other mods**: not taken; offsets change per build and raw reads can crash the
   game.

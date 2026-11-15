@@ -4,8 +4,7 @@ How the inspector is organized, what runs where, and the order things happen in.
 Mermaid block, which GitHub renders and VS Code previews with a Mermaid extension. The decisions behind
 these diagrams are in [ADR-0001](adr/0001-native-dylib-injection.md),
 [ADR-0002](adr/0002-read-only-bridge-lua-walker.md) and [ADR-0006](adr/0006-data-model-and-api.md).
-Parts are still to be built: those marked "later" in the runtime layers, and the hotkey the inspect
-workflow describes; the
+Parts are still to be built: those marked "later" in the runtime layers; the
 [foundation plan](plans/2026-11-01-inspector-foundation.md) says in which step.
 
 ## Roadmap
@@ -100,7 +99,7 @@ flowchart TD
       API["a7xapi.lua: public A7X table, schema 1"]
       FM["a7xfmt.lua: text lines"]
       JS["a7xjson.lua: JSON lines"]
-      TR["triggers: console A7X.show; e hotkey later"]
+      TR["triggers: e key button in ui.menu, console A7X.show"]
       TS["a7x_test.lua: A7XT, dev component, later"]
     end
   end
@@ -110,9 +109,10 @@ flowchart TD
   WK --> OF
   API --> WK
   FM --> API
-  TR --> FM
+  TR -- "A7X.show" --> API
+  API --> FM
   TS --> API
-  EXT["External mods, e.g. a future UI mod"] -- "A7X.get, A7X.list" --> API
+  EXT["External mods, e.g. a future UI mod"] -- "A7X.get, A7X.list, A7X.hovered, A7X.portrait" --> API
   FM -- "Infinity_DisplayString" --> MSG["Message window, shown by the debug console"]
   API --> JS
   JS -- "Infinity_Log A7XDATA json" --> OUT["stdout via script pty"]
@@ -138,7 +138,8 @@ flowchart TD
   NAT --> WALK["a7xwalk.lua + a7xoff.lua: named fields"]
   WALK --> API["a7xapi.lua: the A7X table, schema-1 records"]
   WALK --> CHK["Check scripts, test only: a7xchk, a7xlist, a7xspawn"]
-  API -- "A7X.get, A7X.list" --> MODS["Other mods: plain Lua tables"]
+  KEY["The e key: a button in ui.menu"] -- "A7X.show()" --> API
+  API -- "A7X.get, A7X.list, A7X.hovered, A7X.portrait" --> MODS["Other mods: plain Lua tables"]
   API -- "A7X.show" --> FMT["a7xfmt.lua: two text lines per record"]
   FMT -- "Infinity_DisplayString" --> MSG["Message window"]
   API -- "A7X.show" --> JSON["a7xjson.lua: sorted keys, integers kept"]
@@ -213,7 +214,7 @@ sequenceDiagram
     A-->>G: log A7X disabled, glClear only passes through
   end
   G->>G: main, create the Lua state, register Infinity_* functions
-  G->>L: load ui.menu, Infinity_DoFile a7x lua files
+  G->>L: load ui.menu: after combatLog, Infinity_DoFile a7x, from the WeiDU patch
   Note over L: A7X_native may not exist yet: status() is no_native
   G->>A: glClear, once a frame on the main thread
   A->>A: Lua state set and idle? if not, wait for the next frame
@@ -232,23 +233,29 @@ like this; nothing prints automatically.
 sequenceDiagram
   autonumber
   actor U as Player
-  participant UI as ui.menu hotkey button
+  participant UI as ui.menu key button, in WORLD_ACTIONBAR
   participant API as A7X API
   participant W as Walker
   participant N as A7X_native
   participant OUT as Message window and stdout
   U->>UI: press e while hovering a creature or portrait
-  UI->>API: A7X.inspectUnderCursor()
+  UI->>API: A7X.show()
   API->>API: status() == ok?
   alt not ok
     API->>OUT: one line naming the status, e.g. no_native
   else ok
-    API->>W: portrait hovered? mouseOverPortrait, else picked object
-    W->>N: bounded reads: object type, EA, derived stats, timed effects
-    N-->>W: values, or nil for a bad pointer
-    W-->>API: schema-1 table, fresh copy
-    API->>OUT: formatted lines via Infinity_DisplayString
-    API->>OUT: A7XDATA json via Infinity_Log
+    API->>W: mouseOverPortrait set? that party slot, else the id at CGameArea +0x244
+    alt nothing under the pointer
+      API->>OUT: the usage line
+    else a door, container or region
+      API->>OUT: not a creature
+    else a creature
+      W->>N: bounded reads: object type, id, EA, the current stats block
+      N-->>W: values, or nil for a bad pointer
+      W-->>API: schema-1 table, fresh copy
+      API->>OUT: formatted lines via Infinity_DisplayString
+      API->>OUT: A7XDATA json via Infinity_Log
+    end
   end
 ```
 

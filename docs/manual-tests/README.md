@@ -30,8 +30,15 @@ the tested state can be checked out again:
 **The check scripts and the API do not share a session.** The party check, creature list and spawn
 check scripts read memory through the global `A7X_native`; the inspector's API takes that table
 private on its first call ([ADR-0006](../adr/0006-data-model-and-api.md)). Run a check in a session in
-which `Infinity_DoFile("a7x")` has not been typed; a session for the [Data API](api.md) test runs no
-check script.
+which nothing has called `A7X` yet: no `A7X` command typed and, with the WeiDU component installed, the
+`e` key not pressed, since it calls `A7X.show()`. Loading alone does not take the table, so the
+component's loading `a7x` at startup is fine. A session for the [Data API](api.md) test runs no check
+script.
+
+**With the WeiDU component installed, `A7X` is already loaded** when a save loads. Typing
+`Infinity_DoFile("a7x")`, as the [Data API](api.md) and [Under the pointer](pointer.md) tests do, is
+then harmless: a second load changes nothing. Those tests copy the six files into `override/` by hand,
+which on a game with the component overwrites the same files with the repo's versions.
 
 ## When a test changes
 
@@ -59,3 +66,4 @@ The manual tests so far:
 | [Spawn check](spawn.md) | the walker reads creatures outside the party as their `.cre` files give them (Phase 3) | about 15 minutes |
 | [Data API](api.md) | the public `A7X` API and console output give schema-1 records that match the record screen (Phase 4) | about 15 minutes |
 | [Under the pointer](pointer.md) | `A7X.show()` shows the creature or the party portrait under the pointer, from `CGameArea +0x244` and `mouseOverPortrait` (Phase 4) | about 10 minutes |
+| [Hotkey and install](hotkey.md) | `deno task install-mod` installs the WeiDU component, `e` prints the creature or portrait under the pointer with no console, and the uninstall restores `override/` (Phase 4) | about 20 minutes |
