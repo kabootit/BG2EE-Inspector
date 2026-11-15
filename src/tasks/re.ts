@@ -3,20 +3,13 @@
  * installed game's arm64 slice. Addresses may be given image-relative (0x5499cc) or absolute
  * (0x1005499cc); output uses image-relative offsets, as native/builds.h does.
  *
- *   re starts [from] [to]          function starts, from LC_FUNCTION_STARTS
- *   re xrefs <string>              code that loads the address of a C string (ADRP + ADD/LDR)
- *   re annotate <start> [end]      disassembly with strings and known engine calls named
- *   re stats <getter>              a GetAtOffset-style stat table: id, offset, width, signedness
- *   re compare <symbol> <start> [end]   a game function against stock lapi.c built at -O2
- *   re hash <start> [size]         a builds.h site line: offset, size and FNV-1a hash
- *   re area-fields                 object fields compared with the area on screen (src/re/fields.ts)
- *   re id-fields                   area fields compared with an object's own id (src/re/fields.ts)
- *
- * A range's end defaults to the next function start. Writes only to build/re/.
+ * The subcommands, their arguments and what each prints are listed in src/re/commands.ts; this
+ * file implements them. A range's end defaults to the next function start. Writes only to build/re/.
  */
 import { decodeStatGetter, referencesTo } from "../re/arm64.ts";
 import { fnv1a64, parseBuilds } from "../re/builds.ts";
-import { areaFields, idFields } from "../re/fields.ts";
+import { commandFor, type CommandName, usage } from "../re/commands.ts";
+import { areaFields, idFields, type Tally } from "../re/fields.ts";
 import { archSlice, cstringAt, functionStarts, section, segment } from "../re/macho.ts";
 import {
   annotate,
@@ -36,10 +29,6 @@ const RE_DIR = `${BUILD_DIR}/re`;
 const SLICE_PATH = `${RE_DIR}/game-arm64`;
 const REFERENCE_PATH = `${RE_DIR}/lapi.o`;
 
-const USAGE =
-  "usage: deno task re starts|xrefs|annotate|stats|compare|hash|area-fields|id-fields … " +
-  "(see src/tasks/re.ts)";
-
 const hex = (n: number) => `0x${n.toString(16)}`;
 const absolute = (arg: string) => {
   const n = Number(arg);
@@ -47,7 +36,12 @@ const absolute = (arg: string) => {
 };
 
 await runTask(async () => {
-  const [command, ...args] = Deno.args;
+  const [name, ...args] = Deno.args;
+  const command = commandFor(name, args);
+  if (!command) {
+    console.error(usage());
+    return 2;
+  }
   const bytes = await realSystem.readBytes(GAME_BINARY);
   const slice = bytes && archSlice(bytes, "arm64");
   const text = slice && section(slice, "__TEXT", "__text");
@@ -59,6 +53,7 @@ await runTask(async () => {
     slice.subarray(addr - IMAGE_BASE, addr - IMAGE_BASE + n);
   const starts = functionStarts(slice);
   const endOf = (start: number) => starts.find((s) => s > start) ?? start + 4;
+  const code = { bytes: slice.subarray(text.offset, text.offset + text.size), addr: text.addr };
 
   // Disassembly needs the slice as a file: objdump ignores address ranges on a universal binary.
   // Written on every run, so a game update never leaves a stale copy behind.
@@ -70,14 +65,24 @@ await runTask(async () => {
     return parseObjdump(out.stdout);
   };
 
-  switch (command) {
-    case "starts": {
+  // One line per field, most compared first: offset, count, then each comparison's address.
+  const printTally = (tally: Tally) => {
+    for (const [offset, sites] of tally) {
+      console.log(
+        `+${hex(offset)}\t${sites.length}\t${sites.map((s) => hex(s - IMAGE_BASE)).join(" ")}`,
+      );
+    }
+    return 0;
+  };
+
+  // Each command of src/re/commands.ts; its required arguments are already there.
+  const run: Record<CommandName, () => number | Promise<number>> = {
+    starts: () => {
       const [from, to] = [absolute(args[0] ?? "0"), absolute(args[1] ?? hex(2 ** 40))];
       for (const s of starts.filter((s) => s >= from && s < to)) console.log(hex(s - IMAGE_BASE));
       return 0;
-    }
-    case "xrefs": {
-      if (!args[0]) break;
+    },
+    xrefs: () => {
       const target = new TextEncoder().encode(`${args[0]}\0`);
       const cs = section(slice, "__TEXT", "__cstring")!;
       const hits: number[] = [];
@@ -88,7 +93,6 @@ await runTask(async () => {
         if (target.every((b, k) => slice[i + k] === b)) hits.push(cs.addr + i - cs.offset);
         at = i + 1;
       }
-      const code = { bytes: slice.subarray(text.offset, text.offset + text.size), addr: text.addr };
       for (const s of hits) {
         const refs = referencesTo(code, s).map((r) => hex(r - IMAGE_BASE));
         console.log(
@@ -97,9 +101,8 @@ await runTask(async () => {
       }
       if (hits.length === 0) console.log(`${JSON.stringify(args[0])}: not in __cstring`);
       return 0;
-    }
-    case "annotate": {
-      if (!args[0]) break;
+    },
+    annotate: async () => {
       const start = absolute(args[0]);
       const end = args[1] ? absolute(args[1]) : endOf(start);
       const names = new Map(
@@ -107,14 +110,13 @@ await runTask(async () => {
           .map((s) => [IMAGE_BASE + s.offset, s.name] as const),
       );
       const lines = await objdump(rangeArgs(SLICE_PATH, start, end));
-      const code = { bytes: read(start, end - start), addr: start };
-      for (const line of annotate(lines, code, (a) => cstringAt(slice, a), names)) {
+      const range = { bytes: read(start, end - start), addr: start };
+      for (const line of annotate(lines, range, (a) => cstringAt(slice, a), names)) {
         console.log(line);
       }
       return 0;
-    }
-    case "stats": {
-      if (!args[0]) break;
+    },
+    stats: () => {
       for (const f of decodeStatGetter(read, absolute(args[0]))) {
         console.log(
           f.kind === "load"
@@ -123,9 +125,8 @@ await runTask(async () => {
         );
       }
       return 0;
-    }
-    case "compare": {
-      if (!args[0] || !args[1]) break;
+    },
+    compare: async () => {
       const start = absolute(args[1]);
       const end = args[2] ? absolute(args[2]) : endOf(start);
       await realSystem.makeDir(RE_DIR);
@@ -150,28 +151,16 @@ await runTask(async () => {
           `reference ${reference.length}, differing lines ${differingLines(reference, game)}`,
       );
       return 0;
-    }
-    case "hash": {
-      if (!args[0]) break;
+    },
+    hash: () => {
       const start = absolute(args[0]);
       const size = args[1] ? Number(args[1]) : endOf(start) - start;
       const h = fnv1a64(read(start, size)).toString(16).padStart(16, "0");
       console.log(`{"<name>", ${hex(start - IMAGE_BASE)}, ${hex(size)}, 0x${h}ULL},`);
       return 0;
-    }
-    case "area-fields":
-    case "id-fields": {
-      const code = { bytes: slice.subarray(text.offset, text.offset + text.size), addr: text.addr };
-      const tally = command === "area-fields" ? areaFields(code) : idFields(code);
-      // One line per field, most compared first: offset, count, then each comparison's address.
-      for (const [offset, sites] of tally) {
-        console.log(
-          `+${hex(offset)}\t${sites.length}\t${sites.map((s) => hex(s - IMAGE_BASE)).join(" ")}`,
-        );
-      }
-      return 0;
-    }
-  }
-  console.error(USAGE);
-  return 2;
+    },
+    "area-fields": () => printTally(areaFields(code)),
+    "id-fields": () => printTally(idFields(code)),
+  };
+  return await run[command.name]();
 });

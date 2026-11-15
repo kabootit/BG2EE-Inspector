@@ -107,7 +107,8 @@ arm64, measured with `offsetof` on the vendored source:
 A new build gets a new `LC_UUID`, so the library disables itself until `builds.h` has an entry for it.
 `deno task re` reads the installed game's arm64 slice and does each step below; addresses can be given
 image-relative (`0x5499cc`) or absolute (`0x1005499cc`), and output is image-relative, as in
-`builds.h`. Its subcommands, in the order the steps use them:
+`builds.h`. Its subcommands, in the order the steps use them (written once, in `src/re/commands.ts`;
+`deno task test` fails when this table differs from it):
 
 | Command | Prints |
 | --- | --- |
