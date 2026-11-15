@@ -1,10 +1,10 @@
 A7XEFF	{"kind":"party","run":1,"size":2,"ticks":54000}
-A7XEFF	{"applied":900,"duration":0,"first":"00009a00010000000000000000000000","head":18848,"id":329681,"index":0,"kind":"effect","opcode":1,"p1":0,"p2":0,"parent_type":1,"power":0,"resource":"","run":1,"source":"RING02","target":1,"timing":2}
+A7XEFF	{"applied":900,"duration":0,"head":18848,"id":329681,"index":0,"kind":"effect","opcode":1,"p1":0,"p2":0,"run":1,"source":"RING02","timing":2}
 A7XEFF	{"capped":false,"count":1,"head":18848,"id":329681,"kind":"list","run":1}
-A7XEFF	{"applied":900,"duration":1200,"first":"00009a00010000000000000000000000","head":18928,"id":329681,"index":0,"kind":"effect","opcode":142,"p1":0,"p2":38,"parent_type":1,"power":0,"resource":"","run":1,"source":"SPPR101","target":1,"timing":0}
-A7XEFF	{"applied":900,"duration":1200,"first":"00009a00010000000000000000000000","head":18928,"id":329681,"index":1,"kind":"effect","opcode":0,"p1":0,"p2":0,"parent_type":1,"power":0,"resource":"","run":1,"source":"SPPR101","target":1,"timing":0}
+A7XEFF	{"applied":900,"duration":12369494,"head":18928,"id":329681,"index":0,"kind":"effect","opcode":142,"p1":0,"p2":38,"run":1,"source":"SPPR101","timing":4096}
+A7XEFF	{"applied":900,"duration":12369494,"head":18928,"id":329681,"index":1,"kind":"effect","opcode":0,"p1":0,"p2":0,"run":1,"source":"SPPR101","timing":4096}
 A7XEFF	{"capped":false,"count":2,"head":18928,"id":329681,"kind":"list","run":1}
-A7XEFF	{"entries":["1: icon=38;text=Bless"],"id":329681,"keys":["statusEffects"],"kind":"status","run":1}
+A7XEFF	{"entries":["38: bam=STATES;current=1;strRef=1234"],"id":329681,"keys":["statusEffects"],"kind":"status","run":1}
 A7XEFF	{"capped":false,"count":0,"head":18848,"id":395218,"kind":"list","run":1}
 A7XEFF	{"capped":false,"count":0,"head":18928,"id":395218,"kind":"list","run":1}
 A7XEFF	{"entries":[],"id":395218,"keys":[],"kind":"status","run":1}

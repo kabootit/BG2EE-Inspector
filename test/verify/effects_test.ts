@@ -26,7 +26,7 @@ Deno.test("the probe's lines fold into a run of members, each with its lists, ef
     [142, "SPPR101"],
     [0, "SPPR101"],
   ]);
-  deepStrictEqual(a.status?.entries, ["1: icon=38;text=Bless"]);
+  deepStrictEqual(a.status?.entries, ["38: bam=STATES;current=1;strRef=1234"]);
   deepStrictEqual([b.lists.length, b.effects.length], [2, 0]);
   deepStrictEqual(effectRunProblems(runs[0]), []);
 });
@@ -50,9 +50,32 @@ Deno.test("a member's summary groups each list by source, with names, timing, ic
     "  +0x49a0 equipped: 1 effects from 1 sources",
     "    RING02    Batalista's Passport  1 effects  timing 2",
     "  +0x49f0 timed: 2 effects from 1 sources",
-    "    SPPR101   Bless  2 effects  timing 0  icons 38",
-    "  statusEffects: 1: icon=38;text=Bless",
+    "    SPPR101   Bless  2 effects  timing 4096  expires 12369494..12369494  icons 38",
+    "  statusEffects: 38: bam=STATES;current=1;strRef=1234",
+    "  icons listed without an opcode-142 effect: none",
     "  characters[id] keys: statusEffects",
+  ]);
+});
+
+Deno.test("the gate: every icon an opcode-142 effect shows is listed; an extra icon is shown, not failed", () => {
+  const extra = LOG.replace(
+    '"entries":["38: bam=STATES;current=1;strRef=1234"]',
+    '"entries":["38: bam=STATES;current=1;strRef=1234","92: bam=STATES;current=157;strRef=8322"]',
+  );
+  const run = parseEffects(extra).runs[0];
+  deepStrictEqual(effectRunProblems(run), []);
+  const text = (strref: number): string => strref === 8322 ? "Spell Sequencer Active" : "";
+  strictEqual(
+    memberSummary(run.members[0], () => "", text).at(-2),
+    '  icons listed without an opcode-142 effect: 92 "Spell Sequencer Active"',
+  );
+  const missing = LOG.replace('"38: bam=STATES', '"39: bam=STATES');
+  deepStrictEqual(effectRunProblems(parseEffects(missing).runs[0]), [
+    "329681: icon 38 (from SPPR101) is not in statusEffects",
+  ]);
+  const unopened = LOG.split("\n").filter((l) => !l.includes('"id":329681,"keys"')).join("\n");
+  deepStrictEqual(effectRunProblems(parseEffects(unopened).runs[0]), [
+    "329681: no record screen data (open its record screen before the probe)",
   ]);
 });
 

@@ -1,5 +1,5 @@
 -- a7xwalk.lua: follow engine structures from A7X_native.Root() to the party, to the creatures in
--- the area on screen and to the one under the pointer, and read a creature.
+-- the area on screen and to the one under the pointer, and read a creature and its effects.
 --
 -- Every read goes through A7X_native (read-only, a bad address gives nil) and every field through
 -- A7XOFF (a7xoff.lua), so this file holds no numbers of its own. Before a pointer is followed it
@@ -157,6 +157,36 @@ function A7XWALK.ea_group(ea)
   if ea <= O.ea.friendly_max then return "friendly" end
   if ea >= O.ea.hostile_min then return "hostile" end
   return "neutral"
+end
+
+local EFFECT_LISTS = { timed = O.sprite.timed_effects, equipped = O.sprite.equipped_effects }
+
+-- One of a sprite's effect lists, "timed" (spells and abilities) or "equipped" (the items worn): its
+-- effects in list order, each { opcode, p1, p2, timing, duration, applied, source }; or nil and a
+-- reason. The walk follows each node's next pointer to a null one, checking every pointer first,
+-- and gives up past O.effect_node.max nodes, so a broken or circular list ends with a reason.
+function A7XWALK.effects(sprite, which)
+  local head = EFFECT_LISTS[which]
+  if not head then return nil, "no such list: " .. tostring(which) end
+  if not valid_pointer(sprite) then return nil, "bad sprite pointer" end
+  if R(sprite, O.object.type) ~= O.sprite_type then return nil, "not a sprite" end
+  local node = R(sprite, head)
+  if node == nil then return nil, "list unreadable" end
+  local out, E = {}, O.effect
+  while node ~= 0 do
+    if #out >= O.effect_node.max then return nil, "more than " .. O.effect_node.max .. " effects" end
+    if not valid_pointer(node) then return nil, "bad node pointer" end
+    local at = R(node, O.effect_node.effect)
+    if not valid_pointer(at) then return nil, "bad effect pointer" end
+    out[#out + 1] = {
+      opcode = R(at, E.opcode), p1 = R(at, E.p1), p2 = R(at, E.p2), timing = R(at, E.timing),
+      duration = R(at, E.duration), applied = R(at, E.applied),
+      source = W.resref(at + E.source, E.source_size),
+    }
+    node = R(node, O.effect_node.next)
+    if node == nil then return nil, "list unreadable" end
+  end
+  return out
 end
 
 local function stat(block, name)

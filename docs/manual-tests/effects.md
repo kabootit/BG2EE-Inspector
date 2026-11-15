@@ -10,11 +10,11 @@ duration: "about 15 minutes, 10 of them in the game"
 This session checks, in the game, what `deno task re effect-lists` found in the game's code: each
 creature has two linked lists of effects, headed at sprite `+0x49a0` and `+0x49f0`, and each effect
 probably keeps the layout of an effect file (`EFF V2.0`), its opcode at `+0x10`
-([docs/re-notes.md](../re-notes.md#engine-structures)). The probe script walks both lists for every
-party member and logs each effect's fields at their file offsets, then the engine's own
-`characters[id].statusEffects`, the status icons the record screen lists. It is the first step of the
-[effect-list plan](../plans/2026-11-15-effect-list.md)'s presence gate: this run shows which list
-holds the spells cast and how `statusEffects` is shaped, and the exact gate is written from it.
+([docs/re-notes.md](../re-notes.md#engine-structures)). The probe script reads both lists for every
+party member through the walker (`A7XWALK.effects`) and logs each effect's fields, then the engine's
+own `characters[id].statusEffects`, the status icons the record screen lists, keyed by icon number.
+It is the [effect-list plan](../plans/2026-11-15-effect-list.md)'s presence gate: every icon an
+effect shows through opcode 142 must be one the record screen lists.
 
 The walker's Lua (`a7xoff.lua`, `a7xwalk.lua`), the JSON writer (`a7xjson.lua`) and the probe
 (`a7xeff.lua`) are copied into the game's `override/` folder for the session. In the game, the only
@@ -55,11 +55,13 @@ summary.
    Expect `A7X loaded`, `A7X build 2.7.3 arm64 matched, 14 sites checked` and
    `A7X registered A7X_native`.
 2. **Load the save** (1 minute).
-3. **Cast** (3 minutes). Cast two or three spells on party members, at least one on someone other
-   than the caster, and drink a potion if one is at hand. Note each spell and whom it is on. Wait
-   until each shows its icon on the portrait, then pause.
-4. **Open each party member's record screen** once (2 minutes), so the engine fills
-   `characters[id]`; note the icons each portrait shows.
+3. **Cast** (3 minutes), with the game running. Cast two or three spells on party members, at least
+   one on someone other than the caster, and drink a potion if one is at hand. Note each spell and
+   whom it is on. Let every spell finish: its icon appears on the target's portrait. Pause only
+   then; a spell paused mid-cast never lands, and the run cannot find it.
+4. **Open every party member's record screen** once (2 minutes), after loading the save and before
+   the probe, so the engine fills `characters[id]` for each; a member whose record screen was not
+   opened fails the gate. Note the icons each portrait shows.
 5. **Run the probe** (1 minute). Open the console with Ctrl+Space, type `Infinity_DoFile("a7xeff")`
    and press Enter. The message window shows `A7X effect probe 1: <n> members, <n> effects read,
    0 skipped`. Close the console.
@@ -105,13 +107,14 @@ step 4. The run passes when:
 | Build and registration | `A7X build 2.7.3 arm64 matched, 14 sites checked` and `A7X registered A7X_native` | both present, no `A7X disabled` |
 | The probe ran | the message window, step 5 | the summary line, 0 skipped |
 | Both lists read to their end | `deno task verify` | no member with a list that stopped on a bad pointer or at the node cap |
-| The fields look like an effect's | `deno task verify` | `verify: effect probe passed`: every opcode under 1000, every timing mode one IESDP lists, every resource and source spell a resource name |
+| The fields look like an effect's | `deno task verify` | every opcode under 1000, every timing mode one IESDP lists, every source a resource name |
+| The presence gate | `deno task verify` | every member has record screen data, and every icon an opcode-142 effect shows (parameter 2) is in its `statusEffects`; `verify: effect probe passed` |
+| The spells cast | step 3 and `deno task verify` | each spell cast is a source on its target's timed list, by name (or "part of" its name) |
 | No Lua errors | the session log | no `LUA ERROR` line |
 
-Recorded, not judged in this run: which list holds the spells cast (the timed list) and which the
-items' effects (the equipped list); whether each spell's effects name it as their source; how
-`statusEffects` is shaped, and whether each icon in it has an opcode-142 effect with that icon in
-parameter 2. The presence gate is written from these and added to this page before the next run.
+An icon the record screen lists without an opcode-142 effect is printed with its text, not failed:
+the engine shows some icons from other opcodes (92, "Spell Sequencer Active", with Spell
+Sequencer).
 
 ## Runs
 
@@ -120,8 +123,10 @@ that records it.
 
 | Date | Commit | Result | Delivery note |
 | --- | --- | --- | --- |
-| 2026-11-15 | `9d07cb4`, local changes (effect-lists, the probe) | Passed: 6 members, 862 effects, every field plausible. `+0x49a0` is the equipped list (every effect timing mode 2, every source an item) and `+0x49f0` the timed list (the spells' and abilities' effects, timing modes 1, 7, 9 and 4096). Enhanced Bard Song (`SPCL920A`) and Neera's `OHNSHLDX` on all six, Enrage (`SPCL321`) on the second, Spell Trigger (`SPWI809`) on the sixth, each with its icon effects (opcode 142). `statusEffects` read as none for every member: the probe read only a list | the effect-list delivery note, after the gate run |
-| 2026-11-15 | `9d07cb4`, local changes (as above, the probe logging `statusEffects` whatever its shape, names in `verify`) | Passed: 6 members, 863 effects, every field plausible. `statusEffects` is keyed by icon number, each entry an icon image, frame and strref; filled for the last three members only, the first three skipped as not populated. For those three, every icon an opcode-142 effect shows (parameter 2) was listed, and the only icon listed without one was 92, "Spell Sequencer Active", from Spell Sequencer (`SPWI710`). Mirror Image (`SPWI212`) found on the sixth member | the effect-list delivery note, after the gate run |
+| 2026-11-15 | `9d07cb4`, local changes (effect-lists, the probe) | Passed: 6 members, 862 effects, every field plausible. `+0x49a0` is the equipped list (every effect timing mode 2, every source an item) and `+0x49f0` the timed list (the spells' and abilities' effects, timing modes 1, 7, 9 and 4096). Enhanced Bard Song (`SPCL920A`) and Neera's `OHNSHLDX` on all six, Enrage (`SPCL321`) on the second, Spell Trigger (`SPWI809`) on the sixth, each with its icon effects (opcode 142). `statusEffects` read as none for every member: the probe read only a list | [the effect list](../notes/2026-11-15-effect-list.md) |
+| 2026-11-15 | `9d07cb4`, local changes (as above, the probe logging `statusEffects` whatever its shape, names in `verify`) | Passed: 6 members, 863 effects, every field plausible. `statusEffects` is keyed by icon number, each entry an icon image, frame and strref; filled for the last three members only, the first three skipped as not populated. For those three, every icon an opcode-142 effect shows (parameter 2) was listed, and the only icon listed without one was 92, "Spell Sequencer Active", from Spell Sequencer (`SPWI710`). Mirror Image (`SPWI212`) found on the sixth member | [the effect list](../notes/2026-11-15-effect-list.md) |
+| 2026-11-15 | `95bc5b5`, local changes (the walker's effect lists, the gate) | Gate passed, spells not exercised: all six members with record screen data, 782 effects through the walker, every field plausible, every icon an opcode-142 effect shows listed in `statusEffects` and no other icon listed. The spells cast were paused mid-cast and never landed, so only Enhanced Bard Song (`SPCL920A`) and `OHNSHLDX` were on the timed lists; step 3's wording was at fault | [the effect list](../notes/2026-11-15-effect-list.md) |
+| 2026-11-15 | `95bc5b5`, local changes (as above, step 3 reworded) | Passed: all six members with record screen data, 927 effects through the walker, every field plausible, every icon an opcode-142 effect shows listed. The spells cast, each found by name on its targets' timed lists, as the tester confirmed: Haste and Protection From Evil, 10' Radius on all six, Improved Haste on the second, Mirror Image on the sixth. Listed without an opcode-142 effect: icon 110, "Improved Haste" | [the effect list](../notes/2026-11-15-effect-list.md) |
 
 ### Changes to this test
 
@@ -131,3 +136,5 @@ version of the test it was judged by.
 | Date | Commit | What changed | Runs before it were judged against |
 | --- | --- | --- | --- |
 | 2026-11-15 | the commit that adds this test, after the first run | The probe logs `statusEffects` whatever its shape, and the keys of `characters[id]`; step 8 prints each list grouped by source, with the names the game shows | `statusEffects` read as a list; every effect printed on its own line, sources as resrefs only |
+| 2026-11-15 | the commit that adds the walker's effect lists, after the second run | The probe reads through the walker; step 4 requires every record screen opened; the presence gate and the spells cast become pass criteria | no gate: the fields' plausibility only, the probe reading the lists itself |
+| 2026-11-15 | the same commit, after the third run | Step 3 says to let every spell finish before pausing: in the third run the spells were paused mid-cast and never landed | step 3 as "wait until each shows its icon, then pause" |

@@ -33,9 +33,9 @@ covers it.
   output (done on 2026-11-14, [delivery note](docs/notes/2026-11-14-data-api.md)), then the hotkey and the
   WeiDU install (done on 2026-11-15, [delivery note](docs/notes/2026-11-14-hotkey-install.md)); the
   third part, `examples/consumer-mod/`, moved to after Phase 5 (below).
-- **Phase 5, in three parts:** finding and proving the effect list
-  ([plan](docs/plans/2026-11-15-effect-list.md)), then time remaining and its duration gate, then the
-  output: spell names, `A7X.show` and the record's `effects`.
+- **Phase 5, in three parts:** finding and proving the effect list (done on 2026-11-15,
+  [delivery note](docs/notes/2026-11-15-effect-list.md)), then time remaining and its duration gate,
+  then the output: spell names, `A7X.show` and the record's `effects`.
 - **`examples/consumer-mod/`, after Phase 5.** Moved on 2026-11-15: it needs its own design, not
   the 30-line example the foundation plan assumed. What research found so far, to start from:
   - **Lua loads without a `ui.menu` patch.** "The v2.2 update adds native support for M_*.lua files.

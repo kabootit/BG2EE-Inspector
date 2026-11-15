@@ -12,16 +12,20 @@ function Infinity_DoFile(name) dofile("mod/inspector/lib/" .. name .. ".lua") en
 function Infinity_DisplayString(s) shown = s end
 function Infinity_GetGameTicks() return 54000 end
 
--- The fake game with the golden file's effects: A has a ring's effect on one list and a spell's two
--- on the other, the spell's icon among the record screen's statusEffects; B has none.
+-- The fake game with the golden file's effects: A has a ring's effect on the equipped list and a
+-- spell's two on the timed list, the spell's icon among the record screen's statusEffects, keyed by
+-- icon number as the game has it; B has none.
 local function world()
   F.world()
-  F.effects(F.A, 0x49f0, {
-    { opcode = 142, p2 = 38, timing = 0, duration = 1200, source = "SPPR101" },
-    { opcode = 0, p2 = 0, timing = 0, duration = 1200, source = "SPPR101" },
+  F.effects(F.A, "timed", {
+    { opcode = 142, p2 = 38, timing = 4096, duration = 12369494, source = "SPPR101" },
+    { opcode = 0, p2 = 0, timing = 4096, duration = 12369494, source = "SPPR101" },
   })
-  F.effects(F.A, 0x49a0, { { opcode = 1, timing = 2, source = "RING02" } })
-  characters = { [F.ID_A] = { statusEffects = { { icon = 38, text = "Bless" } } }, [F.ID_B] = {} }
+  F.effects(F.A, "equipped", { { opcode = 1, timing = 2, source = "RING02" } })
+  characters = {
+    [F.ID_A] = { statusEffects = { [38] = { bam = "STATES", current = 1, strRef = 1234 } } },
+    [F.ID_B] = {},
+  }
 end
 
 local function run()
@@ -60,13 +64,14 @@ T.test("a node pointing nowhere stops the walk with a reason", function()
   T.eq(find(lines, '"why":"bad node pointer"') ~= nil, true, "its reason")
 end)
 
-T.test("a list longer than the node cap stops there and says so", function()
+T.test("a list longer than the node cap gives no effects and says why", function()
   world()
   local many = {}
   for i = 1, 300 do many[i] = { opcode = 0, source = "SPWI101" } end
-  F.effects(F.B, 0x49f0, many)
+  F.effects(F.B, "timed", many)
   local lines = run()
-  T.eq(find(lines, '"capped":true,"count":256,"head":18928,"id":' .. F.ID_B) ~= nil, true, "capped")
+  T.eq(find(lines, '"capped":true,"count":0,"head":18928,"id":' .. F.ID_B) ~= nil, true, "capped")
+  T.eq(find(lines, '"why":"more than 256 effects"') ~= nil, true, "the reason")
 end)
 
 T.test("a member whose record screen was not opened is probed but has no status line", function()

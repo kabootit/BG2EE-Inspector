@@ -67,6 +67,24 @@ A7XOFF = {
     thac0_bonus = { 0x1204, "i32" },
     weapon_slot = { 0x10f8, "u8" },
     items = 0xfc0, -- item pointers, 8 bytes each, indexed by the weapon slot
+    -- The heads of the two effect lists (re effect-lists, confirmed by the effect probe):
+    timed_effects = { 0x49f0, "ptr" }, -- spells and abilities
+    equipped_effects = { 0x49a0, "ptr" }, -- the items worn
+  },
+
+  -- A node of an effect list: the next node, and the effect it holds.
+  effect_node = { next = { 0x0, "ptr" }, effect = { 0x10, "ptr" }, max = 256 },
+
+  -- An effect (CGameEffect), laid out as an EFF V2.0 file (IESDP) with its vtable pointer first.
+  effect = {
+    opcode = { 0x10, "u32" },
+    p1 = { 0x1c, "i32" },
+    p2 = { 0x20, "i32" }, -- for opcode 142, the status icon
+    timing = { 0x24, "u16" }, -- 4096: duration is an absolute expiry time
+    duration = { 0x28, "u32" },
+    applied = { 0x6c, "u32" },
+    source = 0x94, -- 8 bytes, NUL-padded: the spell or item that applied it
+    source_size = 8,
   },
 
   -- Fields of a stats block (CDerivedStats), by STATS.IDS name and number.

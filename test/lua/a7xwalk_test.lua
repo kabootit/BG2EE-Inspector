@@ -163,6 +163,37 @@ T.test("EA groups follow the engine's cut-offs at 30 and 200", function()
   T.eq(A7XWALK.ea_group(nil), nil, "no EA")
 end)
 
+T.test("a sprite's effect lists, each effect's fields in list order", function()
+  world()
+  F.effects(A, "timed", {
+    { opcode = 142, p2 = 38, timing = 4096, duration = 12369494, source = "SPPR101" },
+    { opcode = 0, timing = 4096, duration = 12369494, source = "SPPR101" },
+  })
+  F.effects(A, "equipped", { { opcode = 1, timing = 2, source = "RING02" } })
+  local timed = assert(A7XWALK.effects(A, "timed"))
+  T.eq(#timed, 2, "two timed effects")
+  local e = timed[1]
+  T.eq(table.concat({ e.opcode, e.p2, e.timing, e.duration, e.applied, e.source }, " "),
+    "142 38 4096 12369494 900 SPPR101", "the first, every field")
+  T.eq(timed[2].opcode, 0, "the second, in list order")
+  local equipped = assert(A7XWALK.effects(A, "equipped"))
+  T.eq(#equipped .. " " .. equipped[1].source .. " " .. equipped[1].timing, "1 RING02 2", "equipped")
+  T.eq(#assert(A7XWALK.effects(B, "timed")), 0, "an empty list is an empty table")
+end)
+
+T.test("a broken, endless or unknown effect list, or no sprite, gives a reason", function()
+  world()
+  F.effects(A, "timed", { { opcode = 0 } })
+  field(A, O.sprite.timed_effects, 0x10)
+  T.eq(select(2, A7XWALK.effects(A, "timed")), "bad node pointer", "a node pointing nowhere")
+  local many = {}
+  for i = 1, O.effect_node.max + 1 do many[i] = { opcode = 0 } end
+  F.effects(A, "timed", many)
+  T.eq(select(2, A7XWALK.effects(A, "timed")), "more than 256 effects", "past the cap")
+  T.eq(select(2, A7XWALK.effects(A, "worn")), "no such list: worn", "an unknown list")
+  T.eq(select(2, A7XWALK.effects(0, "timed")), "bad sprite pointer", "no sprite")
+end)
+
 T.test("without A7X_native every function says so", function()
   local saved = A7X_native
   A7X_native = nil

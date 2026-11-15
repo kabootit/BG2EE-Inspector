@@ -2,12 +2,11 @@
  * Judging the effect probe from a session log.
  *
  * test/lua/a7xeff.lua writes A7XEFF lines, each a JSON object defined in src/model/schemas.ts
- * (EffectLine). This folds them into runs. A run is judged on what a first probe can show without
- * knowing the answers: both effect lists of every probed member read to their end, and every effect's
- * fields read at their EFF V2.0 offsets look like an effect's (an opcode in range, a timing mode
- * IESDP lists, resrefs that are resource names). A wrong layout would read other fields there and
- * fail these. Matching the effects to the engine's status icons is for the gate, once this run shows
- * how statusEffects is shaped.
+ * (EffectLine). This folds them into runs and judges the latest: both effect lists of every probed
+ * member read to their end; every effect's fields look like an effect's (an opcode in range, a
+ * timing mode IESDP lists, a source that is a resource name), which a wrong layout would fail; and
+ * the presence gate, every icon an opcode-142 effect shows listed in the record screen's
+ * statusEffects (iconProblems).
  */
 import {
   EffectLine,
@@ -91,21 +90,61 @@ export function effectProblems(e: Kind<EffectLine, "effect">): string[] {
   if (e.timing === undefined || !TIMING_MODES.includes(e.timing)) {
     out.push(`${at}: timing mode ${e.timing ?? "unread"}`);
   }
-  for (const [name, value] of [["resource", e.resource], ["source", e.source]] as const) {
-    if (value === undefined || !RESREF.test(value)) {
-      out.push(`${at}: ${name} ${JSON.stringify(value)}`);
-    }
+  if (e.source === undefined || !RESREF.test(e.source)) {
+    out.push(`${at}: source ${JSON.stringify(e.source)}`);
+  }
+  // The first probe read the resource too; the walker does not.
+  if (e.resource !== undefined && !RESREF.test(e.resource)) {
+    out.push(`${at}: resource ${JSON.stringify(e.resource)}`);
   }
   return out;
+}
+
+/** The icons the record screen lists, by number, each with its text's strref. */
+export function listedIcons(status: Kind<EffectLine, "status">): Map<number, number | undefined> {
+  return new Map(status.entries.map((entry): [number, number | undefined] => {
+    const strref = entry.match(/strRef=(-?\d+)/)?.[1];
+    return [Number(entry.split(":")[0]), strref === undefined ? undefined : Number(strref)];
+  }));
+}
+
+/** The icons a member's effects show (opcode 142, parameter 2), each with the sources showing it. */
+export function shownIcons(m: EffectMember): Map<number, string[]> {
+  const shown = new Map<number, string[]>();
+  for (const e of m.effects.filter((e) => e.opcode === ICON_OPCODE && e.p2 !== undefined)) {
+    const sources = shown.get(e.p2!) ?? [];
+    if (!sources.includes(e.source ?? "")) sources.push(e.source ?? "");
+    shown.set(e.p2!, sources);
+  }
+  return shown;
+}
+
+/**
+ * The presence gate for one member: every icon an opcode-142 effect on either list shows must be
+ * one the record screen lists. An icon listed without such an effect is not a failure: the engine
+ * also shows icons from other opcodes (92, "Spell Sequencer Active", with Spell Sequencer).
+ */
+export function iconProblems(m: EffectMember): string[] {
+  if (!m.status) {
+    return [`${m.id}: no record screen data (open its record screen before the probe)`];
+  }
+  const listed = listedIcons(m.status);
+  return [...shownIcons(m)].filter(([icon]) => !listed.has(icon)).map(([icon, sources]) =>
+    `${m.id}: icon ${icon} (from ${sources.join(", ") || "no source"}) is not in statusEffects`
+  );
 }
 
 /**
  * One member's effects in a few lines, by list and then by source: each source with its name (from
  * `nameOf`), how many effects, their timing modes, the expiry times of the absolute ones (timing
- * mode 4096) and the icons they show; then the record screen's statusEffects and characters[id]'s
- * keys.
+ * mode 4096) and the icons they show; then the record screen's statusEffects, the icons it lists
+ * that no opcode-142 effect shows (with their text, from `textOf`), and characters[id]'s keys.
  */
-export function memberSummary(m: EffectMember, nameOf: (resref: string) => string): string[] {
+export function memberSummary(
+  m: EffectMember,
+  nameOf: (resref: string) => string,
+  textOf: (strref: number) => string = () => "",
+): string[] {
   const out: string[] = [];
   for (const head of HEADS) {
     const effects = m.effects.filter((e) => e.head === head);
@@ -131,6 +170,11 @@ export function memberSummary(m: EffectMember, nameOf: (resref: string) => strin
   }
   if (m.status) {
     out.push(`  statusEffects: ${m.status.entries.join(" | ") || "none"}`);
+    const shown = shownIcons(m);
+    const others = [...listedIcons(m.status)].filter(([icon]) => !shown.has(icon)).map((
+      [icon, strref],
+    ) => `${icon} ${JSON.stringify(strref === undefined ? "" : textOf(strref))}`);
+    out.push(`  icons listed without an opcode-142 effect: ${others.join(", ") || "none"}`);
     out.push(`  characters[id] keys: ${m.status.keys.join(" ") || "none"}`);
   }
   return out;
@@ -150,6 +194,7 @@ export function effectRunProblems(run: EffectRun): string[] {
       else if (list.capped) out.push(`${m.id} +0x${head.toString(16)}: stopped at the node cap`);
     }
     out.push(...m.effects.flatMap(effectProblems));
+    out.push(...iconProblems(m));
   }
   return out;
 }

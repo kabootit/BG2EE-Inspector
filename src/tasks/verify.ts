@@ -196,20 +196,26 @@ async function judgeSpawn(runs: SpawnRun[], path: string): Promise<boolean> {
  * The name the game shows for each source of a run's effects, from the installed game's spell and
  * item files and dialog.tlk. A helper spell often has none (SPCL920A, the effects of SPCL920,
  * Enhanced Bard Song), so a source without a name tries the resref without its last character,
- * shown as a guess. Without the game files every name is empty.
+ * shown as a guess. Also the text of a strref, for the icons the record screen lists. Without the
+ * game files every name and text is empty.
  */
-async function sourceNames(run: EffectRun): Promise<(resref: string) => string> {
+async function sourceNames(
+  run: EffectRun,
+): Promise<{ nameOf: (resref: string) => string; textOf: (strref: number) => string }> {
   const files = await openGameFiles(GAME_DIR).catch(() => null);
   const strings = files && await openStringTable(files);
   const names = new Map<string, string>();
-  if (!files || !strings) return () => "";
+  if (!files || !strings) return { nameOf: () => "", textOf: () => "" };
   const sources = new Set(run.members.flatMap((m) => m.effects.map((e) => e.source ?? "")));
   for (const source of [...sources].filter((s) => s !== "")) {
     const own = await readName(files, strings, source);
     const parent = own ?? await readName(files, strings, source.slice(0, -1));
     names.set(source, own ?? (parent ? `part of ${parent}?` : "(no name)"));
   }
-  return (resref: string): string => names.get(resref) ?? "";
+  return {
+    nameOf: (resref: string): string => names.get(resref) ?? "",
+    textOf: (strref: number): string => strings.get(strref) ?? "",
+  };
 }
 
 /** The effect probe's latest run: each member's lists, effects and status icons; true when it passed. */
@@ -219,16 +225,17 @@ async function judgeEffects(runs: EffectRun[], path: string): Promise<boolean> {
     `verify: ${path}, ${runs.length} run(s) of the effect probe; judging run ${run.run}` +
       ` (party ${run.size ?? "?"}, game ticks ${run.ticks ?? "?"})`,
   );
-  const nameOf = await sourceNames(run);
+  const { nameOf, textOf } = await sourceNames(run);
   for (const m of run.members) {
     console.log(`${m.id}${m.skip ? `  skipped: ${m.skip}` : ""}`);
-    for (const line of memberSummary(m, nameOf)) console.log(line);
+    for (const line of memberSummary(m, nameOf, textOf)) console.log(line);
   }
   const found = effectRunProblems(run);
   if (found.length === 0) {
     const effects = run.members.reduce((n, m) => n + m.effects.length, 0);
     console.log(
-      `verify: effect probe passed, ${run.members.length} members, ${effects} effects, every field plausible`,
+      `verify: effect probe passed, ${run.members.length} members, ${effects} effects, every field plausible, ` +
+        "every icon an opcode-142 effect shows listed by the record screen",
     );
     return true;
   }
