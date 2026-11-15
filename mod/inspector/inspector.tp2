@@ -43,8 +43,9 @@ Infinity_DoFile("a7x")~
   // 2. The key: a button with no area, as stock ui.menu binds '8' on character creation, in the
   //    action bar, open throughout play. The pattern runs from the menu's name to the first closing
   //    brace, which ends its first item, a label: the button goes in among the items, after the
-  //    menu's properties (onOpen and onClose hold no braces).
-  REPLACE_TEXTUALLY EVALUATE_BUFFER ~\(name "WORLD_ACTIONBAR"[^}]*}\)~ ~\1
+  //    menu's properties (onOpen and onClose hold no braces). WeiDU substitutes %a7x_key% in the
+  //    replacement by itself; REPLACE_TEXTUALLY takes no EVALUATE_BUFFER.
+  REPLACE_TEXTUALLY ~\(name "WORLD_ACTIONBAR"[^}]*}\)~ ~\1
 	button
 	{
 		on '%a7x_key%'

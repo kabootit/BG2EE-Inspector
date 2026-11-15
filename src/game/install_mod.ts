@@ -39,6 +39,17 @@ export function weiduArgs(gameDir: string, uninstall: boolean): string[] {
   ];
 }
 
+/**
+ * Whether a WeiDU.log lists the component: WeiDU writes the tp2 path in capitals, then the language
+ * and component numbers, as `~INSPECTOR/INSPECTOR.TP2~ #0 #0 // ...`.
+ */
+export function listsComponent(log: string): boolean {
+  const entry = `~${TP2.toUpperCase()}~ #0 #0`;
+  return log.split("\n").some((line: string): boolean =>
+    line.trim().toUpperCase().startsWith(entry)
+  );
+}
+
 /** The SHA-256 of the pinned WeiDU binary, the only one the task runs. */
 export function pinnedWeidu(): string {
   const pinned = KNOWN_WEIDU.find((w) => w.version === WEIDU_RELEASE.version && w.arch === "arm64");
@@ -65,7 +76,7 @@ async function mergeInto(sys: System, from: string, to: string): Promise<number>
 /**
  * Install (or with `uninstall`, remove) the component. Throws, before anything is written, when the
  * game folder has no `chitin.key` or WeiDU is missing or not the pinned binary; throws after the
- * copy when WeiDU fails, with its output.
+ * copy, with WeiDU's output, when WeiDU fails or `WeiDU.log` does not show the change.
  */
 export async function installMod(
   sys: System,
@@ -95,6 +106,13 @@ export async function installMod(
   const weiduOutput = `${out.stdout}${out.stderr}`;
   if (out.code !== 0) {
     throw new Error(`WeiDU exited with code ${out.code}:\n${weiduOutput.trimEnd()}`);
+  }
+  // The exit code is not enough: WeiDU exits 0 after a FATAL ERROR, such as a tp2 it cannot parse.
+  // WeiDU.log is what it writes only on success.
+  const listed = listsComponent((await sys.readText(`${gameDir}/WeiDU.log`)) ?? "");
+  if (listed === uninstall) {
+    const state = uninstall ? "still lists" : "does not list";
+    throw new Error(`WeiDU.log ${state} ${TP2} after WeiDU ran:\n${weiduOutput.trimEnd()}`);
   }
   lines.push(uninstall ? "uninstalled" : "installed");
   return { lines, weiduOutput };

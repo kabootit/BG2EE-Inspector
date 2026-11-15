@@ -8,8 +8,8 @@
  * `//` comments are dropped first, and every string is a `~...~` string.
  */
 
-/** One REPLACE_TEXTUALLY: a WeiDU regexp, its replacement, and whether `%var%` is evaluated. */
-export type Replace = { pattern: string; replacement: string; evaluate: boolean };
+/** One REPLACE_TEXTUALLY: a WeiDU regexp and its replacement, in which WeiDU substitutes `%var%`. */
+export type Replace = { pattern: string; replacement: string };
 
 export type Tp2 = {
   vars: Map<string, string>;
@@ -20,16 +20,15 @@ export type Tp2 = {
   replaces: Replace[];
 };
 
-// The statements read, one pattern each. Every group takes part in every match (EVALUATE_BUFFER's
-// matches an empty string when the keyword is absent), so each group is a string.
+// The statements read, one pattern each; every group takes part in every match, so each is a string.
+// REPLACE_TEXTUALLY is read only in its plain form: a statement with an option keyword is not read,
+// so a test counting the replacements fails on it. A pattern that once accepted EVALUATE_BUFFER,
+// which WeiDU rejects there, let a tp2 pass these tests that WeiDU could not parse.
 const STRING = "~([^~]*)~";
 const VAR = new RegExp(`OUTER_SPRINT\\s+(\\w+)\\s+${STRING}`, "g");
 const COPY = /\bCOPY\s((?:\s*~[^~]*~)+)/;
 const COUNT = new RegExp(`COUNT_REGEXP_INSTANCES\\s+${STRING}`, "g");
-const REPLACE = new RegExp(
-  `REPLACE_TEXTUALLY\\s+(EVALUATE_BUFFER\\s+|)${STRING}\\s+${STRING}`,
-  "g",
-);
+const REPLACE = new RegExp(`REPLACE_TEXTUALLY\\s+${STRING}\\s+${STRING}`, "g");
 
 /** The groups of each match of `re` in `text`, in order. */
 function groupsOf(text: string, re: RegExp): string[][] {
@@ -48,10 +47,9 @@ export function readTp2(text: string): Tp2 {
       .map(([path]): string => path)
       .filter((_: string, i: number): boolean => i % 2 === 0),
     counted: groupsOf(code, COUNT).map(([pattern]): string => pattern),
-    replaces: groupsOf(code, REPLACE).map(([flag, pattern, replacement]): Replace => ({
+    replaces: groupsOf(code, REPLACE).map(([pattern, replacement]): Replace => ({
       pattern,
       replacement,
-      evaluate: flag !== "",
     })),
   };
 }
@@ -77,15 +75,16 @@ export function weiduRegex(pattern: string, flags = "g"): RegExp {
 export const countMatches = (text: string, pattern: string): number =>
   [...text.matchAll(weiduRegex(pattern))].length;
 
-/** `text` with every replacement applied in order, `\1` as the first group, as WeiDU does. */
+/**
+ * `text` with every replacement applied in order, as WeiDU does: `%var%` substituted, then `\1` as
+ * the first group.
+ */
 export function patch(text: string, tp2: Tp2): string {
   return tp2.replaces.reduce((out: string, r: Replace): string => {
-    const replacement: string = r.evaluate
-      ? r.replacement.replace(
-        /%(\w+)%/g,
-        (m: string, name: string): string => tp2.vars.get(name) ?? m,
-      )
-      : r.replacement;
+    const replacement: string = r.replacement.replace(
+      /%(\w+)%/g,
+      (m: string, name: string): string => tp2.vars.get(name) ?? m,
+    );
     // A function, not a string: a `$` in the replacement must stay a `$`. String.replace passes the
     // match, each group, then the offset and the whole text, so the arguments are not all strings.
     return out.replace(
