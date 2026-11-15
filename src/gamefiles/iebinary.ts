@@ -33,7 +33,7 @@ function expect(bytes: Uint8Array, signature: string, version: string): void {
 }
 
 /** Resource type codes in the KEY, for the types read here. */
-export const RES_TYPE = { cre: 0x03f1, "2da": 0x03f4 } as const;
+export const RES_TYPE = { cre: 0x03f1, "2da": 0x03f4, menu: 0x0408 } as const;
 
 // KEY: chitin.key, the index of every resource in the archives.
 

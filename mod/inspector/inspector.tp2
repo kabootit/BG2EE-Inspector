@@ -1,0 +1,56 @@
+// inspector.tp2: installs the inspector's Lua into override/ and patches ui.menu to load it at
+// startup and to call A7X.show() on one key (docs/api.md). Adapted from BG2EE-GameLog's gamelog.tp2.
+// deno task install-mod runs it with the project's own WeiDU. test/game/tp2_test.ts reads this file:
+// every pattern below must occur exactly once in the game's ui.menu, every REPLACE_TEXTUALLY must use
+// a counted pattern, and every file in inspector/lib must be copied.
+
+BACKUP ~inspector/backup~
+AUTHOR ~BG2EE-Inspector~
+
+BEGIN ~BG2EE-Inspector: a creature's stats on one key~
+DESIGNATED 0
+REQUIRE_PREDICATE GAME_IS ~bg2ee~ ~This component requires BG2:EE.~
+REQUIRE_PREDICATE FILE_EXISTS_IN_GAME ~ui.menu~ ~ui.menu was not found in this installation.~
+
+// The key the inspector answers, set here only.
+OUTER_SPRINT a7x_key ~e~
+
+// The Lua. ui.menu loads a7x.lua, which loads the rest.
+COPY ~inspector/lib/a7x.lua~ ~override~
+  ~inspector/lib/a7xoff.lua~ ~override~
+  ~inspector/lib/a7xwalk.lua~ ~override~
+  ~inspector/lib/a7xjson.lua~ ~override~
+  ~inspector/lib/a7xfmt.lua~ ~override~
+  ~inspector/lib/a7xapi.lua~ ~override~
+
+COPY_EXISTING ~ui.menu~ ~override~
+  // Fail rather than install a patch that never runs: a missing or doubled anchor would look like a
+  // working install until the key did nothing.
+  COUNT_REGEXP_INSTANCES ~combatLog = {}~ a7x_load_anchor
+  COUNT_REGEXP_INSTANCES ~\(name "WORLD_ACTIONBAR"[^}]*}\)~ a7x_key_anchor
+  PATCH_IF (a7x_load_anchor != 1) BEGIN
+    PATCH_FAIL ~inspector: "combatLog = {}" occurs %a7x_load_anchor% times in ui.menu, not once.~
+  END
+  PATCH_IF (a7x_key_anchor != 1) BEGIN
+    PATCH_FAIL ~inspector: the WORLD_ACTIONBAR menu occurs %a7x_key_anchor% times in ui.menu, not once.~
+  END
+
+  // 1. Load the inspector where BG2EE-GameLog loads its tap: both leave the line in place, so either
+  //    may install first. Nothing in a7x.lua calls the engine while ui.menu loads.
+  REPLACE_TEXTUALLY ~combatLog = {}~ ~combatLog = {}
+Infinity_DoFile("a7x")~
+
+  // 2. The key: a button with no area, as stock ui.menu binds '8' on character creation, in the
+  //    action bar, open throughout play. The pattern runs from the menu's name to the first closing
+  //    brace, which ends its first item, a label: the button goes in among the items, after the
+  //    menu's properties (onOpen and onClose hold no braces).
+  REPLACE_TEXTUALLY EVALUATE_BUFFER ~\(name "WORLD_ACTIONBAR"[^}]*}\)~ ~\1
+	button
+	{
+		on '%a7x_key%'
+		action "A7X.show()"
+	}~
+
+BUT_ONLY
+
+PRINT ~inspector installed: press %a7x_key% over a creature or a party portrait. ui.menu is shared: install again after any mod that rewrites it.~
