@@ -1,10 +1,10 @@
 # Architecture
 
-How the inspector is organized, what runs where, and the order things happen in. Each diagram is a
+How the inspector fits together, what runs where, and the order things happen in. Each diagram is a
 Mermaid block, which GitHub renders and VS Code previews with a Mermaid extension. The decisions behind
 these diagrams are in [ADR-0001](adr/0001-native-dylib-injection.md),
 [ADR-0002](adr/0002-read-only-bridge-lua-walker.md) and [ADR-0006](adr/0006-data-model-and-api.md).
-Parts are still to be built: those marked "later" in the runtime layers; the
+Some parts do not exist yet: those marked "later" in the runtime layers; the
 [foundation plan](plans/2026-11-01-inspector-foundation.md) says in which step.
 
 ## Roadmap
@@ -29,7 +29,7 @@ flowchart TD
 
 ## Code organization
 
-Where each part of the repo ends up when it is built and installed.
+Where each part of the repo ends up once the tasks build and install it.
 
 ```mermaid
 flowchart TD
@@ -55,7 +55,7 @@ flowchart TD
 
 ### src layout
 
-`src/` is grouped by concern, and a folder is created only when its first file arrives:
+`src/` groups its code by concern, and a folder appears only when its first file arrives:
 
 | folder | holds | from |
 | --- | --- | --- |
@@ -123,7 +123,7 @@ flowchart TD
 
 Every piece of data the inspector produces leaves the game in one of three ways: as Lua tables to other
 mods, as text in the message window, or as JSON lines in the game's log, which Deno reads afterwards.
-Every JSON line is defined once, by a Zod schema in `src/model/schemas.ts`; why is in
+A Zod schema in `src/model/schemas.ts` defines every JSON line once; why is in
 [ADR-0006](adr/0006-data-model-and-api.md), and the record's fields are in
 [docs/data-model.md](data-model.md).
 
@@ -162,13 +162,13 @@ Each prefix, who writes it, what defines it, what pins it and who reads it:
 | `A7XSPAWN` | `test/lua/a7xspawn.lua` | `SpawnLine` | `test/fixtures/a7xspawn.txt` | `src/verify/spawn.ts`, with the game's `.cre` files |
 
 The two outputs that are not JSON have the same source: the tables `A7X.get` returns are the records
-`A7XDATA` carries, before encoding, and the message-window text is made from them by `a7xfmt.lua`
-for people, not programs.
+`A7XDATA` carries, before encoding, and `a7xfmt.lua` makes the message-window text from them for
+people, not programs.
 
-### How every part is tied to the schema
+### How every part stays tied to the schema
 
-The schema file is the single source of truth; each other part is held to it by a test, the compiler
-or a generated file, so a change on one side cannot pass unnoticed on another.
+The schema file is the single source of truth; a test, the compiler or a generated file holds each
+other part to it, so a change on one side cannot pass unnoticed on another.
 
 ```mermaid
 flowchart TD
@@ -186,7 +186,7 @@ flowchart TD
 ```
 
 The Lua side cannot import TypeScript, so the golden files are the link across the language boundary:
-both sides are held to the same bytes. How this design came about is in the learning note
+the tests hold both sides to the same bytes. How this design came about is in the learning note
 [one schema for every line](learnings/2026-11-14-central-schemas.md).
 
 ## Boot sequence
@@ -226,8 +226,8 @@ sequenceDiagram
 
 ## Inspect workflow
 
-What happens when the `e` key is pressed over a creature or a portrait. Output happens only on a request
-like this; nothing prints automatically.
+What happens when the player presses the `e` key over a creature or a portrait. Output happens only on
+a request like this; nothing prints automatically.
 
 ```mermaid
 sequenceDiagram

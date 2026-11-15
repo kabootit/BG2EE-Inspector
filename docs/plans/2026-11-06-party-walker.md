@@ -3,24 +3,26 @@
 > **Status:** approved 2026-11-06, delivered 2026-11-13: the party check passed on its fourth run,
 > recorded in the [delivery note](../notes/2026-11-13-party-walker.md). What changed in delivery: the
 > live EA is at `+0x38`, found from sprite dumps, not at either candidate below; the save text is in
-> `characters[id].proficiencies`, and its bracket is the difference from the base save. The project's
-> own terms (gate, walker, site, anchor and others) are defined in [docs/README.md](../README.md#terms).
+> `characters[id].proficiencies`, and its bracket is the difference from the base save.
+> [docs/README.md](../README.md#terms) defines the project's own terms (gate, walker, site, anchor and
+> others).
 
 ## Context
 
 Phase 2 put four read-only functions into the game's Lua (`A7X_native.Version/Root/Read/ReadBlock`).
 Phase 3 is the first Lua that uses them: a walker that follows engine structures from `Root` to each
-party member's sprite and reads its stats. The foundation plan allows enemy stats to be shown only
-after one check passes (the project calls such a pass/fail check a gate): for every party member, the
+party member's sprite and reads its stats. The foundation plan lets the inspector show enemy stats
+only after one check passes (the project calls such a pass/fail check a gate): for every party member, the
 walker's values must equal what the engine itself shows, through `characters[id]`, the table the
-record screen is drawn from. Enemies have no such engine-provided values to compare with, so the party
-is where the walker is proven.
+engine draws the record screen from. Enemies have no such engine-provided values to compare with, so
+the party is where the walker proves itself.
 
 **Decisions made (2026-11-06):**
 - **The party check first.** This branch: the party walker, the comparison against `characters[]`,
   `deno task verify`, and an in-game manual test. Creature enumeration with area and EA filters, and the
-  spawn harness against `.cre` files, follow on their own branch once the party values are proven.
-- **`deno task test:lua` now**, not in Phase 4: the walker is tested offline against a fake memory map
+  spawn harness against `.cre` files, follow on their own branch once the party check proves the party
+  values.
+- **`deno task test:lua` now**, not in Phase 4: it tests the walker offline against a fake memory map
   before each in-game run.
 
 ## Deliverables
@@ -36,8 +38,8 @@ is where the walker is proven.
   `deno task test:native`, `deno task verify`, the object-array global and `Objects()`, the first mod
   Lua (`a7xoff`, `a7xwalk`), the in-game check script and their tests.
 
-**Decision added (2026-11-06):** the analysis code written in the scratchpad during Phases 2 and 3 is
-saved as tested project tooling rather than left behind: the Deno parts as `deno task re`, the shell
+**Decision added (2026-11-06):** the analysis code written in the scratchpad during Phases 2 and 3
+becomes tested project tooling rather than staying behind: the Deno parts as `deno task re`, the shell
 comparison rewritten in Deno (no shell scripts), the C harness as `test/native/`.
 
 ### Analysis done in plan mode (read-only, scratchpad)
@@ -53,8 +55,8 @@ unless stated; image-relative for globals.
 | Party ids, count | game `+0x6618` (6 x `int32`), game `+0x6630` (`int16`) | `Infinity_UpdateLuaStats` indexes the ids by slot after checking the count |
 | Object array | static, image `0x35d8360`: 16-byte slots, `u16` generation at `+0`, pointer at `+8`; capacity `i16` at `0x35d8350`, highest index `0x35d8352`, next generation `0x35d8354` (starts at 2000); empty slot: generation `0xffff` | lookup `0x1ae26c` (`id >> 16` is the index, the low 16 bits the generation); the clear and add functions |
 | Object type | `u8` at `+0x8`; sprite is `0x31` | ten engine sites compare it with `0x31` |
-| Object id | `int32` at `+0x48` | `Infinity_UpdateLuaStats` sets global `id` from it; `characters` is keyed by it |
-| EA | `u8` at `+0x30` or `+0x78`: two `CAIObjectType`s (at `+0x28` and `+0x70`, EA at their `+0x8`) | the type-matching code at `0x3f2xx` compares both; which one is live is settled in the game (party must read 2) |
+| Object id | `int32` at `+0x48` | `Infinity_UpdateLuaStats` sets global `id` from it; `characters` uses it as the key |
+| EA | `u8` at `+0x30` or `+0x78`: two `CAIObjectType`s (at `+0x28` and `+0x70`, EA at their `+0x8`) | the type-matching code at `0x3f2xx` compares both; the game run settles which one is live (party must read 2) |
 | Stats block | `m_derivedStats` `+0x1120`, `m_tempStats` `+0x1dc0` (size `0xca0`); `m_bAllowEffectListCall` `int32` at `+0x4e8c` selects derived when non-zero | the THAC0 code chooses between them on that flag, exactly EEex's rule |
 | Every stat by `STATS.IDS` number | `CDerivedStats::GetAtOffset` at `0x7cd50`: jump table at image `0x683080`, ids 1 to 202 | decoded: ids 1 to 33 are `int16` at `2 * (id + 1)` (`MAXHITPOINTS` `+0x4`, `ARMORCLASS` `+0x6`, AC mods `+0x8` to `+0xe`, `THAC0` `+0x10`, saves `+0x14` to `+0x1c`, resistances `+0x1e` to `+0x32`); the rest recorded with their load width |
 | Current HP | `int16` at `+0x57c`: the creature's base header (`.cre` layout from file offset 0 at `+0x558`; name strref `+0x560` = file `0x08`, HP = file `0x24`, base saves `+0x5ac` = file `0x54`) | `characters[id].HP.current` |
@@ -62,9 +64,8 @@ unless stated; image-relative for globals.
 | Name | strref `int32` `+0x560`, fetched with `Infinity_FetchString`; when `-1`, the engine string at `+0x3910` (`char*`) | name branch and `0x2b0434` |
 | Saves in `characters[]` | text only: `savingThrows`, five `"%d (%d)"` pairs (derived and base), death to spell | format and keys at `0x2e694c` onward |
 
-Also: Lua resource names are 8 characters at most, so the foundation plan's file names
-(`a7x_offsets_273_arm64.lua`) cannot be loaded by `Infinity_DoFile`; files are named `a7xoff`,
-`a7xwalk` and so on.
+Also: Lua resource names are 8 characters at most, so `Infinity_DoFile` cannot load the foundation
+plan's file names (`a7x_offsets_273_arm64.lua`); the files take names such as `a7xoff` and `a7xwalk`.
 
 ## Design
 
@@ -82,8 +83,8 @@ Also: Lua resource names are 8 characters at most, so the foundation plan's file
   ids 1 to 24 and 151 to start, named from IESDP's `STATS.IDS`).
 - `a7xwalk.lua`: `A7XWALK.party()` and `A7XWALK.creature(sprite)`. Reads go through one helper
   `R(base, "group.field")` that looks up offset and kind in `A7XOFF` and calls `A7X_native.Read`.
-  Every pointer is range-checked (non-null, not `-1`, below 2^47), the object-array scan is capped by
-  the array's capacity, and a type check (`0x31`) comes before any sprite read. A creature record:
+  The walker range-checks every pointer (non-null, not `-1`, below 2^47), the array's capacity caps
+  the object-array scan, and a type check (`0x31`) comes before any sprite read. A creature record:
   `id`, `name`, `ea` (both candidates until the game settles it), `stats_block` (`derived` or `temp`),
   `hp` (`cur`, `max`), `ac` and the four mods, `thac0` (stat 7) and `thac0_shown` (the engine formula),
   `saves` (5), `resist` (fire to missile, magic fire and cold), `mr`.
@@ -99,9 +100,9 @@ equals the value the engine shows for that member. Until it passes, nothing buil
   each party member writes `A7XCHECK <id> <field> walker=<v> engine=<v> <ok|DIFF>` for `name`,
   `hp.cur`, `hp.max`, `ac` and its four mods, `thac0_shown`, and the five saves (parsed pairs from
   `savingThrows`), plus `A7XCHECK <id> skip not-populated` when `characters[id]` is missing.
-  Resistances, MR, both EA candidates and the stats-block flag are logged as `A7XWALK` lines, not
-  compared (the engine shows them only as text).
-- `characters[id]` is filled only for a party member whose record screen has been opened, so the
+  The script logs resistances, MR, both EA candidates and the stats-block flag as `A7XWALK` lines and
+  does not compare them (the engine shows them only as text).
+- The engine fills `characters[id]` only for a party member whose record screen has opened, so the
   manual test opens each one.
 - `deno task verify <session-log>` (`src/verify/checks.ts`, `src/tasks/verify.ts`): parses the
   `A7XCHECK` lines, prints a per-member, per-field table, and exits non-zero on any `DIFF`, any skipped
@@ -111,7 +112,7 @@ equals the value the engine shows for that member. Until it passes, nothing buil
 
 What the scratchpad did by hand, as tested modules in `src/re/` behind one task
 (`src/tasks/re.ts`; `--allow-read=.,<game folder> --allow-write=build --allow-run=/usr/bin/xcrun`).
-The arm64 slice is extracted with `archSlice` into gitignored `build/re/`, so no `lipo`.
+`archSlice` extracts the arm64 slice into gitignored `build/re/`, so no `lipo`.
 
 | Subcommand | Does | Replaces |
 | --- | --- | --- |
@@ -123,7 +124,7 @@ The arm64 slice is extracted with `archSlice` into gitignored `build/re/`, so no
 | `re hash <start> [size]` | FNV-1a 64 of a site (size defaults to the function's length), printed as a `builds.h` line | `fnv.c` |
 
 Tests: pure functions on synthetic encodings and Mach-O fixtures (`macho_fixture.ts` gains
-`LC_FUNCTION_STARTS` and sections), plus real-data cases when the game is installed: `xrefs` finds
+`LC_FUNCTION_STARTS` and sections), plus real-data cases when the game is present: `xrefs` finds
 `Infinity_Log`'s registration at `0x3356f8`; `stats` gives id 1 at `+0x4` and id 151 at `+0x1f4`;
 `starts` contains every `builds.h` site; `compare _lua_setfield` differs only on relocated loads.
 `docs/re-notes.md`'s recipe then cites `deno task re` instead of raw commands.
@@ -136,7 +137,7 @@ Tests: pure functions on synthetic encodings and Mach-O fixtures (`macho_fixture
   sites against the slice when the game is present). `lua_layout_test.c` compiles against the vendored
   `lstate.h` and asserts the `lua_State` offsets `builds.h` assumes.
 - `lint:security`'s `--allow-run` rule also accepts repo-relative `./build/…` paths: a path starting
-  with `./` is never resolved through `PATH`, which is what the absolute-path rule guards against.
+  with `./` never goes through a `PATH` lookup, which is what the absolute-path rule guards against.
 
 ### Offline Lua tests
 
@@ -179,7 +180,7 @@ Tests: pure functions on synthetic encodings and Mach-O fixtures (`macho_fixture
 1. `git switch -c initial/07-walker` from `main`.
 2. Commits, each passing `deno task lint`, messages shown first:
    1. The Phase 2 plan, saved retroactively as `docs/plans/2026-11-06-bridge.md`: the plan as approved,
-      a status line saying it was delivered and where it changed in delivery (whole-function hashes
+      a status line recording its delivery and where it changed in delivery (whole-function hashes
       instead of a 32-byte prefix, the console script, the `play` output commit), linked from
       `docs/README.md` and from the Phase 2 delivery note's lede;
    2. this plan as `docs/plans/2026-11-06-party-walker.md`, status "approved", linked from
@@ -192,5 +193,5 @@ Tests: pure functions on synthetic encodings and Mach-O fixtures (`macho_fixture
    7. `mod/inspector/lib/a7xoff.lua`, `a7xwalk.lua` + `test/lua/a7xwalk_test.lua`;
    8. `test/lua/a7xchk.lua` + its test + `deno task verify` + its test;
    9. `docs/manual-tests/walker.md` + index, foundation plan, TODO, rules, CLAUDE.md.
-3. Ask before committing and pushing. Then the tester runs the manual test, and the Runs row and the
-   delivery note are drafted for review.
+3. Ask before committing and pushing. Then the tester runs the manual test, and drafts of the Runs row
+   and the delivery note follow for review.

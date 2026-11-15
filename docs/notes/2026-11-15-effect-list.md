@@ -1,6 +1,6 @@
 ---
 title: "Phase 5, part 1, the effect list: Delivery Notes"
-description: "The first part of Phase 5: a creature's two effect lists found statically with deno task re effect-lists, confirmed in the game by an effect probe, and read by the walker as A7XWALK.effects; each effect keeps the EFF V2.0 file layout. The presence gate passed on the fourth run of Effect presence: every icon an opcode-142 effect shows is one the record screen lists, and the spells cast are found by name. verify names spells and items from the game files."
+description: "The first part of Phase 5: a creature's two effect lists found statically with deno task re effect-lists, confirmed in the game by an effect probe, and read by the walker as A7XWALK.effects; each effect keeps the EFF V2.0 file layout. The presence gate passed on the fourth run of Effect presence: every icon an opcode-142 effect shows is one the record screen lists, and each spell cast turns up by name. verify names spells and items from the game files."
 ---
 
 # Phase 5, part 1, the effect list: Delivery Notes
@@ -35,7 +35,7 @@ creature's effects live on arm64, proves the finding in the game, and gives the 
 to read them, with a gate against the engine's own record screen. Nothing in `A7X` changes yet: the
 API and the output gain effects once part 2 has proven the time remaining.
 
-## What was built
+## What shipped
 
 ### Code
 
@@ -68,22 +68,22 @@ The pages added or changed:
 
 ## Gotchas worth remembering
 
-- **`statusEffects` is keyed by icon number, not a list.** Each entry is `{ bam, current, strRef }`.
-  The first probe read it with `ipairs` and found nothing; `pairs` shows it.
-- **The gate runs one way.** Every icon an opcode-142 effect shows is listed, but the engine also
+- **`statusEffects` is a table keyed by icon number, not a list.** Each entry is
+  `{ bam, current, strRef }`. The first probe read it with `ipairs` and found nothing; `pairs` shows it.
+- **The gate runs one way.** The engine lists every icon an opcode-142 effect shows, but it also
   lists icons no opcode-142 effect shows: 92, "Spell Sequencer Active", and 110, "Improved Haste".
-  An icon listed without one is printed, not failed.
+  `verify` prints an icon listed without one rather than failing it.
 - **The timed list also holds permanent effects** (timing modes 1, 7 and 9: class, race and kit
   abilities, and parts of spells), beside the absolute ones (4096). Countdowns in part 2 must filter
   by timing mode.
 - **One C++ class per opcode:** the vtable pointer in an effect's first 8 bytes differs by opcode.
-  The body's own signature at `+0x8` is zeroed, as IESDP says for an effect embedded in a spell.
+  The body's own signature at `+0x8` reads zero, as IESDP says for an effect embedded in a spell.
 - **A helper spell has no name of its own.** `SPCL920A` holds Enhanced Bard Song's effects;
   `SPCL920` holds its name. `verify` guesses the parent by dropping the last character and marks the
   guess. Some name strrefs point at unrelated text in `dialog.tlk` (`CDHLYSY2`), shown as found.
-- **A spell paused mid-cast never lands.** The third run's spells were paused before they finished,
-  so step 3 now says to pause only after every icon appears.
-- **`characters[id]` is filled only for a record screen opened since loading.** The second run
+- **A spell paused mid-cast never lands.** In the third run the tester paused the spells before they
+  finished, so step 3 now says to pause only after every icon appears.
+- **The engine fills `characters[id]` only for a record screen opened since loading.** The second run
   missed three of six; step 4 now requires every record screen.
 - **A clue for part 2, not yet a fact:** `Infinity_GetGameTicks` read 742,158,000 while the absolute
   expiries were near 12,369,500, a ratio of 60.0; the expiries are in game ticks if the clock reads
@@ -101,9 +101,10 @@ The pages added or changed:
      offset; `+0x49a0` the equipped list (timing mode 2, the items worn), `+0x49f0` the timed list.
      `statusEffects` read as none: the probe read only a list.
   2. **Probe, passed:** 863 effects; `statusEffects` keyed by icon number. For the three members
-     with record screen data, every opcode-142 icon was listed; Mirror Image found by name.
+     with record screen data, the record screen listed every opcode-142 icon; Mirror Image found by
+     name.
   3. **Gate passed, spells not exercised** (`session-20261115-023020`): all six members, 782 effects
-     through the walker, every opcode-142 icon listed; the spells were paused mid-cast.
+     through the walker, every opcode-142 icon listed; the tester paused the spells mid-cast.
   4. **Passed** (`session-20261115-023422`): all six members, 927 effects through the walker, every
      field plausible, every opcode-142 icon listed. Haste and Protection From Evil, 10' Radius on
      all six, Improved Haste on the second, Mirror Image on the sixth, each found by name on its

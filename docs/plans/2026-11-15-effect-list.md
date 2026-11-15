@@ -8,7 +8,7 @@
 
 The `e` hotkey prints a creature's stats, but not the spells active on it. The foundation plan's
 Phase 5 adds them: "Active spells and time remaining (part of the first release)". It is a large
-phase, so it is split into parts, as Phase 4 was:
+phase, so it splits into parts, as Phase 4 did:
 
 1. **Find and prove the effect list** (this plan): where a creature's active effects live on arm64,
    what each one holds, a walker that reads them, and the presence gate: party spell lists match the
@@ -22,15 +22,15 @@ phase, so it is split into parts, as Phase 4 was:
 
 The example consumer mod, the last Phase 4 part, moves to after Phase 5 (decided 2026-11-15): it
 needs its own design work (how established UI mods patch `ui.menu`, whether the engine loads
-`M_*.lua` files by itself), not the 30-line example the plans assumed. The research so far is kept in
-`TODO.md`.
+`M_*.lua` files by itself), not the 30-line example the plans assumed. `TODO.md` keeps the research so
+far.
 
 ## Analysis done in plan mode (read-only)
 
 | What | Finding | Evidence |
 | --- | --- | --- |
 | A first lead | the record-screen function builds `characters[id].statusEffects` from a list at sprite `+0x4cb0`, walking nodes and reading each element at node `+0x10` | `deno task re xrefs statusEffects`: one load, at `0x2e3c84`; the list load at `0x2e3cc8`, the node walk from `0x2e3cf0` |
-| It may be icons, not effects | each element's first field is read as 32 bits (`ldr w1, [x27]`), where a C++ effect object would hold its vtable pointer; the Windows offsets put the timed list near `+0x4a00` and the equipped list at `+0x49b0` | the disassembly at `0x2e3cf4`; foundation plan, "Effects" row |
+| It may be icons, not effects | the function reads each element's first field as 32 bits (`ldr w1, [x27]`), where a C++ effect object would hold its vtable pointer; the Windows offsets put the timed list near `+0x4a00` and the equipped list at `+0x49b0` | the disassembly at `0x2e3cf4`; foundation plan, "Effects" row |
 | Two lists | effects come in a timed list and an equipped list; only the timed list feeds countdowns | foundation plan, from the EEex thread (p19 to 21) |
 | Fields wanted | per effect: opcode, duration type, expiry, source spell resref, parent spell | foundation plan, Phase 5 |
 
@@ -102,5 +102,6 @@ Commits on a new marker branch `initial/09-spells` from `initial/08-output`, eac
    `effects.md` from the probe run, then the gate run.
 5. The other docs.
 
-Then the tester runs the manual test; I draft the record for review, and commit and push on request.
+Then the tester runs the manual test, and the assistant drafts the record for review and commits and
+pushes on request.
 Parts 2 and 3 get their own plans.

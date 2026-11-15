@@ -3,8 +3,8 @@
 **Run `git add`, `git commit` or `git push` only when explicitly asked, and show the commit message
 first. Never add AI attribution.**
 
-**Why:** the repo is public, and anything pushed is published. A commit message is part of the record,
-so it is reviewed before it lands.
+**Why:** the repo is public, and a push publishes everything it carries. A commit message is part of
+the record, so a reader reviews it before it lands.
 
 ## How to apply
 
@@ -21,7 +21,7 @@ so it is reviewed before it lands.
   footer, no tool-credit line. `lint:security` checks files for these lines.
 - **One branch.** Work lands on `main`. The repo has issues and pull requests disabled. (The foundation
   plan also pushes a marker branch per step; that is specific to that plan and described there.)
-- **Commit at logical boundaries**, not per edit. While something is still being iterated on and is
+- **Commit at logical boundaries**, not per edit. While a change is still in progress and
   unpushed, amend the in-progress commit rather than stacking near-duplicates.
 
 Related: [working-together.md](working-together.md), [writing-style.md](writing-style.md).

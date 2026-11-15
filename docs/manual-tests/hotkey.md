@@ -20,14 +20,14 @@ portrait. The new questions are whether the WeiDU patch works and whether the wo
 
 ## Before you start
 
-- **The game is closed.** `play` starts it.
+- **The game is not running.** `play` starts it.
 - **The repo is in the state to test.** Committed or not; the run tests the local working tree, and
   the Runs row notes the latest commit and whether there were local changes.
-- **WeiDU is set up.** `deno task doctor` reports WeiDU v251.00 arm64; if not, run
+- **The pinned WeiDU is in place.** `deno task doctor` reports WeiDU v251.00 arm64; if not, run
   `deno task setup-weidu`.
 - **No inspector files are in `override/`** from an earlier manual test. Step 1 shows what is there.
-- **A save with a creature outside the party, and a door or container, in view.** The console is not
-  needed, so `Debug Mode` does not matter.
+- **A save with a creature outside the party, and a door or container, in view.** The test does not
+  need the console, so `Debug Mode` does not matter.
 - **About 20 minutes.**
 
 ## Steps
@@ -113,8 +113,8 @@ and 9 showed. The run passes when:
 | --- | --- | --- |
 | The install | step 2 | `install-mod: installed`; `ui.menu` and the six files in `override/`; the inspector's line in `WeiDU.log` |
 | Build and registration | `A7X build 2.7.3 arm64 matched, 14 sites checked` and `A7X registered A7X_native` | both present, no `A7X disabled` |
-| `e` reaches `ui.menu` | step 5 | `[A7X]` lines appear when `e` is pressed |
-| The creature and the portraits | steps 5 to 7 | each shows the creature, party member or portrait it was pressed over |
+| `e` reaches `ui.menu` | step 5 | `[A7X]` lines appear when the tester presses `e` |
+| The creature and the portraits | steps 5 to 7 | each shows the creature, party member or portrait the tester pressed `e` over |
 | Nothing to show | step 8 | the usage line over empty ground, `not a creature` over a door or container |
 | Paused | step 9 | the same as running |
 | Every record matches the schema | `deno task verify` | `verify: data passed`, every line a schema-1 record |
@@ -128,14 +128,14 @@ that records it.
 
 | Date | Commit | Result | Delivery note |
 | --- | --- | --- | --- |
-| 2026-11-14 | `0cdd610`, local changes (step 7 docs) | Failed on step 5: `e` did nothing because nothing was installed. In step 2 WeiDU could not parse the tp2 (`PARSE ERROR at line 47 ... Near Text: EVALUATE_BUFFER`) and wrote nothing, but exited 0, so `install-mod` printed `installed`. Fixed after the run: the tp2 without `EVALUATE_BUFFER`, and `install-mod` checking `WeiDU.log` | [the hotkey and the install](../notes/2026-11-14-hotkey-install.md) |
-| 2026-11-15 | `0cdd610`, local changes (the tp2 fix, the `WeiDU.log` check, the step 7 docs) | Passed: the install wrote `ui.menu` and the six files and its `WeiDU.log` line; `e` showed every creature and portrait it was pressed over, as the tooltips and portraits named them (party Sticker, Boom Boom, Pinner, Edwin; Hobgoblin Elite, Captain and Shaman), paused too; the usage line twice over empty ground and `not a creature` twice; 8 `A7XDATA` lines, every one a schema-1 record; no Lua errors; the uninstall left `override/` empty and `WeiDU.log` as before plus its `Recently Uninstalled` comment | [the hotkey and the install](../notes/2026-11-14-hotkey-install.md) |
+| 2026-11-14 | `0cdd610`, local changes (step 7 docs) | Failed on step 5: `e` did nothing because the install had written nothing. In step 2 WeiDU could not parse the tp2 (`PARSE ERROR at line 47 ... Near Text: EVALUATE_BUFFER`) and wrote nothing, but exited 0, so `install-mod` printed `installed`. Fixed after the run: the tp2 without `EVALUATE_BUFFER`, and `install-mod` checking `WeiDU.log` | [the hotkey and the install](../notes/2026-11-14-hotkey-install.md) |
+| 2026-11-15 | `0cdd610`, local changes (the tp2 fix, the `WeiDU.log` check, the step 7 docs) | Passed: the install wrote `ui.menu` and the six files and its `WeiDU.log` line; `e` showed every creature and portrait the tester pressed it over, as the tooltips and portraits named them (party Sticker, Boom Boom, Pinner, Edwin; Hobgoblin Elite, Captain and Shaman), paused too; the usage line twice over empty ground and `not a creature` twice; 8 `A7XDATA` lines, every one a schema-1 record; no Lua errors; the uninstall left `override/` empty and `WeiDU.log` as before plus its `Recently Uninstalled` comment | [the hotkey and the install](../notes/2026-11-14-hotkey-install.md) |
 
 ### Changes to this test
 
-Each change to the steps or pass criteria after the first run, so a Runs row can be read against the
-version of the test it was judged by.
+Each change to the steps or pass criteria after the first run, so a reader can match a Runs row to
+the version of the test that judged it.
 
-| Date | Commit | What changed | Runs before it were judged against |
+| Date | Commit | What changed | Criteria for runs before it |
 | --- | --- | --- | --- |
-| 2026-11-14 | the commit that adds this test, after the first run | Step 12 and its pass criterion: `override/` is left as an empty folder, and `WeiDU.log` gains a `Recently Uninstalled` comment, as WeiDU did in a scratch game folder | `override/` and `WeiDU.log` exactly as in step 1 |
+| 2026-11-14 | the commit that adds this test, after the first run | Step 12 and its pass criterion: the uninstall leaves `override/` as an empty folder, and `WeiDU.log` gains a `Recently Uninstalled` comment, as WeiDU did in a scratch game folder | `override/` and `WeiDU.log` exactly as in step 1 |

@@ -4,8 +4,8 @@
 > run, recorded in the [delivery note](../notes/2026-11-13-creature-list.md). Delivered as planned,
 > except that the walker.md intro correction needed no Changes row (it changed no step or pass
 > criterion). It follows the
-> [party walker plan](2026-11-06-party-walker.md); the project's own terms (walker, gate, stats
-> block, site) are defined in [docs/README.md](../README.md#terms).
+> [party walker plan](2026-11-06-party-walker.md); [docs/README.md](../README.md#terms) defines the
+> project's own terms (walker, gate, stats block, site).
 
 ## Context
 
@@ -21,12 +21,12 @@ show enemy stats. The work splits again (decided 2026-11-13):
   Deno (adapted from BG2EE-GameLog), the console facts tested first, and a throwaway save.
 
 Phase 3 stays on `initial/07-walker` (the foundation plan names one branch for Phase 3, walker and
-harness); the branch is pushed again when this plan is delivered.
+harness); push the branch again on delivery of this plan.
 
 ## Analysis done in plan mode (read-only)
 
-Static, from the arm64 slice with `deno task re` and a scratchpad disassembly. Each is confirmed in the
-game by the manual test before it is recorded as fact in `docs/re-notes.md`.
+Static, from the arm64 slice with `deno task re` and a scratchpad disassembly. The manual test confirms
+each in the game before `docs/re-notes.md` records it as fact.
 
 | What | Where | Evidence |
 | --- | --- | --- |
@@ -54,14 +54,14 @@ Additions, each returning `nil` and a reason instead of raising, like the existi
 - `A7XWALK.visible_area()`: `{ index, pointer, resref }`. The index must be below `area_count` and the
   pointer valid.
 - `A7XWALK.creatures(area)`: every sprite whose `object.area` is `area`, as `{ id, sprite, ea }`, plus
-  scan counts (`slots`, `objects`, `sprites`). The slot array is read with `ReadBlock` in 4 KB chunks
-  (256 slots each), up to `min(highest + 1, capacity)`, never further; generation and pointer are decoded
-  from the block (`u16` and an 8-byte little-endian pointer, accepted only below 2^47). Each live object
+  scan counts (`slots`, `objects`, `sprites`). It reads the slot array with `ReadBlock` in 4 KB chunks
+  (256 slots each), up to `min(highest + 1, capacity)`, never further, and decodes generation and
+  pointer from the block (`u16` and an 8-byte little-endian pointer, accepted only below 2^47). Each live object
   costs one `Read` for its type, and each sprite one more for its area.
 - `A7XWALK.ea_group(ea)`: `"friendly"`, `"neutral"` or `"hostile"` by the two cut-offs.
-- `A7XWALK.creature(sprite)` is reused unchanged for each listed creature's name, HP and state.
+- The walker reuses `A7XWALK.creature(sprite)` unchanged for each listed creature's name, HP and state.
 
-The caller filters by group; `a7x_api.lua` in Phase 4 decides what is shown.
+The caller filters by group; `a7x_api.lua` in Phase 4 decides what to show.
 
 ### The list check (`test/lua/a7xlist.lua`)
 
@@ -80,7 +80,7 @@ Checks made in the game, against what the engine itself provides:
 
 | Check | Engine side |
 | --- | --- |
-| `party.<id>`: each party member is listed | the party ids at `CInfGame +0x6618`, the portraits' source |
+| `party.<id>`: each party member appears in the list | the party ids at `CInfGame +0x6618`, the portraits' source |
 | `party.<id>.group`: each is `friendly` | EA 2 (PC), proven by the party check |
 | `unique`: no id listed twice | |
 | `lookup`: each listed id leads back to the same sprite through `A7XWALK.lookup` | the engine's own id-to-object rule |
@@ -100,7 +100,7 @@ party, 3 hostile, 14 other), all checks ok (details in the session log)`, or `co
 ### Tests
 
 - `test/lua/fakegame.lua`: two areas with resrefs, a visible-area index, sprites in each area, a
-  non-sprite object, an empty slot, and more than 256 slots so a second chunk is read.
+  non-sprite object, an empty slot, and more than 256 slots so the walker reads a second chunk.
 - `test/lua/a7xwalk_test.lua`: the visible area; creatures in one area only; a bad index (12 or more), a
   null area pointer, `highest` past `capacity`, an unreadable chunk; `ea_group` at 30, 31, 199 and 200.
 - `test/lua/a7xlist_test.lua`: all checks ok; a party member missing from the area is a `DIFF`; no
@@ -133,7 +133,7 @@ party, 3 hostile, 14 other), all checks ok (details in the session log)`, or `co
 - `deno task lint` on every commit (Deno, native and Lua tests, `lint:docs`, `lint:security`).
 - `security-audit` before the game run: Lua only, and one more test file copied into `override/`.
 - **Manual test `creatures.md`**, run by the tester on the local tree. It confirms the five analysis
-  rows: the resref looks like an area code and changes with the area, the party is found in the
+  rows: the resref looks like an area code and changes with the area, the scan finds the party in the
   visible area through `+0x18`, and named creatures appear with the right group.
 
 ## Order of work
@@ -147,5 +147,5 @@ On `initial/07-walker`. Commits, each passing `deno task lint`, messages shown f
 3. `test/lua/a7xlist.lua`, its test, `src/verify/list.ts` and the `verify` task, with their tests.
 4. `docs/manual-tests/creatures.md` and its index row, `TODO.md`, the foundation plan, `CLAUDE.md`.
 
-Then the tester runs the manual test; I draft the Runs row, the `re-notes.md` rows and the delivery
-note for review, and commit and push on request.
+Then the tester runs the manual test, and the assistant drafts the Runs row, the `re-notes.md` rows
+and the delivery note for review and commits and pushes on request.

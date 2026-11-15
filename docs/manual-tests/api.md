@@ -14,13 +14,13 @@ line; `deno task verify` checks every line against the record's schema
 the colors look right, and a party member's values match the record screen. It also confirms the
 inspector's memory-reading table is no longer reachable from other Lua once the API is in use.
 
-The inspector's six Lua files are copied into the game's `override/` folder for the session; the
-WeiDU component that installs them for good comes with the next part of Phase 4. In the game, what is
-typed is `Infinity_DoFile("a7x")` and the `A7X.show` commands below.
+The tester copies the inspector's six Lua files into the game's `override/` folder for the session;
+the WeiDU component that installs them for good comes with the next part of Phase 4. In the game, the
+tester types `Infinity_DoFile("a7x")` and the `A7X.show` commands below.
 
 ## Before you start
 
-- **The game is closed.** `play` starts it.
+- **The game is not running.** `play` starts it.
 - **The repo is in the state to test.** Committed or not; the run tests the local working tree, and
   the Runs row notes the latest commit and whether there were local changes.
 - **`Debug Mode` is 1** in `Baldur.lua`, so Ctrl+Space opens the Lua console in a loaded game.
@@ -33,9 +33,9 @@ typed is `Infinity_DoFile("a7x")` and the `A7X.show` commands below.
     mod/inspector/lib/a7xjson.lua mod/inspector/lib/a7xfmt.lua mod/inspector/lib/a7xapi.lua "$G/override/"
   ```
 
-  They are removed again at the end (step 7).
-- **A save in an area with creatures besides the party**, some of them hostile if possible. Nothing
-  has to be fought; pausing is fine, and the commands work paused.
+  Step 7 removes them again at the end.
+- **A save in an area with creatures besides the party**, some of them hostile if possible. The party
+  need not fight; pausing is fine, and the commands work paused.
 - **About 15 minutes.**
 
 ## Steps
@@ -130,7 +130,7 @@ run passes when:
 | Party values match the record screen | step 6 | HP, AC and the five saves equal; THAC0 may differ by the weapon's bonuses |
 | No Lua errors | the session log | no `LUA ERROR` line |
 
-The colors are recorded, not judged: their byte order is a fact this run settles.
+The run records the colors without judging them: their byte order is a fact this run settles.
 
 ## Runs
 
@@ -139,15 +139,15 @@ that records it.
 
 | Date | Commit | Result | Delivery note |
 | --- | --- | --- | --- |
-| 2026-11-14 | `bc17e13`, local changes | Failed on step 4: `A7X.show("all")` printed nothing and wrote no record, with no error; the message window's text was not in the log, so the cause could not be read. Otherwise as expected: 12 `A7XDATA` lines, every one a schema-1 record; HP, AC and its modifiers of all six party members equal to the record screen (saves not compared by eye: the Stats tab shows none); `A7X_native` read `nil`; the colors showed with red and blue swapped, which settled the markup as `0xAABBGGRR` and was corrected after the run | [Data API](../notes/2026-11-14-data-api.md) |
+| 2026-11-14 | `bc17e13`, local changes | Failed on step 4: `A7X.show("all")` printed nothing and wrote no record, with no error; the message window's text was not in the log, so the log did not show the cause. Otherwise as expected: 12 `A7XDATA` lines, every one a schema-1 record; HP, AC and its modifiers of all six party members equal to the record screen (saves not compared by eye: the Stats tab shows none); `A7X_native` read `nil`; the colors showed with red and blue swapped, which settled the markup as `0xAABBGGRR`, and a fix after the run corrected them | [Data API](../notes/2026-11-14-data-api.md) |
 | 2026-11-14 | `bc17e13`, local changes (summary lines, message text logged, colors fixed) | Passed: 25 `A7XDATA` lines, every one a schema-1 record; `party` 6, `enemies` 6 and `all` 12 shown, each with its summary line, in `AR6000`; the colors as intended, party light blue and enemies red; `A7X_native` read `nil`; no record screen compared this run, its party values having matched in the first | [Data API](../notes/2026-11-14-data-api.md) |
 
 ### Changes to this test
 
-Each change to the steps or pass criteria after the first run, so a Runs row can be read against the
-version of the test it was judged by.
+Each change to the steps or pass criteria after the first run, so a reader can match a Runs row to
+the version of the test that judged it.
 
-| Date | Commit | What changed | Runs before it were judged against |
+| Date | Commit | What changed | Criteria for runs before it |
 | --- | --- | --- | --- |
-| 2026-11-14 | the commit that adds the data API, after the first run | Step 4: `enemies` and `all` end with a summary line, and every message-window line is also in the session log, so a command that prints nothing can be told apart from one that never ran; one creature that cannot be read no longer stops the rest; the colors are written as `0xAABBGGRR` | no summary line, and the message window's text only on screen |
+| 2026-11-14 | the commit that adds the data API, after the first run | Step 4: `enemies` and `all` end with a summary line, and every message-window line is also in the session log, so a reader can tell a command that prints nothing from one that never ran; one creature the walker cannot read no longer stops the rest; the formatter writes the colors as `0xAABBGGRR` | no summary line, and the message window's text only on screen |
 | 2026-11-14 | the commit that adds API 1.1 | Step 4: `A7X.show()` with no argument shows the creature or portrait under the pointer, and prints how to call it only when the pointer is on neither | `A7X.show()` always printed how to call it |

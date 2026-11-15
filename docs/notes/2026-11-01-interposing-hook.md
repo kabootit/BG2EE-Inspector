@@ -29,21 +29,21 @@ passing lint on its own, and pushed with `main` fast-forwarded to it.
 
 ## Plan summary
 
-### How the decision was reached
+### How the decision came about
 
 1. **The finding.** Phase 1 looked for the `luaL_Reg` table that ADR-0002's hook would edit, and found
-   none: the game registers its 146 `Infinity_*` functions one by one, in code. Code cannot be patched
-   under the hardened runtime, so the planned hook had nothing to work on.
+   none: the game registers its 146 `Infinity_*` functions one by one, in code. The hardened runtime
+   forbids patching code, so the planned hook had nothing to work on.
 2. **The first proposal** was dyld interposing of an imported function the game calls every frame,
    described as "dyld's own mechanism … made for `DYLD_INSERT_LIBRARIES`".
 3. **Review questioned it** as hacky and suspect, and asked what dyld is. Checking the claim showed it
    overstated: dyld implements interposing and Apple's AddressSanitizer runtime relies on it, but the
    header defining it is not in the macOS SDK and `man dyld` does not mention it. The correction is in
    ADR-0005.
-4. **Alternatives were checked rather than assumed.** The most attractive one, letting the game's Lua
-   load the library itself through `package.loadlib`, turned out to be compiled out of this build.
+4. **Checks replaced assumptions about the alternatives.** The most attractive one, letting the game's
+   Lua load the library itself through `package.loadlib`, turned out absent: this build compiles it out.
 5. **Decision:** interpose `glClear`, staged as a probe that only observes, with a gate in the game
-   before registration is written. ADR-0005 states why the route was forced, why it beats the
+   before writing registration. ADR-0005 states why the finding left only this route, why it beats the
    alternatives, why it is a hack, and why it works.
 
 ### What the probe does
@@ -58,7 +58,7 @@ The library still prints its load marker. Then it:
 
 It registers nothing into Lua and writes no game memory.
 
-## What was built
+## What shipped
 
 ### Code
 
@@ -102,16 +102,16 @@ Every page that described the old hook now describes the new one:
   never matched, and the first scan reported no references at all. `>>> 0` makes the result unsigned.
   `llvm-objdump` output exposed it; the repo's scanner (Phase 1) gets tests against that output.
 - **A scan window needs to stop at a register's redefinition.** The scratch scanner paired an `ADRP`
-  with any `ADD` on the same register within 24 instructions, which produced false pairs once the
-  register had been reloaded.
+  with any `ADD` on the same register within 24 instructions, which produced false pairs once later
+  code reloaded the register.
 - **`llvm-objdump --start-address` ignores the range on a universal binary** and disassembles all of
   it (47 MB of output). Extract the slice first with `lipo -thin arm64`.
 - **Apple's macro declares the section as `__DATA,__interpose,interposing`.** The third part sets the
   section type to `S_INTERPOSING` (`flags 0x0000000d` in `otool -l`). The probe matches it; the linter
-  accepts either form so it cannot be bypassed by dropping the type.
+  accepts either form so dropping the type cannot bypass it.
 - **The game is arm64, not arm64e.** Apple's macro adds pointer-authentication qualifiers for arm64e; an
   arm64 library loaded into an arm64 process needs none.
-- **The library's own calls are not interposed.** That is what lets `a7x_glClear` call the real
+- **Interposing skips the library's own calls.** That is what lets `a7x_glClear` call the real
   `glClear` by name. The stand-in shows it: the same OpenGL error code after the loop, with and without
   the library.
 
@@ -119,7 +119,7 @@ Every page that described the old hook now describes the new one:
 
 Run on 2026-11-01:
 
-- **Binary evidence**, re-checked before ADR-0005 was written:
+- **Binary evidence**, re-checked before writing ADR-0005:
   - `"Infinity_Log"` at `0x100653aee`; no 8-byte pointer to it in `__DATA_CONST` or `__DATA`.
   - The registration function at `0x100335440`: `adrp`/`add` to `0x1035d7478` into `x21`, then the
     pattern shown in ADR-0005; 146 calls to `0x10054bd88` and 147 to `0x10054b520` in it, against 146
@@ -127,7 +127,7 @@ Run on 2026-11-01:
   - `0x10054b520` and `0x10054bd88` compared instruction by instruction with `lua_pushcclosure` and
     `lua_setglobal` in the vendored 5.2.4 `lapi.c`; `offsetof` on the vendored source compiled for
     arm64 gives `top` 16, `l_G` 24, `ci` 32, `base_ci` 128.
-  - `loadlib.c`'s `DLMSG` string is present in the binary, so `package.loadlib` is compiled out.
+  - `loadlib.c`'s `DLMSG` string is present in the binary, so this build compiles `package.loadlib` out.
   - `nm -u` lists `_glClear`, `_glFinish` and `_glViewport` among the game's imports.
 - **`deno task build`**: `build/a7x.dylib`, arm64, `Signature=adhoc`; `otool -l` shows one
   `__DATA,__interpose` section of 16 bytes (one pair) with type `S_INTERPOSING`; `otool -L` lists
@@ -141,12 +141,12 @@ Run on 2026-11-01:
   - **Without the library:** the same final OpenGL error code as with it, so calls pass through.
 - **`deno task test`**: 68 passed. **`lint:security`**: no findings; a copy of `a7x.c` with
   `A7X_INTERPOSE(my_open, open)` added gets one `native-interpose` finding.
-- **Not run:** the game. The probe has not been loaded into BG2:EE yet.
+- **Not run:** the game. BG2:EE has not loaded the probe yet.
 
 ### Still to check by hand
 
 1. The hook gate (ADR-0005): run the [hook gate manual test](../manual-tests/hook-gate.md), which has the
-   steps, timings and pass criteria. The game is launched only on request.
+   steps, timings and pass criteria. Launch the game only on request.
 
 ## Follow-ups
 

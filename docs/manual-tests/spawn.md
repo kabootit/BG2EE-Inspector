@@ -1,7 +1,7 @@
 ---
 type: manual-test
 title: "Spawn check"
-description: "One play session on a save that is not saved again: the spawn script creates four known creatures with the engine's console and logs what the walker reads for each; deno task verify compares every value with the creature's .cre file. The gate for showing enemy stats."
+description: "One play session on a save that the tester never saves again: the spawn script creates four known creatures with the engine's console and logs what the walker reads for each; deno task verify compares every value with the creature's .cre file. The gate for showing enemy stats."
 duration: "about 15 minutes, 10 of them in the game"
 ---
 
@@ -13,7 +13,7 @@ the stock cheat menu uses): `COWH`, `DRBOD`, `DADROW8` and `SHFIRE`, chosen beca
 files hold no items and no effects, so nothing they carry changes their stats. For each one in the
 area on screen, the script logs what the walker reads, and `deno task verify` compares max HP, AC and
 its modifiers, THAC0, the saves, the resistances, magic resistance and EA with the `.cre` file in the
-game. AC is compared as the engine computes it: the file's AC plus the Dexterity adjustment in the
+game. It compares AC as the engine computes it: the file's AC plus the Dexterity adjustment in the
 game's `DEXMOD.2DA`. The project shows no enemy stats until every value matches (the
 [gate](../README.md#terms) for showing them). It also confirms facts found from the game's code, listed
 in [the plan](../plans/2026-11-13-spawn-harness.md#analysis-done-in-plan-mode-read-only): how
@@ -22,14 +22,14 @@ in [the plan](../plans/2026-11-13-spawn-harness.md#analysis-done-in-plan-mode-re
 **Spawning changes the game.** Load a save you do not mind losing the state of, and quit without
 saving: the four creatures would otherwise stay in that save.
 
-The walker's Lua (`a7xoff.lua`, `a7xwalk.lua`), the JSON writer (`a7xjson.lua`) and the spawn script
-(`a7xspawn.lua`) are copied into the game's `override/` folder for the session. In the game, the only
-thing typed is `Infinity_DoFile("a7xspawn")`. Results go to the session log; the game shows a
+The tester copies the walker's Lua (`a7xoff.lua`, `a7xwalk.lua`), the JSON writer (`a7xjson.lua`)
+and the spawn script (`a7xspawn.lua`) into the game's `override/` folder for the session. In the
+game, the tester types only `Infinity_DoFile("a7xspawn")`. Results go to the session log; the game shows a
 one-line summary each time the script runs.
 
 ## Before you start
 
-- **The game is closed.** `play` starts it.
+- **The game is not running.** `play` starts it.
 - **The repo is in the state to test.** Committed or not; the run tests the local working tree, and
   the Runs row notes the latest commit and whether there were local changes.
 - **`Debug Mode` is 1** in `Baldur.lua`, so Ctrl+Space opens the Lua console in a loaded game.
@@ -42,7 +42,7 @@ one-line summary each time the script runs.
     test/lua/a7xspawn.lua "$G/override/"
   ```
 
-  They are removed again at the end (step 7).
+  Step 7 removes them again at the end.
 - **A save in a quiet place, with open ground near the party**: no fight, nothing hostile in view.
   The four creatures are neutral (EA 128), but a cow in the middle of a battle tells nobody anything.
 - **About 15 minutes.**
@@ -58,8 +58,8 @@ one-line summary each time the script runs.
 
    `play` shows the library's lines as they arrive: expect `A7X loaded`, `A7X build 2.7.3 arm64
    matched, 14 sites checked` and `A7X registered A7X_native`.
-2. **Load the save** (1 minute), and note the difficulty setting from the game's options; it is
-   recorded with the run.
+2. **Load the save** (1 minute), and note the difficulty setting from the game's options; the Runs
+   row records it.
 3. **Spawn and read** (2 minutes). Pause the game with the space bar. Move the pointer over open
    ground near the party. Open the console with Ctrl+Space, type the line below, press Enter, and
    close the console with Ctrl+Space:
@@ -74,11 +74,12 @@ one-line summary each time the script runs.
    did not load: check that the four files are in `override/`.
 4. **Let the game run, then read again** (2 minutes). Unpause for about three seconds, pause again,
    and run the same line. The summary says `A7X spawn check 2: spawned earlier, found 4 of 4`, or
-   fewer if one has left the area. The first reading is the one judged, because a `.cre` describes a
-   creature as it is spawned; this one shows what the game changes once it runs, such as a fight.
+   fewer if one has left the area. `deno task verify` judges the first reading, because a `.cre`
+   describes a creature as the engine spawns it; this one shows what the game changes once it runs,
+   such as a fight.
 5. **Quit without saving**, from the game's own menu, not with Ctrl+C. `play` prints its summary and
    exits.
-6. **Check the save was not changed**, if in doubt: load it again later; the four creatures must not
+6. **Check that the save is unchanged**, if in doubt: load it again later; the four creatures must not
    be there.
 7. **Remove the four files**, and the `override/` folder if it is now empty:
 
@@ -110,8 +111,8 @@ The walker only reads; the spawning is the engine's own. Stop and quit if you se
 - a crash.
 
 Then report what you saw and at which step. A fight with the spawned creatures after step 3 does not
-spoil the run: the first reading is judged, and the second shows the fight's effects. If step 3 did
-not find all four, report it: that run fails.
+spoil the run: `deno task verify` judges the first reading, and the second shows the fight's effects.
+If step 3 did not find all four, report it: that run fails.
 
 ## Pass criteria
 
@@ -126,8 +127,8 @@ appeared. The run passes when:
 | No Lua errors | the session log | no `LUA ERROR` line |
 
 A `DIFF` is a finding, not only a failure: the delivery note records the field, both values and the
-stats block read (`block`), and the rule behind it, an engine adjustment or a walker mistake, is
-settled before anything is fixed. The header differences printed for each creature are evidence for
+stats block read (`block`), and the project settles the rule behind it, an engine adjustment or a
+walker mistake, before any fix. The header differences printed for each creature are evidence for
 later work, not a pass condition.
 
 ## Runs
@@ -142,11 +143,11 @@ that records it.
 
 ### Changes to this test
 
-Each change to the steps or pass criteria after the first run, so a Runs row can be read against the
-version of the test it was judged by.
+Each change to the steps or pass criteria after the first run, so a reader can match a Runs row to
+the version of the test that judged it.
 
-| Date | Commit | What changed | Runs before it were judged against |
+| Date | Commit | What changed | Criteria for runs before it |
 | --- | --- | --- | --- |
 | 2026-11-13 | the commit that adds the spawn check, after the first run | The second fixture is `DRBOD` instead of `MUMFIG01`, which died or vanished between the two readings; `verify` compares AC as the file's plus the `DEXMOD.2DA` Dexterity adjustment | `MUMFIG01` as a fixture, and AC compared with the file's AC alone |
-| 2026-11-13 | the same commit, after the second run | The reading taken straight after spawning is judged, not the second; later readings are printed with what changed since; a fight with the spawned creatures is no longer a reason to stop | the second reading judged, which the tester's attack had changed (three creatures at 0 HP, one turned hostile) |
-| 2026-11-14 | the commit that writes the checks' lines as JSON | Before you start and the last steps: `a7xjson.lua`, the JSON writer, is copied and removed with the others; the script writes its lines as JSON defined in `src/model/schemas.ts`, which `deno task verify` checks | three files copied, and lines written as text |
+| 2026-11-13 | the same commit, after the second run | `verify` judges the reading taken straight after spawning, not the second, and prints later readings with what changed since; a fight with the spawned creatures is no longer a reason to stop | the second reading judged, which the tester's attack had changed (three creatures at 0 HP, one turned hostile) |
+| 2026-11-14 | the commit that writes the checks' lines as JSON | Before you start and the last steps: the tester copies and removes `a7xjson.lua`, the JSON writer, with the others; the script writes its lines as JSON defined in `src/model/schemas.ts`, which `deno task verify` checks | three files copied, and lines written as text |

@@ -1,7 +1,7 @@
 # Architecture decision records
 
-One file per decision, numbered in order. New ADRs start from [the template](0000-template.md) and are
-added to this list; `lint:docs` fails on an ADR that is not linked here or breaks the numbering.
+One file per decision, numbered in order. New ADRs start from [the template](0000-template.md) and
+join this list; `lint:docs` fails on an ADR that this list does not link or that breaks the numbering.
 
 | ADR | Decision | Status |
 | --- | --- | --- |

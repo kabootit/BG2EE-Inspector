@@ -29,7 +29,7 @@ Step 1 turns the plan's requirements table into a document, a checker and two in
 - **A read-only checker** that names what is missing without running the game or WeiDU.
 - **The only two downloads the project needs,** pinned and checked against checksums published upstream.
 
-## What was built
+## What shipped
 
 ### Code
 
@@ -42,7 +42,7 @@ The new modules, by folder (see "src layout" in [architecture.md](../architectur
 | `src/re/macho.ts` | Architectures of a thin or universal Mach-O, from the header alone |
 | `src/setup/system.ts` | The `System` interface (commands as argument arrays, files) and its real implementation |
 | `src/setup/doctor.ts` | The 14 checks, each a function of a `System` |
-| `src/setup/download.ts` | Fetch, then check the SHA-256 before anything is written |
+| `src/setup/download.ts` | Fetch, then check the SHA-256 before writing anything |
 | `src/setup/install.ts` | `installWeidu` (ditto, finds the one `weidu` binary, requires arm64) and `installLuaSource` (tar) |
 | `src/tasks/doctor.ts`, `setup_weidu.ts`, `setup_dev.ts` | Entry points |
 | `test/setup/`, `test/re/`, `test/shared/sha256_test.ts` | A fake `System` describes other machines: Intel, unknown game build, missing entitlements, old WeiDU, checksum mismatch |
@@ -60,17 +60,17 @@ Each task gets only what it touches:
 ## Gotchas worth remembering
 
 - **Facts established before relying on them** (per working-together.md):
-  - **Checksums are published upstream:** GitHub publishes a SHA-256 digest for each release asset, and
+  - **Upstream publishes checksums:** GitHub publishes a SHA-256 digest for each release asset, and
     lua.org lists sha256 checksums. Neither download is trust-on-first-use.
   - **Archive layout:** the WeiDU archive holds the binary at `WeiDU-Mac/weidu`. The installer still
     searches for exactly one `weidu` rather than hard-coding the path.
   - **Quarantine:** files downloaded by Deno carry no `com.apple.quarantine` attribute.
   - **Task shell:** `deno task` expands `$HOME` inside a quoted, comma-joined `--allow-read` list, and the
-    apostrophe in `Baldur's Gate` survives. Tested in a scratch folder: the game folder was readable and a
-    path outside the list was denied.
+    apostrophe in `Baldur's Gate` survives. Tested in a scratch folder: the task could read the game folder,
+    and Deno denied a path outside the list.
 - **A `BG2EE_BINARY` override was half-checked at first:** the version and entitlements came from the real
-  game's bundle. Entitlements are now read from the executable being checked, which the test with WeiDU as
-  the "game" caught.
+  game's bundle. `doctor` now reads entitlements from the executable under check, a gap the test with
+  WeiDU as the "game" caught.
 - **System binaries by absolute path.** Bare names in `--allow-run` resolve through `PATH`, where another
   directory could shadow `codesign` or `tar`. Every command now runs as `/usr/bin/<name>`, and
   `lint:security` rejects an `--allow-run` entry that is not an absolute path.
@@ -95,7 +95,7 @@ Commands run on 2026-11-01:
   - `setup-weidu` and `setup-dev`, from an empty `vendor/`: both downloads matched their checksums and
     installed.
   - A second run of each did nothing.
-  - A checksum mismatch writing nothing is covered by a test.
+  - A test covers a checksum mismatch writing nothing.
 
 Still to check by hand:
 

@@ -1,6 +1,6 @@
 ---
 title: "Game session shutdown and memory: Delivery Notes"
-description: "Review of captureSession in src/game/session.ts: the SIGINT listener was always removed, but a failed line returned while the game still ran and let lines reach a closed log, and every line was held in memory. Fixed with an injectable host, allSettled and a line count; tests written first and run against the old code, plus a stand-in process check."
+description: "Review of captureSession in src/game/session.ts: it always removed the SIGINT listener, but a failed line returned while the game still ran and let lines reach a closed log, and it held every line in memory. Fixed with an injectable host, allSettled and a line count; tests written first and run against the old code, plus a stand-in process check."
 ---
 
 # Game session shutdown and memory: Delivery Notes
@@ -22,7 +22,7 @@ description: "Review of captureSession in src/game/session.ts: the SIGINT listen
 
 ## Plan summary
 
-Two questions were raised in review, about this block:
+Review raised two questions about this block:
 
 ```ts
 Deno.addSignalListener("SIGINT", stop);
@@ -35,22 +35,22 @@ try {
 ```
 
 - **Is there a possibility of a memory leak?**
-- **Is the signal listener guaranteed to be removed?**
+- **Does the code always remove the signal listener?**
 
 The answers, and what reading the block closely turned up:
 
 | Question or finding | Answer |
 | --- | --- |
-| Listener removed? | **Yes, on every path that ends.** The removal is in `finally`, so it runs after a normal exit and after a failure. If `spawn()` throws, the listener was never added. The only path that skips it is a call that never ends, and that only happens while the game runs, when the listener should be there. `runTask` exits the process right after anyway. |
-| Memory leak? | **No leak, but unbounded growth.** Every captured line was kept in `lines` until the game exited, about the size of the session log (222 KB for a 10-minute session), and Phase 4's data lines would make it grow faster. The caller used it only for a count and the load markers. |
-| Found: failure returns while the game runs | If `onLine` failed (a full disk, for example), `Promise.all` rejected at once. The listener was removed and the session returned while the game was still running, so Ctrl+C no longer reached it. |
-| Found: lines after return | The other pipe's drain kept going after the rejection. In `play.ts`, its next lines would be written to a log already closed by `play`'s own `finally`. |
+| Listener removed? | **Yes, on every path that ends.** The removal is in `finally`, so it runs after a normal exit and after a failure. If `spawn()` throws, the code never added the listener. The only path that skips it is a call that never ends, and that only happens while the game runs, when the listener should be there. `runTask` exits the process right after anyway. |
+| Memory leak? | **No leak, but unbounded growth.** The function kept every captured line in `lines` until the game exited, about the size of the session log (222 KB for a 10-minute session), and Phase 4's data lines would make it grow faster. The caller used it only for a count and the load markers. |
+| Found: failure returns while the game runs | If `onLine` failed (a full disk, for example), `Promise.all` rejected at once. The `finally` removed the listener and the session returned while the game was still running, so Ctrl+C no longer reached it. |
+| Found: lines after return | The other pipe's drain kept going after the rejection. In `play.ts`, `onLine` would write its next lines to a log that `play`'s own `finally` had already closed. |
 
-## What was built
+## What shipped
 
 ### Before
 
-The process was spawned inside the function, every line was kept, and the first failure ended the wait:
+The function spawned the process itself, kept every line, and ended the wait at the first failure:
 
 ```ts
 const child = new Deno.Command(launch.cmd, { /* stdin null, stdout and stderr piped */ }).spawn();
@@ -75,7 +75,7 @@ try {
 ### After
 
 The process and the Ctrl+C subscription come from a `Host`, injectable like `System` in `src/setup/`. A
-failure stops the game, and the function returns only when both pipes are finished and the game has
+failure stops the game, and the function returns only when both pipes have finished and the game has
 exited:
 
 ```ts
@@ -122,7 +122,7 @@ How the two versions behave in each situation:
 | Lines after return | Possible: 2 lines reached `onLine` after the rejection in the test | None: `allSettled` waits for both drains |
 | Listener removed while the game runs | Yes, on the failure path | No; removed only after the exit |
 | Memory | Every line, for the whole session | One number, plus the marker lines `play` keeps |
-| Testable without a game | No: `Deno.Command` and signals were called directly | Yes: a fake `Host` drives every case with no permissions |
+| Testable without a game | No: the function called `Deno.Command` and the signal API directly | Yes: a fake `Host` drives every case with no permissions |
 
 **Costs:**
 
@@ -132,19 +132,19 @@ How the two versions behave in each situation:
 
 **Benefits:**
 
-- **A failure ends the session cleanly:** the game is stopped, Ctrl+C keeps working until it has exited,
+- **A failure ends the session cleanly:** `stop` ends the game, Ctrl+C keeps working until it has exited,
   and the original error is the one reported.
 - **Nothing writes to the log after `play` closes it.**
 - **Memory no longer grows with the session.**
-- **The shutdown rules are tested**, where before only the pure helpers around them were.
+- **Tests cover the shutdown rules**, where before they covered only the pure helpers around them.
 
 ## Gotchas worth remembering
 
 - **An earlier explanation was wrong, and the stand-in showed it.** The first reading of the failure path
   said the failed pipe would go unread, fill up and freeze the game. In fact, a `for await` loop that
   exits by throwing cancels its stream, so our end of the pipe closes instead. With the old code, the
-  stand-in was still running right after the session failed and gone half a second later, without being
-  killed. The likely mechanism is that its next line broke `script` with a write to a closed pipe, and the
+  stand-in was still running right after the session failed and gone half a second later, without anything
+  killing it. The likely mechanism is that its next line broke `script` with a write to a closed pipe, and the
   pty closing ended the stand-in. So the old failure path left the game running only until it next
   printed, not for good. The fix still matters: a quiet game would keep running, and Ctrl+C was no longer
   handled in the meantime.
@@ -171,7 +171,7 @@ Run on 2026-11-01:
   - **New code, SIGINT:** returned exit code 143 in 708 ms; the stand-in was not running afterwards.
   - **Old code, a failing line:** rejected in 539 ms with the stand-in still running; it had exited half a
     second later.
-- **The game was not launched** for this change; the launch arguments and the capture path are unchanged.
+- **No test launched the game** for this change; the launch arguments and the capture path are unchanged.
 
 ## Follow-ups
 

@@ -1,32 +1,32 @@
 # Requirements
 
 Everything needed to use the inspector, and what contributors need on top. Install these first, then run
-`deno task doctor`, which checks each one and says what is missing. Nothing else is required: no Java,
-Ghidra, Homebrew, radare2, Python or npm.
+`deno task doctor`, which checks each one and says what is missing. The project needs nothing else: no
+Java, Ghidra, Homebrew, radare2, Python or npm.
 
 ## For players
 
-Each requirement, the version it was tested with, how to get it, and how `doctor` checks it:
+Each requirement, the version used in testing, how to get it, and how `doctor` checks it:
 
 | Requirement | Version | How to install | Why | Doctor checks |
 | --- | --- | --- | --- | --- |
 | Mac with Apple Silicon | arm64 | none | the inspector's library and address table target the game's arm64 slice; Intel Macs, which run the x86_64 slice, are unsupported | the running platform is `darwin aarch64` |
 | macOS | tested on 14.6.1; the minimum is unknown | none | none | `sw_vers -productVersion` |
 | Baldur's Gate II: Enhanced Edition | **2.7.3**, Steam build | Steam, default branch | engine addresses are specific to one executable; GOG and App Store builds are untested | SHA-256 of the executable against the supported list; arm64 slice present; both entitlements set |
-| Xcode Command Line Tools, or full Xcode | tested with CLT 16.2 and Apple clang 16 | `xcode-select --install` (smaller), or Xcode from the App Store | `clang` builds the library from source and the linker ad-hoc signs it; no prebuilt binaries are shipped yet | `xcode-select -p`, `xcrun clang --version`, and a test build that must come out arm64 and `Signature=adhoc` |
+| Xcode Command Line Tools, or full Xcode | tested with CLT 16.2 and Apple clang 16 | `xcode-select --install` (smaller), or Xcode from the App Store | `clang` builds the library from source and the linker ad-hoc signs it; the project ships no prebuilt binaries yet | `xcode-select -p`, `xcrun clang --version`, and a test build that must come out arm64 and `Signature=adhoc` |
 | Deno | **2.9.8 or later** | the installer at deno.com, or `deno upgrade` | every task is a Deno program | the running version against `MIN_DENO`; every task checks this before it starts |
-| WeiDU | **v251.00**, native arm64 | `deno task setup-weidu` (see below) | `deno task install-mod` runs it to install the inspector's patch to the game UI | SHA-256 of the binary against known builds, and its Mach-O architecture; WeiDU is never run to check it |
+| WeiDU | **v251.00**, native arm64 | `deno task setup-weidu` (see below) | `deno task install-mod` runs it to install the inspector's patch to the game UI | SHA-256 of the binary against known builds, and its Mach-O architecture; `doctor` never runs WeiDU to check it |
 
 **Optional:** `Debug Mode` set to `1` under `Program Options` in
 `~/Documents/Baldur's Gate II - Enhanced Edition/Baldur.lua`. It turns on the Ctrl+Space console, which the
 inspector's console commands use; the hotkey works without it. Edit the file only while the game is
-closed, because the game rewrites it from memory on exit. `doctor` reports the setting and never changes
+not running, because the game rewrites it from memory on exit. `doctor` reports the setting and never changes
 it.
 
-The game and user folders are found at their default Steam locations. To use other locations, set
-`BG2EE_GAME_DIR`, `BG2EE_BINARY` or `BG2EE_USER_DIR`; note that `deno task doctor` is permitted to read
-only the default locations, so a custom location also needs its `--allow-read` list in `deno.json`
-extended.
+The tasks look for the game and user folders at their default Steam locations. To use other locations,
+set `BG2EE_GAME_DIR`, `BG2EE_BINARY` or `BG2EE_USER_DIR`; note that the `--allow-read` list for
+`deno task doctor` in `deno.json` covers only the default locations, so a custom location also needs
+that list extended.
 
 ## For contributors
 
@@ -39,16 +39,16 @@ Needed only to re-derive engine addresses after a game update, and to run the Lu
 
 ## Deno modules
 
-One library is fetched by Deno itself, not by a setup task: Zod 4 (`jsr:@zod/zod@4`), which checks the
+Deno itself fetches one library, not a setup task: Zod 4 (`jsr:@zod/zod@4`), which checks the
 inspector's records outside the game. Deno downloads it from `jsr.io` into its own cache the first
 time a task that imports it runs, and `deno.lock` (committed, frozen) holds its hash, so a download
-that differs fails. Nothing is installed into the project folder.
+that differs fails. Deno installs nothing into the project folder.
 
 ## The setup tasks
 
 Both tasks download one pinned archive, check it against the SHA-256 published upstream before writing or
-unpacking anything, install into `vendor/` (never committed), and do nothing when the same version is
-already installed:
+unpacking anything, install into `vendor/` (never committed), and do nothing when `vendor/` already holds
+the same version:
 
 | Task | Downloads | Checksum source | Installs |
 | --- | --- | --- | --- |
@@ -67,10 +67,10 @@ Files downloaded this way do not get macOS's quarantine attribute, so nothing ne
 
 `deno task install-mod` runs only `vendor/weidu/weidu`, and only when its SHA-256 is the pinned
 binary's. `BG2EE_WEIDU` points `deno task doctor` at a WeiDU elsewhere, to identify it, but
-`install-mod` does not run it. WeiDU binaries left in the game folder by other mods (`setup-*`) are
-not used either: they are whatever version a mod shipped, often x86_64 only, which needs Rosetta.
+`install-mod` does not run it. Nor does it use WeiDU binaries left in the game folder by other mods
+(`setup-*`): they are whatever version a mod shipped, often x86_64 only, which needs Rosetta.
 
-## What has been verified
+## What testing has verified
 
 - **This development machine** (2026-11-01): every check passes, with Xcode selected and again with
   `DEVELOPER_DIR=/Library/Developer/CommandLineTools`. The Command Line Tools alone are enough.

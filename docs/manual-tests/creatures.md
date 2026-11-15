@@ -1,7 +1,7 @@
 ---
 type: manual-test
 title: "Creature list"
-description: "One play session with the walker's Lua and the list script copied into override/: the script lists every creature in the area on screen, in two areas, and checks the list against the party; deno task verify judges both runs, and the tester checks by eye that creatures seen on screen are listed with the right group."
+description: "One play session with the walker's Lua and the list script copied into override/: the script lists every creature in the area on screen, in two areas, and checks the list against the party; deno task verify judges both runs, and the tester checks by eye that the list shows the creatures seen on screen, each in the right group."
 duration: "about 15 minutes, 10 of them in the game"
 ---
 
@@ -14,18 +14,18 @@ every party member is in it and friendly, no id appears twice, each id leads bac
 and every creature has a name. The tester adds what no script can: creatures seen on screen are in
 the list. It also confirms in the game the offsets behind the list, found from the game's code: the
 area a creature is in, the area on screen, and an area's name
-([the plan](../plans/2026-11-13-creature-list.md#analysis-done-in-plan-mode-read-only)). Terms such as
-walker are defined in [docs/README.md](../README.md#terms).
+([the plan](../plans/2026-11-13-creature-list.md#analysis-done-in-plan-mode-read-only)). [docs/README.md](../README.md#terms)
+defines terms such as walker.
 
-The walker's Lua (`a7xoff.lua`, `a7xwalk.lua`), the JSON writer (`a7xjson.lua`) and the list script
-(`a7xlist.lua`) are copied into the game's `override/` folder for the session; the WeiDU component
-that installs them for good comes in Phase 4. In the game, the only thing typed is
+The tester copies the walker's Lua (`a7xoff.lua`, `a7xwalk.lua`), the JSON writer (`a7xjson.lua`)
+and the list script (`a7xlist.lua`) into the game's `override/` folder for the session; the WeiDU
+component that installs them for good comes in Phase 4. In the game, the tester types only
 `Infinity_DoFile("a7xlist")`, which loads and runs them. Results go to the session log; the game
 shows a one-line summary each time the script runs.
 
 ## Before you start
 
-- **The game is closed.** `play` starts it.
+- **The game is not running.** `play` starts it.
 - **The repo is in the state to test.** Committed or not; the run tests the local working tree, and
   the Runs row notes the latest commit and whether there were local changes.
 - **`Debug Mode` is 1** in `Baldur.lua`, so Ctrl+Space opens the Lua console in a loaded game.
@@ -38,10 +38,10 @@ shows a one-line summary each time the script runs.
     test/lua/a7xlist.lua "$G/override/"
   ```
 
-  They are removed again at the end (step 7).
+  Step 7 removes them again at the end.
 - **A save in an area with creatures besides the party**, such as a town district, and next to a door
-  or exit into another area. Hostile creatures in view are useful but not needed; nothing has to be
-  fought.
+  or exit into another area. Hostile creatures in view are useful but not needed; the party need not
+  fight.
 - **About 15 minutes.**
 
 ## Steps
@@ -100,8 +100,8 @@ The walker only reads, so nothing should differ from normal play. Stop and quit 
 - stutter, or a freeze right after running the list;
 - a crash.
 
-Then report what you saw and at which step. If the second run was made before the new area finished
-loading, run it again: every run is judged, and the record notes which ones count.
+Then report what you saw and at which step. If the second run started before the new area finished
+loading, run it again: `deno task verify` judges every run, and the record notes which ones count.
 
 ## Pass criteria
 
@@ -116,7 +116,7 @@ Say "done" when step 8 has printed its result, with the three names from step 3.
 | No Lua errors | the session log | no `LUA ERROR` line |
 
 A failed check is a finding, not only a failure: the delivery note records it with the run's area
-and scan counts before anything is fixed.
+and scan counts before any fix.
 
 ## Runs
 
@@ -126,13 +126,13 @@ that records it.
 | Date | Commit | Result | Delivery note |
 | --- | --- | --- | --- |
 | 2026-11-13 | `f8c4fbd`, local changes | Passed: both runs, 15 checks each, in `AR4000` (10 creatures) and `AR4500` (8); the four creatures named on screen, Illasera and three Black Reavers, listed as hostile | [Creature list](../notes/2026-11-13-creature-list.md) |
-| 2026-11-14 | `bc17e13`, local changes (JSON lines) | Passed: both runs, 9 checks each, in `AR0311` and `AR0312` (4 creatures each); the two creatures named on screen, Gaelan Bayle and Arledrian, listed, one in each area; the first area held only one creature outside the party, so three names could not be noted, and no hostile creature was in view | [Data API](../notes/2026-11-14-data-api.md) |
+| 2026-11-14 | `bc17e13`, local changes (JSON lines) | Passed: both runs, 9 checks each, in `AR0311` and `AR0312` (4 creatures each); the two creatures named on screen, Gaelan Bayle and Arledrian, listed, one in each area; the first area held only one creature outside the party, so the tester could not note three names, and no hostile creature was in view | [Data API](../notes/2026-11-14-data-api.md) |
 
 ### Changes to this test
 
-Each change to the steps or pass criteria after the first run, so a Runs row can be read against the
-version of the test it was judged by.
+Each change to the steps or pass criteria after the first run, so a reader can match a Runs row to
+the version of the test that judged it.
 
-| Date | Commit | What changed | Runs before it were judged against |
+| Date | Commit | What changed | Criteria for runs before it |
 | --- | --- | --- | --- |
-| 2026-11-14 | the commit that writes the checks' lines as JSON | Before you start and the last steps: `a7xjson.lua`, the JSON writer, is copied and removed with the others; the script writes its lines as JSON defined in `src/model/schemas.ts`, which `deno task verify` checks | three files copied, and lines written as text |
+| 2026-11-14 | the commit that writes the checks' lines as JSON | Before you start and the last steps: the tester copies and removes `a7xjson.lua`, the JSON writer, with the others; the script writes its lines as JSON defined in `src/model/schemas.ts`, which `deno task verify` checks | three files copied, and lines written as text |

@@ -2,34 +2,34 @@
 
 > **Status:** approved and delivered 2026-11-13: the spawn check passed on its second run, recorded
 > in the [delivery note](../notes/2026-11-13-spawn-harness.md). What changed in delivery, all
-> recorded below and in the note: `DRBOD` replaced `MUMFIG01`; AC is compared with the Dexterity
-> adjustment added; the reading taken straight after spawning is the one judged. It follows the
-> [creature list plan](2026-11-13-creature-list.md); the project's own terms (walker, gate, stats
-> block) are defined in [docs/README.md](../README.md#terms).
+> recorded below and in the note: `DRBOD` replaced `MUMFIG01`; `verify` compares AC with the
+> Dexterity adjustment added; `verify` judges the reading taken straight after spawning. It follows
+> the [creature list plan](2026-11-13-creature-list.md); [docs/README.md](../README.md#terms) defines
+> the project's own terms (walker, gate, stats block).
 
 ## Context
 
 The walker reads the party exactly as the engine shows it, and lists every creature in the area on
 screen. Nothing yet proves its values for a creature that is not in the party: the engine shows no
 stats for enemies, which is why the inspector exists. The spawn harness is the last piece of Phase 3
-and the gate before any enemy value is shown: spawn creatures whose `.cre` files are known, read them
-with the walker, and compare with the files.
+and the gate before the inspector shows any enemy value: spawn creatures with known `.cre` files, read
+them with the walker, and compare with the files.
 
 The engine's own console object does the spawning (`C:CreateCreature`, used by the stock cheat menu),
 so the native library stays read-only. Spawning changes the game, so the manual test uses a save that
-is never saved afterwards.
+the tester never overwrites afterwards.
 
 ## Analysis done in plan mode (read-only)
 
 From the arm64 slice with `deno task re`, and a scan of the game's `.cre` files in the scratchpad
-with BG2EE-GameLog's readers. Each fact is confirmed by the manual test before `docs/re-notes.md`
-records it.
+with BG2EE-GameLog's readers. The manual test confirms each fact before `docs/re-notes.md` records
+it.
 
 | What | Finding | Evidence |
 | --- | --- | --- |
 | `C:CreateCreature(resref)` | one string argument; `CLUAConsole::CreateCreature` at `0x1304e4` checks the resource exists as a `.cre` (type `0x3f1`), takes a position from the area on screen (probably the pointer), allocates a `0x5370`-byte `CGameSprite` and constructs it (`0x29e758`) | the Lua binding at `0x1bc64` (bound at `0x182cc`) |
 | A sprite's `.cre` resref | 8 bytes at sprite `+0x540`, just before the `.cre` header copy at `+0x558` | `0x2d7e88`, called with the resref right after construction, stores it there |
-| Fixtures | 466 of the game's 4,735 `.cre` files have no items and no effects, so their stats should not be changed by equipment; 383 of those are neutral (EA 128) | the scan |
+| Fixtures | 466 of the game's 4,735 `.cre` files have no items and no effects, so no equipment should change their stats; 383 of those are neutral (EA 128) | the scan |
 
 Four fixtures, neutral, natural AC equal to effective AC, none in `override/`, chosen for varied
 values. `MUMFIG01`, with negative resistances, was the second until the first run: it matched in
@@ -77,32 +77,32 @@ Adapted from BG2EE-GameLog (same author), with an attribution line in each file;
 The manual test runs it twice: once right after spawning, and again after letting the game run for a
 few seconds. That shows whether a creature is readable straight away and whether the stats block in
 use changes after its first update (the walker's temp-block branch, so far tested only offline). The
-first reading is the one judged, because a `.cre` describes a creature as it is spawned; changed on
+first reading is the one judged, because a `.cre` describes a creature as the engine spawns it; changed on
 2026-11-13 after the second run, in which the tester attacked the creatures between the readings.
 
 ### Verify (`src/verify/spawn.ts`, `src/tasks/verify.ts`)
 
 - `parseSpawns(log)` and `compareCreature(creature, cre, dexAc)`: for the run that spawned, every
   fixture found, and for each creature found, the walker's values against its `.cre`: max HP, AC (effective)
-  and the four modifiers, THAC0, five saves, the ten resistances and magic resistance, EA. Current HP
-  is printed, not judged.
-- The header bytes are compared with the file's first `0x2d4` bytes and the differing offsets printed:
+  and the four modifiers, THAC0, five saves, the ten resistances and magic resistance, EA. `verify`
+  prints current HP but does not judge it.
+- `verify` compares the header bytes with the file's first `0x2d4` bytes and prints the differing offsets:
   evidence for the header mapping and for later fields, not a pass condition.
 - `deno task verify` judges this check too when its lines are in the log. It now reads `.cre` files,
   so its permissions widen to `--allow-read=logs,<game folder>` and the `BG2EE_*` environment names,
   scoped like `doctor`'s.
 
 A `DIFF` is a finding, as with the party check: the delivery note records it, and the rule behind it
-(an engine adjustment, or a walker mistake) is settled before it is fixed. The first run found one:
+(an engine adjustment, or a walker mistake) needs settling before any fix. The first run found one:
 the engine's AC is the file's plus the Dexterity adjustment in `DEXMOD.2DA`'s AC column (a drow with
 DEX 18 read 6 against 10, and the table gives -4 for 18), so `verify` reads DEX from the `.cre` and
 the table from the game, and expects the sum.
 
 ### Tests
 
-- `test/gamefiles/iebinary_test.ts`: synthetic KEY, BIFF and CRE bytes; a real-data case when the game
-  is installed: `chitin.key` parses, and each fixture resolves as `CRE V1.0` with no items and no
-  effects (no game values are written into the repo).
+- `test/gamefiles/iebinary_test.ts`: synthetic KEY, BIFF and CRE bytes; a real-data case on a machine
+  with the game installed: `chitin.key` parses, and each fixture resolves as `CRE V1.0` with no items
+  and no effects (the test writes no game values into the repo).
 - `test/lua/fakegame.lua`: a resref on each sprite; `test/lua/a7xspawn_test.lua` with a fake `C`: the
   spawn calls, fixtures found and not found, no `C`, the summary.
 - `test/lua/a7xwalk_test.lua`: the resref.
@@ -131,7 +131,7 @@ the table from the game, and expects the sum.
 - `deno task lint` on every commit.
 - `security-audit` before the game run: `verify` gains read access to the game folder (read-only,
   scoped); the check calls the engine's console, which changes game state, so the test page says to
-  use a save that is not saved again; no change to `native/`.
+  use a save the tester does not save again; no change to `native/`.
 - **Manual test `spawn.md`**, run by the tester on the local tree.
 
 ## Order of work
@@ -145,5 +145,5 @@ On `initial/07-walker`. Commits, each passing `deno task lint`, messages shown f
    their tests.
 5. `docs/manual-tests/spawn.md` and its index row, rules, `TODO.md`, foundation plan, `CLAUDE.md`.
 
-Then the tester runs the manual test; I draft the Runs row, the `re-notes.md` rows and the delivery
-note for review, and commit and push on request.
+Then the tester runs the manual test, and the assistant drafts the Runs row, the `re-notes.md` rows
+and the delivery note for review and commits and pushes on request.

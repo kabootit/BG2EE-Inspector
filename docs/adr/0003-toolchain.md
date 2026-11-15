@@ -2,7 +2,7 @@
 type: ADR
 id: "0003"
 title: "C with the Command Line Tools, Deno orchestration, Lua 5.2.4 as reference"
-description: "The dylib is C built with Apple's Command Line Tools; all tasks are Deno 2.9.8+; reverse engineering uses llvm-objdump plus Deno helpers; Lua 5.2.4 source is a contributor-only download; nothing else is required."
+description: "The dylib is C built with Apple's Command Line Tools; all tasks are Deno 2.9.8+; reverse engineering uses llvm-objdump plus Deno helpers; Lua 5.2.4 source is a contributor-only download; the project requires nothing else."
 status: active
 date: 2026-11-01
 ---
@@ -28,7 +28,7 @@ the development machine (2026-11-01):
   the planned APIs compiled and linked for arm64. `/usr/bin/codesign` ships with macOS itself.
 - **A clean machine is untested** (TODO.md).
 - **The game embeds Lua 5.2** with no patch level recorded.
-- **Deno 2.9.8** is installed and is the version the project is developed on.
+- **Deno 2.9.8** is the installed version and the one the project uses for development.
 
 ## Decision
 
@@ -45,8 +45,8 @@ for every task; no other tools.**
   borrowing whatever `setup-*` binary a mod left in the game folder.
 - **One library: Zod 4** (`jsr:@zod/zod@4`), added 2026-11-14 for the schema of the inspector's records
   ([ADR-0006](0006-data-model-and-api.md)): one definition gives the TypeScript types, the check of
-  every `A7XDATA` line, and a JSON Schema for other tools. It has no dependencies of its own, its
-  JSR builds are signed by GitHub Actions, and it runs only in Deno, never in the game. Deno fetches
+  every `A7XDATA` line, and a JSON Schema for other tools. It has no dependencies of its own,
+  GitHub Actions signs its JSR builds, and it runs only in Deno, never in the game. Deno fetches
   it from `jsr.io` into its cache on first use; `deno.lock`, committed and frozen, pins its hash, so
   a changed download fails instead of running.
 
@@ -54,7 +54,7 @@ for every task; no other tools.**
 
 - **C with the CLT** (chosen): already present, smallest output, matches the engine's C++ layouts.
 - **Rust**: safer, but adds rustup and FFI glue for C layouts.
-- **Ghidra**: not taken; needs Java, which is not wanted on the machine.
+- **Ghidra**: not taken; needs Java, an unwanted install on the machine.
 - **radare2 via Homebrew**: not needed; `llvm-objdump` and the Deno helper cover the work.
 - **Python helper scripts**: excluded by the toolchain rule.
 - **Borrowing a mod's `setup-*` WeiDU**: dropped; version unknown, often x86_64 only, matched by filename.

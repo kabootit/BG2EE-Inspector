@@ -6,8 +6,8 @@
  * Everything decidable is checked here so review time goes to what is not
  * (see the docs-review skill): ADR format and registration, plan and note
  * naming, manual-test shape and registration, reachability from
- * docs/README.md, dead links and anchors, fence languages, em dashes, and
- * personal information.
+ * docs/README.md, dead links and anchors, fence languages, em dashes, the
+ * passive voice, and personal information.
  *
  * Every check is a pure function over in-memory text, so each one has a probe
  * in test/lint/docs_test.ts that shows it failing.
@@ -170,6 +170,114 @@ export function checkEmDash(doc: Doc): Finding[] {
     }
   });
   return out;
+}
+
+/** Past participles that do not end in -ed, for checkPassive. */
+const IRREGULAR_PARTICIPLES = [
+  "begun",
+  "bound",
+  "broken",
+  "built",
+  "chosen",
+  "cut",
+  "done",
+  "drawn",
+  "found",
+  "given",
+  "held",
+  "hidden",
+  "hit",
+  "kept",
+  "known",
+  "led",
+  "left",
+  "lost",
+  "made",
+  "meant",
+  "overwritten",
+  "paid",
+  "put",
+  "read",
+  "rewritten",
+  "run",
+  "said",
+  "seen",
+  "sent",
+  "set",
+  "shown",
+  "spent",
+  "split",
+  "taken",
+  "thrown",
+  "told",
+  "undone",
+  "written",
+];
+
+/** Words between "to be" and the participle that keep it passive: "is not read", "are only written". */
+const PASSIVE_ADVERBS = "\\w+ly|not|also|still|never|always|then|now|already|first|again|all|both";
+
+/**
+ * The forms of "to be" before a participle. A contracted "'s" only after a pronoun: after a noun it
+ * is usually a possessive ("the game's read access").
+ */
+const TO_BE =
+  "is|are|was|were|be|been|being|isn't|aren't|wasn't|weren't|(?:it|that|this|what|which|there)'s";
+
+/**
+ * A form of "to be", at most one adverb, then a past participle; the participle is group 1. The
+ * spaces between may include a line break. A participle that starts a hyphenated word ("is
+ * read-only") is an adjective and does not count.
+ */
+const PASSIVE = new RegExp(
+  `\\b(?:${TO_BE})\\s+(?:(?:${PASSIVE_ADVERBS})\\s+)?` +
+    `(\\w+ed|${IRREGULAR_PARTICIPLES.join("|")})\\b(?!-)`,
+  "gi",
+);
+
+/**
+ * Words PASSIVE takes for participles that are not: -ed words that are no verb's past form, and un-
+ * adjectives with no verb behind them ("untested", "unchanged"), which name a state, not an action.
+ * An un- word with a verb behind it, such as "unpacked" or "uninstalled", stays a participle.
+ */
+const NOT_PARTICIPLES =
+  /^(?:indeed|need|speed|seed|feed|embed|hundred|un(?!done|installed|loaded|locked|mounted|packed|registered|set|wrapped).*)$/i;
+
+/** Pages whose wording is not this project's to change: the license is legal text, kept verbatim. */
+const VERBATIM = new Set(["LICENSE.md"]);
+
+/**
+ * A page's prose, line for line: code-block lines blank, inline code and double-quoted text emptied.
+ * A frontmatter value's own surrounding quotes go first, so its text counts as prose.
+ */
+function proseLines(text: string): string[] {
+  const code = codeLines(text);
+  const lines = text.split("\n");
+  const frontmatterEnd = lines[0] === "---" ? lines.indexOf("---", 1) : -1;
+  return lines.map((line, i) => {
+    if (code[i]) return "";
+    const own = i < frontmatterEnd ? line.replace(/^(\w+):\s*"(.*)"$/, "$1: $2") : line;
+    return own.replace(/`[^`]*`/g, "``").replace(/"[^"]*"/g, '""');
+  });
+}
+
+/**
+ * writing-style.md: active voice. A form of "to be" before a past participle, outside code blocks,
+ * inline code and double-quoted text (a quotation, a message or a name is not this page's prose).
+ * The prose is searched as one text, so a passive split across a line break counts; each finding
+ * names the line it starts on.
+ */
+export function checkPassive(doc: Doc): Finding[] {
+  if (VERBATIM.has(doc.path)) return [];
+  const prose = proseLines(doc.text).join("\n");
+  return [...prose.matchAll(PASSIVE)]
+    .filter((m) => !NOT_PARTICIPLES.test(m[1]))
+    .map((m) => ({
+      rule: "passive-voice",
+      file: doc.path,
+      line: prose.slice(0, m.index).split("\n").length,
+      detail: `"${m[0].replace(/\s+/g, " ")}": say who or what acts`,
+    }));
 }
 
 /** writing-style.md: no home-directory paths or email addresses. `/Users/<name>` is the allowed placeholder. */
@@ -518,7 +626,8 @@ export function lintDocs(docs: Doc[], files: Set<string>, dirs: Set<string>): Fi
   const byPath = new Map(docs.map((d) => [d.path, d]));
   const findings: Finding[] = [];
   for (const doc of docs) {
-    findings.push(...checkEmDash(doc), ...checkPersonalInfo(doc), ...checkFences(doc));
+    findings.push(...checkEmDash(doc), ...checkPassive(doc), ...checkPersonalInfo(doc));
+    findings.push(...checkFences(doc));
     findings.push(...checkLinks(doc, byPath, files, dirs));
   }
   findings.push(

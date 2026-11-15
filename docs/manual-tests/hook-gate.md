@@ -15,7 +15,7 @@ should look and play exactly as usual. Why this matters, and what happens if it 
 
 ## Before you start
 
-- **The game is closed.** `play` starts it.
+- **The game is not running.** `play` starts it.
 - **The repo is in the state to test.** Committed or not; the run tests the local working tree, and
   the Runs row notes the latest commit and whether there were local changes.
 - **A save to load.** Any save works. The probe changes nothing, and the session needs no saving.
@@ -40,7 +40,7 @@ stopped drawing frames would show up as a longer gap between two count lines.
 3. **Load a save.**
 4. **Play, 3 minutes.** Walk around. Open the inventory or the character screen once. Fight if a fight
    comes up.
-5. **Pause, 1 minute.** Press Space and wait. This shows whether frames are still drawn while paused.
+5. **Pause, 1 minute.** Press Space and wait. This shows whether the game still draws frames while paused.
 6. **Change area.** Go through an exit or a building door.
 7. **Play, 3 minutes** in the new area.
 8. **Quit from the game's own menu**, not with Ctrl+C. `play` prints its summary and exits.
@@ -58,7 +58,7 @@ the evidence.
 
 ## Pass criteria
 
-Say "done" when `play` has exited. The newest `logs/session-<stamp>.log` is then read for lines starting
+Say "done" when `play` has exited. Then read the newest `logs/session-<stamp>.log` for lines starting
 with `A7X`. To see them yourself: `grep 'A7X' logs/session-<stamp>.log`.
 
 The run passes when every line below appears, and the game played normally:

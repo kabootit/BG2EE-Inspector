@@ -18,14 +18,14 @@ check's resistances, for one, depend on two files agreeing on an order neither s
 **Decisions made (2026-11-14), by the tester:**
 
 - **JSON for every line**: each check script writes its lines as JSON through `a7xjson.lua`, the way
-  `A7XDATA` already works; one Zod schema per line kind validates them, types are inferred from the
+  `A7XDATA` already works; one Zod schema per line kind validates them, Zod infers the types from the
   schemas, and the regex parsers go.
 - **One file**: `src/model/schemas.ts` holds every schema and every type built from them, the public
   record included: one place to read every data shape in the project.
 - **A learning note** on the subject.
 
-Accepted cost: logs from the Phase 3 runs can no longer be judged; their results stay in the delivery
-notes.
+Accepted cost: `verify` can no longer judge logs from the Phase 3 runs; their results stay in the
+delivery notes.
 
 ## Design
 
@@ -33,7 +33,7 @@ notes.
 
 Every line the inspector writes is `<PREFIX>\t<json>`: `A7XDATA` (unchanged), and `A7XCHECK`,
 `A7XLIST`, `A7XSPAWN` for the checks. Each check line is an object with `run` and a `kind`, the
-discriminator. Values the walker could not read are left out by the encoder, so a schema marks such a
+discriminator. The encoder leaves out values the walker could not read, so a schema marks such a
 field optional only where "not read" is itself a result to report (the party check's engine values,
 for one). The party check's `A7XWALK` and `A7XDUMP` lines become kinds of `A7XCHECK` (`walk`, `dump`),
 so each check has one prefix.
@@ -63,7 +63,7 @@ get none.
 `checks.ts`, `list.ts` and `spawn.ts` keep only their judging: each folds its typed lines into runs
 with a `switch` on `kind`, which TypeScript checks for exhaustiveness, so a kind added to a schema and
 not handled is a type error. `spawn.ts`'s comparison becomes one table of fields, each with a walker
-accessor and a file accessor, now that both sides are typed objects; that replaces `LISTS` and
+accessor and a file accessor, now that both sides parse to typed objects; that replaces `LISTS` and
 `fileValues`'s rows, which existed because the walker side was text. `deno task verify` reports a line
 that fails its schema as a problem, naming the line.
 
@@ -75,12 +75,12 @@ message window, do not change.
 
 Added after the first party check with JSON lines (2026-11-14): the game's log keeps at most 4084
 characters of a message and cut every one-line sprite dump. `A7XJSON.line` refuses a line longer than
-4000 characters with the reason, the dump is written in 512-byte lines with their offsets, and
-`parseLines` reports a line whose JSON is cut short instead of skipping it.
+4000 characters with the reason, the party check writes the dump in 512-byte lines with their
+offsets, and `parseLines` reports a line with truncated JSON instead of skipping it.
 
 ### Drift protection, end to end
 
-- **Type and schema**: every type is inferred from its schema; there are no hand-written copies.
+- **Type and schema**: Zod infers every type from its schema; there are no hand-written copies.
 - **Lua and schema**: one golden file per prefix in `test/fixtures/` (`a7xcheck.txt`, `a7xlist.txt`,
   `a7xspawn.txt`, with `a7xdata.txt` as now), generated from the fake game once and reviewed. Each
   check's Lua test requires its script to write exactly those lines; `test/model/schemas_test.ts`
@@ -97,13 +97,13 @@ characters of a message and cut every one-line sprite dump. `A7XJSON.line` refus
   assumptions back to the plans**, traces the chain:
   - the review questions, in order: a readable `creatureValues`, then `parseSpawns`, then
     `fileValues` (the declarative refactors), then where the types belong, which exposed the drift;
-    and earlier the same day, how the record's schema is enforced, which brought in Zod;
-  - each assumption that was overturned, in the plan that made it, and what replaced it: the
+    and earlier the same day, what enforces the record's schema, which brought in Zod;
+  - each assumption the review overturned, in the plan that made it, and what replaced it: the
     foundation plan's hand-written guard (`src/model.ts`) and `test/model_test.ts`; the party walker
     plan's text `A7XCHECK <id> <field> walker=… engine=…` lines and regex parsing in `verify`, carried
     into the creature list and spawn harness plans; the Phase 4 plan's hand-written TypeScript guard,
     replaced by Zod before implementation;
-  - why the assumptions survived review until then (each plan was read on its own; the duplication
+  - why the assumptions survived review until then (review read each plan on its own; the duplication
     only shows across files and languages), and what to take from it: read code across the boundary
     it crosses, and treat an approved plan's mechanisms as revisable when the code shows a better one.
 - ADR-0006 (not yet pushed, edited in place): every line, not only the record, is JSON defined in
@@ -125,9 +125,9 @@ characters of a message and cut every one-line sprite dump. `A7XJSON.line` refus
 
 ## Order of work
 
-Commits on `initial/08-output`, each passing `deno task lint`, messages shown first. The refactor of
-`spawn.ts` already made (tables of fields, line kinds and rows) is committed first, as it stands, so
-the learning note about it quotes code that exists in the history; the Data API commits follow; then:
+Commits on `initial/08-output`, each passing `deno task lint`, messages shown first. Commit the refactor
+of `spawn.ts` already made (tables of fields, line kinds and rows) first, as it stands, so the
+learning note about it quotes code that exists in the history; the Data API commits follow; then:
 
 1. This plan, linked from `docs/README.md`.
 2. `src/model/schemas.ts` with the check-line schemas and `parseLines`, its test, and the rename from

@@ -1,16 +1,16 @@
 ---
-title: "Working visibly: what the chat shows decides what can be reviewed"
+title: "Working visibly: what the chat shows decides what a reviewer can see"
 description: "How an AI assistant's work became hard to follow: about 110 one-off scripts, most of them file edits, shown in the chat as one-line summaries, with the analyses behind two engine findings among them. What Claude Code offers for seeing tool calls, why three working practices fix what settings cannot, and what the practices cost."
 ---
 
-# Working visibly: what the chat shows decides what can be reviewed
+# Working visibly: what the chat shows decides what a reviewer can see
 
-A learning piece from the inspector's Phase 4. The project is built with an AI assistant, Claude Code,
-working in the VS Code panel, and a tester who reviews each change and runs it in the game. Halfway
-through Phase 4 the tester found the work "a little too black box": the chat showed what was done
-only as one-line summaries. This piece records why, what the tool itself offers, and the three
-practices adopted instead. The shape is general: when one party does the work and another must
-review it, the way the work is done decides what the reviewer can see.
+A learning piece from the inspector's Phase 4. An AI assistant, Claude Code, working in the VS Code
+panel, builds the project with a tester who reviews each change and runs it in the game. Halfway
+through Phase 4 the tester found the work "a little too black box": the chat showed the work only as
+one-line summaries. This piece records why, what the tool itself offers, and the three practices
+adopted instead. The shape is general: when one party does the work and another must review it, how
+the work happens decides what the reviewer can see.
 
 ## The problem
 
@@ -32,12 +32,12 @@ and not the script, nor the lines it changed. Two kinds of work went unseen:
 - **Analyses that became facts.** The creature list plan found a creature's area at object `+0x18`,
   and the hotkey plan found the creature under the pointer at area `+0x244`, each from a scratch script
   that counted instruction patterns in the disassembly. The plans cite both findings; the scripts
-  that produced them were in a temporary folder that is deleted with the session. Nobody could re-run
+  that produced them were in a temporary folder that goes away with the session. Nobody could re-run
   them after a game update, or read them to judge the method.
 
 ## What the tool offers
 
-Claude Code's documentation was checked for a way to see tool calls in full:
+A search of Claude Code's documentation for a way to see tool calls in full found three options:
 
 | Option | What it does | Limit here |
 | --- | --- | --- |
@@ -46,7 +46,7 @@ Claude Code's documentation was checked for a way to see tool calls in full:
 | `/export` | writes the conversation to a file | documented for the command line; after the fact, not while reviewing |
 
 Each of these helps someone who goes looking, after the fact or in another tool. None puts the change
-in front of the reviewer at the moment it is made, and none turns a scratch analysis into something
+in front of the reviewer at the moment it happens, and none turns a scratch analysis into something
 that outlives the session.
 
 ## The three practices
@@ -77,12 +77,13 @@ and new text are the call itself:
     picked = { 0x244, "i32" },
 ```
 
-shown as one added line in context. The Edit tool also fails when the old text is not found exactly
-once, which a `replace` in a script does silently: a script that matches nothing writes the file back
-unchanged and reports success.
+shown as one added line in context. The Edit tool also fails when it does not find the old text
+exactly once, which a `replace` in a script does silently: a script that matches nothing writes the
+file back unchanged and reports success.
 
-A script is still used for an edit too large or repetitive for the Edit tool, such as the same change
-across dozens of files. It is then named, with its full path, when it runs, so it can be opened.
+A script still handles an edit too large or repetitive for the Edit tool, such as the same change
+across dozens of files. The assistant then names it, with its full path, when it runs, so the
+reviewer can open it.
 
 ### 2. Analysis the docs cite becomes project tooling
 
@@ -97,7 +98,7 @@ disassembler:
 - `deno task re id-fields`: the area fields the engine compares with an object's own id (the creature
   under the pointer at `+0x244`).
 
-Each gets a test on a small synthetic disassembly, so the method is checked, and a test on the real
+Each gets a test on a small synthetic disassembly, which checks the method, and a test on the real
 game that expects the documented offset, so a game update that moves it fails a test instead of the
 inspector. Both reproduced the scratch scripts' counts exactly: `+0x18` at 14 sites, `+0x244` at 24.
 [The reverse-engineering notes](../re-notes.md#redoing-this-after-a-game-update) cite the commands
@@ -106,8 +107,9 @@ as the way to re-check each finding.
 ### 3. Other one-off scripts stay in the scratchpad, named
 
 Not every check deserves tooling: a quick count, a look at one file, a check that answers a question
-in a conversation and is never cited. These stay in the session's scratchpad, and each is named with
-its full path and its purpose when it runs, so the reviewer can open it while it still exists.
+in a conversation and that no doc cites. These stay in the session's scratchpad, and the assistant
+names each with its full path and its purpose when it runs, so the reviewer can open it while it
+still exists.
 
 ## Why practices, not settings
 
@@ -123,7 +125,7 @@ leaves nothing.
 - **Speed.** Several Edit calls take longer than one script that makes the same replacements. The
   difference is small next to the time a reviewer spends finding an unseen change later.
 - **Tooling to maintain.** Two more `re` subcommands and two more instruction decoders, with their
-  tests, must keep working as the game changes. That is the point: a method that stops working
-  after an update is better found by a failing test than by a wrong offset in the game.
+  tests, must keep working as the game changes. That is the point: when a method stops working after
+  an update, a failing test should reveal it, not a wrong offset in the game.
 - **Judgment.** Which analyses become tooling is a call each time. The line drawn here: if a doc
-  states its result as fact, its method is kept and tested.
+  states its result as fact, the project keeps and tests its method.

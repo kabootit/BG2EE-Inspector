@@ -13,13 +13,13 @@ Only fields a check has proven are in the record, so a value is never a guess
 as the engine uses them. The checks are the [party check](manual-tests/walker.md), the
 [creature list](manual-tests/creatures.md) and the [spawn check](manual-tests/spawn.md); where each
 value sits in game memory is in [docs/re-notes.md](re-notes.md#engine-structures), which consumers
-never need. Every field is required:
+never need. Every record carries every field:
 
 | Field | Type | Meaning | Proven by |
 | --- | --- | --- | --- |
 | `schema` | `1` | the record format's version | |
 | `id` | integer | the engine's id for the creature, valid for this game session | party check |
-| `resref` | string, up to 8 characters | the name of the `.cre` file the creature was made from | spawn check |
+| `resref` | string, up to 8 characters | the name of the `.cre` file the game made the creature from | spawn check |
 | `name` | string | the name the game shows for it | party check |
 | `allegiance` | `{ ea, side }` | whose side the creature is on: `ea`, the engine's value from 0 to 255 (IESDP's `EA.IDS`: 2 a party member, 128 neutral, 255 enemy), and `side`, the same in words: `"party"` for a party member, otherwise `"ally"` for 30 or less, `"enemy"` for 200 or more, `"neutral"` between | party check, spawn check (`ea`); creature list (`side`) |
 | `hp` | `{ cur, max }` | hit points now, and the maximum | party check, spawn check (`max`) |

@@ -40,9 +40,9 @@ Lua; output on request as a data API and message-window text.**
 ### Native bridge
 
 - **Address table, not pattern scanning.** `native/builds.h` maps the build's `LC_UUID` (read from the
-  in-memory Mach-O header) to image-relative offsets. The ASLR slide is added at load, and every engine
-  function the library calls, and the code that anchors each global, is hash-checked first. An unknown
-  build or any mismatch disables the inspector.
+  in-memory Mach-O header) to image-relative offsets. The library adds the ASLR slide at load, and
+  first hash-checks every engine function it calls and the code that anchors each global. An
+  unknown build or any mismatch disables the inspector.
 - **One hook**, decided in [ADR-0005](0005-dyld-interposing-hook.md): dyld interposes `glClear`, and the
   replacement registers the native read functions once Lua is idle on the main thread, then only passes
   calls through. No `mprotect` anywhere, enforced by `lint:security`.
@@ -65,9 +65,9 @@ Lua; output on request as a data API and message-window text.**
 
 - **Named fields.** Walker code reads named paths; only the offsets file maps names to numbers. For
   2.7.3 arm64 it is `a7xoff.lua`: `Infinity_DoFile` takes names of at most 8 characters, so the
-  inspector's Lua files are named `a7x…` in 8 characters rather than `a7x_offsets_<build>.lua`.
-- **Global object array.** Creatures are enumerated from it, filtered by area and EA, as BG2RadarOverlay
-  does.
+  inspector names its Lua files `a7x…` in 8 characters rather than `a7x_offsets_<build>.lua`.
+- **Global object array.** The walker enumerates creatures from it, filtered by area and EA, as
+  BG2RadarOverlay does.
 - **Engine pitfalls from the EEex thread, guarded against:**
   - check each object's type before reading it as a sprite (p20);
   - skip walks during loads and area transitions, when pointers go stale (p19, p21, p25, p31);
@@ -76,16 +76,16 @@ Lua; output on request as a data API and message-window text.**
   - use only the timed effect list for countdowns (p19 to p21);
   - convert durations at 15 ticks per second, validated before trusted (p19 to p21);
   - show the engine's expiry, never a computed duration (p11, p12, p17).
-- **Bounded.** Every walk has a node cap and pointer-range checks, and refreshes are timed against a
-  per-frame budget.
+- **Bounded.** Every walk has a node cap and pointer-range checks, and the walker times refreshes
+  against a per-frame budget.
 
 ### Output
 
 - **A versioned public data API.** `A7X.get`, `A7X.list`, `A7X.status` and `A7X.version` return
   fresh schema-1 tables (API 1.0, Phase 4), and `A7X.hovered` and `A7X.portrait` the creature and the
   party member under the pointer (API 1.1). The record and the API are
-  [ADR-0006](0006-data-model-and-api.md); the foundation plan's
-  `"unknown_build"` status is folded into `"no_native"`, because on an unknown build the library
+  [ADR-0006](0006-data-model-and-api.md); the API folds the foundation
+  plan's `"unknown_build"` status into `"no_native"`, because on an unknown build the library
   registers nothing and Lua cannot tell the two apart.
 - **Triggers.** The `e` key over a creature or a portrait, and console commands, all printing through
   `Infinity_DisplayString`. As built: the WeiDU component adds a button with no area to `ui.menu`'s
@@ -106,8 +106,8 @@ Lua; output on request as a data API and message-window text.**
   carry no license, and a far larger native surface.
 - **Inline function hooks**: impossible under the hardened runtime.
 - **A UI panel first**: deferred to an external mod, so the data layer proves itself in text first.
-- **Shift-click on a creature**: not possible; world clicks are handled in C++, buttons have no modifier
-  variant, and Lua cannot read keyboard state.
+- **Shift-click on a creature**: not possible; the engine handles world clicks in C++, buttons have no
+  modifier variant, and Lua cannot read keyboard state.
 - **"e" then a click on a creature in the world**: not taken; the click would issue an attack order.
 - **"e" then a click on a portrait**: planned, not needed; `ui.menu` already knows the portrait under
   the pointer, so `e` over it is enough, and the click would select that party member.

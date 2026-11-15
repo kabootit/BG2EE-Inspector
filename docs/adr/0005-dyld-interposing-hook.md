@@ -15,23 +15,23 @@ date: 2026-11-01
 
 - [ADR-0001](0001-native-dylib-injection.md): how the library gets into the process; this ADR is how
   it then reaches the game's Lua.
-- [ADR-0002](0002-read-only-bridge-lua-walker.md): the read-only bridge. Its hook, a swapped
-  `luaL_Reg` pointer, is replaced by this decision; the rest of it stands.
+- [ADR-0002](0002-read-only-bridge-lua-walker.md): the read-only bridge. This decision replaces its
+  hook, a swapped `luaL_Reg` pointer; the rest of it stands.
 - [Delivery note](../notes/2026-11-01-interposing-hook.md): the binary evidence, the probe library
-  and how it was checked.
+  and how the project checked it.
 - [Hook gate note](../notes/2026-11-06-hook-gate.md): the gate's first run in the game, and its result.
 - [Foundation plan](../plans/2026-11-01-inspector-foundation.md), Phases 1 and 2.
 - Apple's dyld source, `include/mach-o/dyld-interposing.h`[^dyld-interposing]: the interposing tuple
   and section, as Apple's own macro declares them.
-- Lua 5.2.4 source, `loadlib.c`[^lua-loadlib]: the message compiled in when native library loading
-  is switched off.
+- Lua 5.2.4 source, `loadlib.c`[^lua-loadlib]: the message a build compiles in when it switches
+  native library loading off.
 
 ## Context
 
 ### What the bridge needs
 
 The inspector's Lua needs a handful of native functions (`A7X_Read` and the others in ADR-0002). Lua
-can only call a C function that has been registered into its state. So the library needs one moment
+can only call a C function that C code has registered into its state. So the library needs one moment
 when it can do that registration, and the moment has three conditions:
 
 - **After the engine has created its Lua state.** Before that there is nothing to register into.
@@ -55,7 +55,7 @@ arm64 binary:
   `__cstring`. A scan of every 8-byte word in `__DATA_CONST` and `__DATA` finds no pointer to it.
   The slice uses classic rebase information rather than chained fixups, so a stored pointer would
   appear as that exact address, and the scan would see it.
-- **The functions are registered by code instead.** One function at `0x100335440` loads the engine's
+- **Code registers the functions instead.** One function at `0x100335440` loads the engine's
   `lua_State*` global (`0x1035d7478`) and registers each function in turn, the expansion of Lua's
   `lua_register` macro. For `Infinity_Log`:
 
@@ -78,18 +78,18 @@ arm64 binary:
   (`LUA_RIDX_GLOBALS`) and interns the name. The offsets they use (`top` at 16, `l_G` at 24) equal
   `offsetof` on the vendored 5.2.4 source compiled for arm64.
 
-Code cannot be patched under the hardened runtime, so the registration code itself cannot be
-changed. With no table, there is no data pointer for the planned hook to swap.
+The hardened runtime forbids patching code, so nothing can change the registration code itself.
+With no table, there is no data pointer for the planned hook to swap.
 
-### What can still be reached
+### What the library can still reach
 
 - **Calls into system libraries go through data.** The game's code calls an imported function
   through a slot that dyld, the macOS dynamic loader, fills in at launch. The game imports 704 such
-  symbols, among them `glClear`, `glViewport` and `glFinish` from OpenGL. SDL, the windowing
-  library, is linked into the game itself, so its functions are not imports.
-- **The library can call the game's own code.** Calling a function at a known address is allowed;
-  only writing to code is not. So once the library is running on the right thread at the right time,
-  it can register its functions with the game's `lua_pushcclosure` and `lua_setglobal`, exactly as
+  symbols, among them `glClear`, `glViewport` and `glFinish` from OpenGL. The game links SDL,
+  the windowing library, into its own binary, so its functions are not imports.
+- **The library can call the game's own code.** The hardened runtime allows calling a function at a
+  known address; it forbids only writing to code. So once the library is running on the right
+  thread at the right time, it can register its functions with the game's `lua_pushcclosure` and `lua_setglobal`, exactly as
   the game does.
 
 ## Decision
@@ -99,8 +99,8 @@ changed. With no table, there is no data pointer for the planned hook to swap.
 idle, it also registers the `A7X_native` table of read functions through the game's own Lua API,
 under the game's own `lua_pcallk`.**
 
-The decision was staged. First, the library shipped as a **probe** that interposed `glClear` and only
-reported what it saw. It passed the gate below in the game on 2026-11-06, and Phase 2 added
+The decision came in stages. First, the library shipped as a **probe** that interposed `glClear` and
+only reported what it saw. It passed the gate below in the game on 2026-11-06, and Phase 2 added
 registration.
 
 ### How interposing works
@@ -121,7 +121,7 @@ the start.
 It is, and the reasons are worth stating rather than hiding:
 
 - **The game does not support it.** Nothing here is a mod interface Beamdog offers. It depends on
-  the game being built with two entitlements, on the engine's internals at fixed addresses, and on
+  the game shipping with two entitlements, on the engine's internals at fixed addresses, and on
   behaviour observed rather than promised.
 - **It borrows a drawing call as a clock.** The inspector has no interest in clearing the screen. It
   uses `glClear` only because the game calls it regularly on its main thread. That is a side effect
@@ -135,7 +135,7 @@ It is, and the reasons are worth stating rather than hiding:
 
 ### Why the hack works
 
-- **The game is signed to allow it.** The hardened runtime normally strips `DYLD_*` variables and
+- **The game's signature allows it.** The hardened runtime normally strips `DYLD_*` variables and
   refuses libraries signed by anyone else. The game's entitlements
   `com.apple.security.cs.allow-dyld-environment-variables` and
   `com.apple.security.cs.disable-library-validation` lift exactly those two restrictions. Checked on
@@ -145,12 +145,12 @@ It is, and the reasons are worth stating rather than hiding:
 - **dyld does the only write, as part of loading.** The library never changes a page's protection or
   writes to the game's memory. It hands dyld a table, and dyld fills the slot the way it fills every
   slot. To the game, the launch looks normal; its `glClear` slot simply holds a different address.
-- **The hook point is an import, not an address.** `glClear` is found by name, so the hook survives
-  game updates that keep using OpenGL. Only the Lua addresses are per build, and those are guarded
-  by the build check.
+- **The hook point is an import, not an address.** dyld finds `glClear` by name, so the hook survives
+  game updates that keep using OpenGL. Only the Lua addresses are per build, and the build check
+  guards those.
 - **The game's calls to `glClear` go through the slot.** The 2.7.3 binary lists `glClear` among its
-  imports (`nm -u`), so at least one call site uses the slot dyld fills. Whether it is called once a
-  frame on the main thread is what the probe checks.
+  imports (`nm -u`), so at least one call site uses the slot dyld fills. The probe checks whether the
+  game calls it once a frame on the main thread.
 - **Registration from the replacement is ordinary Lua use.** On the main thread, between Lua calls,
   a C caller pushing a function and setting a global is what the engine itself does 146 times at
   start-up. The library uses the engine's own functions, so there is one Lua runtime, not two.
@@ -177,8 +177,8 @@ It is, and the reasons are worth stating rather than hiding:
 - **Register under protection.** `lua_checkstack` first, then a light C function (no allocation)
   run through `lua_pcallk` creates the table and sets the global. Creating it can run the garbage
   collector, and with it a finalizer that raises an error; unprotected, Lua would call its panic
-  handler and end the game. Under `lua_pcallk` the error comes back as a status, is logged and
-  popped, and the bridge disables itself.
+  handler and end the game. Under `lua_pcallk` the error comes back as a status, the library
+  logs and pops it, and the bridge disables itself.
 - **Register once per state.** After registering, the replacement re-reads the `lua_State*` global
   each frame and registers again only if it holds a different state; otherwise it is a counter and a
   pass-through.
@@ -196,8 +196,8 @@ session of normal play, including loading a save and an area change, shows:
 5. idle-Lua calls: the count of calls that found Lua running is below the total, so an idle frame
    exists to register on.
 
-The game must also play normally for the whole session. If any of 2 to 5 fails, this decision is
-re-evaluated before Phase 2 builds on it.
+The game must also play normally for the whole session. If any of 2 to 5 fails, the project
+re-evaluates this decision before Phase 2 builds on it.
 
 ## Options considered
 
@@ -208,8 +208,8 @@ re-evaluated before Phase 2 builds on it.
   does not exist in this binary.
 - **Have the game's Lua load the library itself** (`package.loadlib` or `require`): this would need
   no hook. Not possible: the binary contains Lua's message "dynamic libraries not enabled; check
-  your Lua installation", which `loadlib.c` compiles in only when native loading is switched
-  off[^lua-loadlib].
+  your Lua installation", which `loadlib.c` compiles in only when a build switches native
+  loading off[^lua-loadlib].
 - **Patch the registration code or the game on disk**: forbidden at run time by the hardened
   runtime; on disk it breaks the game's signature and the entitlements with it, and Steam would
   restore the file. ADR-0001 rules out changing the game on disk.
@@ -221,16 +221,16 @@ re-evaluated before Phase 2 builds on it.
 - **No hook: read memory from the library's own thread and print to the terminal**: safe, since it
   only reads, but nothing would appear in the game, which drops the hotkey and the message window.
   Kept as the fallback if the gate fails.
-- **Interpose a different import**: `glViewport` and `glFinish` are also imported. A renderer
+- **Interpose a different import**: the game also imports `glViewport` and `glFinish`. A renderer
   typically clears once a frame; if the probe shows the game does not call it every frame, the probe
   moves to another import.
 
 ## Consequences
 
-- **ADR-0002's hook is replaced.** Its native bridge is otherwise unchanged; the plan's Phase 2 and
-  the architecture diagrams describe the interposing hook.
-- **`lint:security` is stricter.** The one sanctioned `mprotect` is gone, and interposing is limited
-  to an allowlist.
+- **This decision replaces ADR-0002's hook.** Its native bridge is otherwise unchanged; the plan's
+  Phase 2 and the architecture diagrams describe the interposing hook.
+- **`lint:security` is stricter.** The one sanctioned `mprotect` is gone, and the lint limits
+  interposing to an allowlist.
 - **The Lua side cannot count on `A7X_native` at file load.** The engine may load `ui.menu` and the
   inspector's Lua files before its first frame, so before the hook has registered anything.
   `a7x_api.lua` therefore looks `A7X_native` up on first use, then captures it and clears the global
@@ -246,6 +246,6 @@ re-evaluated before Phase 2 builds on it.
 [^dyld-interposing]: dyld, Apple, `include/mach-o/dyld-interposing.h`,
     <https://github.com/apple-oss-distributions/dyld/blob/main/include/mach-o/dyld-interposing.h>
 
-[^lua-loadlib]: Lua 5.2.4, `src/loadlib.c`, the `DLMSG` definition in the fallback branch taken when
-    neither `LUA_USE_DLOPEN` nor `LUA_DL_DLL` is defined,
+[^lua-loadlib]: Lua 5.2.4, `src/loadlib.c`, the `DLMSG` definition in the fallback branch a build takes
+    when it defines neither `LUA_USE_DLOPEN` nor `LUA_DL_DLL`,
     <https://www.lua.org/source/5.2/loadlib.c.html>

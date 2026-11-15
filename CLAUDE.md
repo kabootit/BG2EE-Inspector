@@ -1,8 +1,8 @@
 # BG2EE-Inspector
 
-An in-game inspector for Baldur's Gate II: Enhanced Edition 2.7.3 on macOS (Apple Silicon). A small
-read-only native library is loaded into the game with `DYLD_INSERT_LIBRARIES`; Lua in the game's own UI
-walks engine memory and prints creature stats and active spells, with time left, on request. See
+An in-game inspector for Baldur's Gate II: Enhanced Edition 2.7.3 on macOS (Apple Silicon). The launcher
+loads a small read-only native library into the game with `DYLD_INSERT_LIBRARIES`; Lua in the game's own
+UI walks engine memory and prints creature stats and active spells, with time left, on request. See
 [docs/architecture.md](docs/architecture.md) and the plan in
 [docs/plans/2026-11-01-inspector-foundation.md](docs/plans/2026-11-01-inspector-foundation.md).
 
@@ -10,19 +10,19 @@ walks engine memory and prints creature stats and active spells, with time left,
 
 - **Security first:** default-deny, scoped Deno flags, the native library stays read-only.
   [docs/rules/security-first.md](docs/rules/security-first.md)
-- **Install nothing without asking.** Every requirement is listed in
-  [docs/requirements.md](docs/requirements.md) and checked by `deno task doctor`.
-  Deno **2.9.8** or later is required and checked by every task (`MIN_DENO` in
+- **Install nothing without asking.** [docs/requirements.md](docs/requirements.md) lists every
+  requirement, and `deno task doctor` checks them.
+  Every task requires Deno **2.9.8** or later and checks it first (`MIN_DENO` in
   `src/shared/deno_version.ts`).
   [docs/rules/toolchain.md](docs/rules/toolchain.md)
 - **Git only when asked:** `git add`, `commit` and `push` only on an explicit request; show the message
   first; **no AI attribution anywhere.** [docs/rules/git.md](docs/rules/git.md)
 - **Make the change, say what to test in-game, and wait.** Never launch, quit or restart the game unless
-  asked. Manual tests longer than a few steps are written in `docs/manual-tests/`. [docs/rules/working-together.md](docs/rules/working-together.md)
+  asked. Write manual tests longer than a few steps in `docs/manual-tests/`. [docs/rules/working-together.md](docs/rules/working-together.md)
 - **Work visibly:** file changes through the Edit tool; analysis the docs cite becomes tested tooling
-  (`deno task re`); any other one-off script is named with its full path and purpose when it runs.
+  (`deno task re`); name any other one-off script with its full path and purpose when it runs.
   [docs/rules/working-together.md](docs/rules/working-together.md)
-- **Verify before stating:** a derived value is checked against an observable before it is reported as
+- **Verify before stating:** check a derived value against an observable before reporting it as
   fact. [docs/rules/verify-derived-values.md](docs/rules/verify-derived-values.md)
 - **No em dashes, impersonal, plain and specific.** [docs/rules/writing-style.md](docs/rules/writing-style.md)
 - **Smallest surface that does the job.** [docs/rules/minimal-surface.md](docs/rules/minimal-surface.md)

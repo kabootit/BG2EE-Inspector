@@ -36,16 +36,16 @@ Written in plan mode, saved on approval.
 
 ## Delivery note (`docs/notes/YYYY-MM-DD-<topic>.md`)
 
-Written after each step or phase; it says what was built and where, while the ADR says why. The date
-prefix makes the folder sort by time, like `docs/plans/`; use the date the note is written, and a short
+Written after each step or phase; it says what the work built and where, while the ADR says why. The date
+prefix makes the folder sort by time, like `docs/plans/`; use the date of writing, and a short
 topic (for the foundation plan, the summary part of the `initial/NN-<summary>` branch, e.g.
 `2026-11-01-setup.md` for `initial/01-setup`).
 
 - Frontmatter `title` and `description`.
 - H1, then a `>` lede linking the ADR and the plan.
 - `## Status` with a bold state and a `| Piece | State |` table.
-- `## Plan summary`, `## What was built` (file tables), `## Gotchas worth remembering`.
-- `## Verification`: what was run, with counts, then a numbered "Still to check by hand" list that
+- `## Plan summary`, `## What shipped` (file tables), `## Gotchas worth remembering`.
+- `## Verification`: what ran, with counts, then a numbered "Still to check by hand" list that
   links a manual test rather than repeating its steps.
 - `## Follow-ups`. No closer.
 
@@ -62,10 +62,11 @@ A manual test run by a person at the game, written once and run again. Undated; 
 - `## Steps`: numbered, each with how long it takes and what it exercises; commands in `sh` fences.
 - `## What to watch for`: what makes the tester stop, and what to report.
 - `## Pass criteria`: where the evidence is (a log, a command's output) and a table of what must appear.
-- `## Runs`: one row per execution, with the date, the commit, the result and the delivery note. The
-  manual test is not edited to describe a run; the note does that. Once a run exists, every later change
+- `## Runs`: one row per execution, with the date, the commit, the result and the delivery note. A run
+  does not edit the manual test; the note describes the run. Once a run exists, every later change
   to the steps or pass criteria adds a row to `### Changes to this test` under it: date, commit, what
-  changed, and what earlier runs were judged against (`docs/manual-tests/README.md`).
+  changed, and Criteria for runs before it, so a reader can match a Runs row to the version of the
+  test that judged it (`docs/manual-tests/README.md`).
 - A delivery note's "Still to check by hand" links the manual test instead of repeating its steps.
 
 ## Rule (`docs/rules/<topic>.md`)

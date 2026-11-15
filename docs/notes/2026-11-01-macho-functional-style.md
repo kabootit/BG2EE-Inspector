@@ -7,7 +7,7 @@ description: "machoArchs rewritten from an imperative loop into a declarative ta
 
 > Delivery record for a refactor of `src/re/macho.ts` during review of Step 1
 > (`initial/02-requirements`). It is a code-style change with one deliberate behaviour change, so it has
-> no ADR; the [Step 1 note](2026-11-01-requirements.md) covers where the reader is used.
+> no ADR; the [Step 1 note](2026-11-01-requirements.md) covers where doctor uses the reader.
 
 ## Status
 
@@ -30,9 +30,9 @@ Why it was worth changing now rather than leaving a working 16-line function:
 - **Phase 1 grows this file** into the reader for segments, sections and strings that `deno task derive`
   builds on. A parse-then-interpret shape (classify the bytes into a typed value, then act on the value)
   scales to that; a single function of nested early returns does not.
-- **Review exposed an implicit safety property** that deserved to be stated in the code (below).
+- **Review exposed an implicit safety property** that deserved a statement in the code (below).
 
-## What was built
+## What shipped
 
 ### Before
 
@@ -115,27 +115,27 @@ still has the edge:
 
 | | Imperative (before) | Declarative (after) |
 | --- | --- | --- |
-| **Reading it** | The meaning is assembled in the reader's head by simulating the loop: what `i` is, when `break` fires, what `archs` holds at each step. | Each line states a fact. "The offsets are the entries that fit, capped by the claim" can be read off `fatEntryOffsets` without running anything in your head. |
-| **Naming the concepts** | "Thin", "fat" and "not Mach-O" exist only as the order of `if` statements. | They are named values in `MachoHeader`, so a reader, a reviewer and the compiler all see the same three cases. |
+| **Reading it** | The reader assembles the meaning in their head by simulating the loop: what `i` is, when `break` fires, what `archs` holds at each step. | Each line states a fact. A reader takes "The offsets are the entries that fit, capped by the claim" straight off `fatEntryOffsets` without running anything in their head. |
+| **Naming the concepts** | "Thin", "fat" and "not Mach-O" exist only as the order of `if` statements. | `MachoHeader` names them as values, so a reader, a reviewer and the compiler all see the same three cases. |
 | **Safety** | Correctness depends on control flow being right everywhere: the `break` is what keeps an untrusted count from running away, and moving or deleting it would compile silently. | The bound is a value (`Math.min(count, fit)`) computed once, up front, and commented. There is no control flow left to get wrong, and the `switch` must handle every kind of file or it will not type-check. |
-| **Mutation** | `archs` and `i` change as the loop runs, so a reader has to track state over time. | Nothing changes after it is created; every value can be understood the moment it appears. |
-| **Testing** | Only the whole function can be tested, so every case needs a hand-built file, and the bound can only be observed indirectly. | `readHeader` and `fatEntryOffsets` are pure and take plain numbers or eight bytes, so each rule gets its own small test: `fatEntryOffsets(0xffffffff, 20, 48)` proves the cap directly. |
+| **Mutation** | `archs` and `i` change as the loop runs, so a reader has to track state over time. | Nothing changes after creation; a reader understands every value the moment it appears. |
+| **Testing** | Tests reach only the whole function, so every case needs a hand-built file, and a test sees the bound only indirectly. | `readHeader` and `fatEntryOffsets` are pure and take plain numbers or eight bytes, so each rule gets its own small test: `fatEntryOffsets(0xffffffff, 20, 48)` proves the cap directly. |
 | **Changing it** | Adding a fourth file kind means finding the right place in a chain of early returns. | Adding a kind is adding a case to `MachoHeader`; the compiler points at every place that must handle it. |
 | **Where imperative wins** | Shorter. Familiar to anyone. Stops at the first out-of-range entry without computing a length first. Allocates nothing extra. Does exactly what today's one caller needs. | Twice the lines. Builds an offset array before mapping (bounded by the file, so a handful of numbers here). Asks the reader to know `Array.from` with a length and a tagged union. **Can be premature optimization**: structure optimized for growth that has not happened yet, paid for now in size and indirection. |
 
 For a 16-line function the imperative version was perfectly readable, which is why this is a judgment
 call rather than a fix. Restructuring code for a future that may not arrive is a form of **premature
 optimization**, optimizing for flexibility instead of speed, and the minimal-surface rule warns against
-exactly that. It tips towards declarative here anyway because the growth is planned rather than imagined
+exactly that. It tips towards declarative here anyway because a plan, not imagination, drives the growth
 (Phase 1 extends this file), because the input is untrusted, and because the one safety property that
-mattered was hidden in control flow. Those are the conditions under which "what" ages better than "how";
+mattered hid in control flow. Those are the conditions under which "what" ages better than "how";
 without them, the loop would have been the right call.
 
 **Costs:**
 
 - **About twice the code**, for a function that worked.
-- **Three exported names instead of one:** `readHeader` and `fatEntryOffsets` are exported so they can be
-  tested and reused in Phase 1.
+- **Three exported names instead of one:** the module exports `readHeader` and `fatEntryOffsets` so tests
+  can reach them and Phase 1 can reuse them.
 - **One small behaviour change**, deliberate.
 
 **Benefits:**
@@ -151,14 +151,15 @@ without them, the loop would have been the right call.
   untrusted: a corrupt or hostile header can claim up to 2^32-1 entries. A direct functional translation,
   `Array.from({ length: count }, ...)`, would build an offset list as long as the claim before reading a
   single entry. The loop was safe only because its `break` stopped at the end of the bytes, which nobody
-  had written down. The rewrite caps the length at what the file can physically hold. This was reasoned
-  from the code; the unbounded variant was not run, since doing so is the failure being avoided.
+  had written down. The rewrite caps the length at what the file can physically hold. This conclusion
+  comes from reading the code; nobody ran the unbounded variant, since running it is the very failure
+  the cap avoids.
 - **Behaviour change: only complete entries count.** The loop accepted a final entry whose first 4 bytes
   (the CPU type) were present even if the rest of its 20 or 32 bytes were missing. A partial entry means
-  a corrupt file, so the rewrite counts only entries that fit completely. No real binary is affected: the
+  a corrupt file, so the rewrite counts only entries that fit completely. The change affects no real binary: the
   game, WeiDU and the doctor test build read the same as before.
 - **Tests first, against the old code.** The new tests for the oversized count and truncated entries
-  were run against the original loop before the rewrite, so they pin down existing behaviour rather than
+  ran against the original loop before the rewrite, so they pin down existing behaviour rather than
   describe the new code. The one test that differs, `fatEntryOffsets(3, 20, 47)`, covers the deliberate
   change above and targets a function that did not exist before.
 

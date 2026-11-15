@@ -42,8 +42,8 @@ restore.
   implementation detail.
 - Is every call into the engine's Lua made on the main thread, with Lua idle, and every registration
   under `lua_pcallk`, so a Lua error comes back as a code instead of unwinding through the library?
-- Do the functions registered into Lua only read? Every argument is checked, a bad one returns nil, and
-  none of them calls `lua_error`.
+- Do the functions registered into Lua only read? Each one checks every argument, a bad one returns nil,
+  and none of them calls `lua_error`.
 - Does the interposed replacement always call the real function, on every path, including an unknown
   build?
 - Does every read go through `mach_vm_read_overwrite`? A raw pointer dereference can crash the game.
@@ -59,8 +59,8 @@ restore.
 
 ### Downloads and external binaries
 
-- Every download (WeiDU, Lua source) is checked against a pinned SHA-256 **before** it is unpacked or run,
-  and refuses on mismatch.
+- The setup tasks check every download (WeiDU, Lua source) against a pinned SHA-256 **before** unpacking
+  or running it, and refuse on mismatch.
 - `BG2EE_WEIDU` overrides are SHA-checked against the known list and warn when unknown.
 - Nothing downloads at game runtime; the dylib and Lua make no network requests.
 
@@ -70,12 +70,12 @@ restore.
   unique.
 - The e2e runner touches only `A7X-E2E-*` save slots, removes them afterwards, and never saves the game.
   Compare other slots before and after.
-- The developer test component is never installed by default.
+- No default install includes the developer test component.
 
 ### Captured output
 
 - Read the non-event lines of a fresh session by eye: account ids, user names, absolute paths, tokens.
-  Anything found is redacted at the point of capture, then every committed log is re-scanned.
+  Redact anything found at the point of capture, then re-scan every committed log.
 
 ### Public API
 
@@ -84,8 +84,8 @@ restore.
 
 ### Licensing
 
-- Nothing copied from EEex or InfinityLoader (no license): no code, headers or `.db` files. Offsets are
-  derived independently. MIT sources carry attribution.
+- Nothing copied from EEex or InfinityLoader (no license): no code, headers or `.db` files. The project
+  derives offsets independently. MIT sources carry attribution.
 
 ### Before publishing
 
@@ -101,7 +101,7 @@ For each finding: what it is, why it matters, a concrete failure scenario, and t
 
 - The `.claude/settings.json` deny list matches command prefixes and is advisory; the written rules are
   the control.
-- WeiDU is trusted once its SHA-256 matches the pinned release. It is not sandboxed and writes to the
-  game folder by design.
+- The project trusts WeiDU once its SHA-256 matches the pinned release. It runs outside any sandbox and
+  writes to the game folder by design.
 - A bug in the inspector's Lua can raise a `LUA ERROR` in the game UI. A bug in the dylib can crash the
-  game process. Saves are never written by the inspector.
+  game process. The inspector never writes saves.

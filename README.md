@@ -4,7 +4,7 @@
 
 An in-game inspector for Baldur's Gate II: Enhanced Edition on macOS. Press a hotkey over a creature or
 portrait, or type a console command, and it prints that creature's stats (HP, AC, THAC0, saves,
-resistances, MR); its active spells, with the time left until each wears off, are planned.
+resistances, MR); the plan adds its active spells, with the time left until each wears off.
 
 **Status: under construction,** in the phases of the
 [foundation plan](docs/plans/2026-11-01-inspector-foundation.md). The stats work with the `e` hotkey,
@@ -22,7 +22,7 @@ with two code-signing entitlements, `allow-dyld-environment-variables` and
 
 ## Installation
 
-Every step has been run against the game; step 5 in the
+A tester has run every step against the game; step 5 in the
 [Hotkey and install](docs/manual-tests/hotkey.md) manual test.
 
 1. Install the [requirements](docs/requirements.md), including **Deno 2.9.8** or later.
@@ -33,8 +33,8 @@ Every step has been run against the game; step 5 in the
    starts and adds the hotkey (`--uninstall` removes it).
 6. `deno task play`: launch the game with the library loaded.
 
-Only the BG2:EE 2.7.3 Steam build is supported, because engine addresses are binary-specific.
-Compatibility with other mods has not been tested yet; see [TODO.md](TODO.md).
+The inspector supports only the BG2:EE 2.7.3 Steam build, because engine addresses are
+binary-specific. No test has covered compatibility with other mods yet; see [TODO.md](TODO.md).
 
 ## Use
 
@@ -75,9 +75,9 @@ Documentation starts at [docs/README.md](docs/README.md).
   - **Findings:** no creature state is reachable from the game's Lua, settled from the full binding
     registry (the reason for a native library); the 146 `Infinity_*` functions, `e` as
     `g_pBaldurChitin`, and the restricted Lua standard library; `Infinity_Log` reaching stdout, captured
-    line by line through `script`; engine calls being unsafe while `ui.menu` loads; `Baldur.lua` being
-    rewritten on exit.
+    line by line through `script`; engine calls being unsafe while `ui.menu` loads; the game
+    rewriting `Baldur.lua` on exit.
   - **Tooling:** the launch and capture, WeiDU patching, game-file reading, the security lint and audit,
     and the rule to verify derived values.
-- Project conventions are adapted from the [Tranquil projects'](https://github.com/tranquillabs)
+- This project adapts its conventions from the [Tranquil projects'](https://github.com/tranquillabs)
   development rules.

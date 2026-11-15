@@ -1,7 +1,7 @@
 # Reverse-engineering notes
 
-Every engine address the native library uses: where it is in the 2.7.3 arm64 build, how it was found,
-how it was checked, and how to find it again after a game update. The values themselves live in
+Every engine address the native library uses: where it is in the 2.7.3 arm64 build, how the analysis
+found it, what checks it, and how to find it again after a game update. The values themselves live in
 `native/builds.h`; this page is the evidence behind them. Why the library calls engine code at all is
 in [ADR-0005](adr/0005-dyld-interposing-hook.md).
 
@@ -16,34 +16,34 @@ Mach-O header at run time) and belong to this build only.
 | `LC_UUID` | `54799B31-C2BF-36E9-9685-65F8EC3CA58F` |
 | `__TEXT` | `vmaddr 0x100000000`, `fileoff 0`, so an offset in `__TEXT` is also a file offset in the slice |
 
-The game is stripped: apart from Steam and libjingle, no symbol names. Lua 5.2 is linked in statically,
+The game ships stripped: apart from Steam and libjingle, no symbol names. It links Lua 5.2 in statically,
 and the binary does not record its patch level; 5.2.4, the last 5.2 release, is the reference.
 
-## How each site is checked
+## Checking each site
 
-Each function in `builds.h` is a site: offset, size, and the FNV-1a 64-bit hash of its bytes. A global
-cannot be hashed (it is data), so it gets an anchor: a short code site whose `ADRP`/`ADD` instructions
-encode the global's address. Those instructions are PC-relative, so the anchor's bytes change if the
-global or the code moves.
+Each function in `builds.h` is a site: offset, size, and the FNV-1a 64-bit hash of its bytes. The
+library cannot hash a global (it is data), so the global gets an anchor: a short code site whose
+`ADRP`/`ADD` instructions encode the global's address. Those instructions are PC-relative, so the
+anchor's bytes change if the global or the code moves.
 
 Two checks use the same table:
 
 - **At load**, the library's constructor hashes every site in the mapped image. One mismatch disables
-  it: nothing is read, nothing is called.
+  it: the library then reads nothing and calls nothing.
 - **In `deno task test`**, `test/re/builds_test.ts` hashes the same ranges of the installed binary, with
   an implementation written separately in TypeScript, and fails naming the site and the hash it found.
 
 ## Lua API functions
 
-The game's `lapi.c` is compiled in source order, but the linker removed the functions nothing calls
+The game's `lapi.c` functions sit in source order, but the linker removed the functions nothing calls
 (`lua_rawgetp` among them), so counting function starts from a known function goes
 wrong. Function sizes do line up: most of the game's `lapi.c` functions have exactly the size of the
-same function in stock 5.2.4 built with `clang -arch arm64 -O2`. Each candidate was then compared
-instruction by instruction with that reference build.
+same function in stock 5.2.4 built with `clang -arch arm64 -O2`. An instruction-by-instruction
+comparison with that reference build then checked each candidate.
 
 The functions the library calls, in the order of `enum a7x_fn`:
 
-| Function | Offset | Size | How it was confirmed |
+| Function | Offset | Size | How the analysis confirmed it |
 | --- | --- | --- | --- |
 | `lua_checkstack` | `0x5499cc` | `0xd8` | Same instructions as the reference apart from register choice; reads `top` at 0x10, `ci` at 0x20, `stack_last` at 0x30 and `stack` at 0x38, the stock layout |
 | `lua_settop` | `0x549b80` | `0xb8` | 46 instructions, as in the reference; only relocated loads differ. `Infinity_Log` calls it with -2 after `lua_pcallk`, which is `lua_pop(L, 1)` |
@@ -64,23 +64,23 @@ trip through Lua exactly.
 **`Infinity_Log` keeps at most 4084 characters of a message** and cuts the rest, with no sign of the
 cut. Measured in the session logs: every party-check sprite dump, in all three Phase 3 runs that wrote
 one and in the run of 2026-11-14, ends at exactly 4084 characters after `LUA: `. The inspector's lines stay
-under 4000 (`A7XJSON.MAX_LINE` in `mod/inspector/lib/a7xjson.lua`), and the dump is written in
-512-byte lines.
+under 4000 (`A7XJSON.MAX_LINE` in `mod/inspector/lib/a7xjson.lua`), and the party check writes
+the dump in 512-byte lines.
 
 **The message window's color markup is `^0x`, eight hex digits as `0xAABBGGRR`, the text, then
 `^-`**: alpha, then blue, green and red. The format string `^%#010x%s^-` in the binary gives the
-shape, as BG2EE-GameLog found; the order of the bytes was settled by the Data API manual test of
-2026-11-14, in which colors written as `0xAARRGGBB` showed with red and blue swapped (light blue as
+shape, as BG2EE-GameLog found; the Data API manual test of 2026-11-14 settled the order of the
+bytes: colors written as `0xAARRGGBB` showed with red and blue swapped (light blue as
 gold, red as blue).
 
 ## Globals
 
 The globals and the code that anchors each:
 
-| Global | Offset | Anchor | How it was found |
+| Global | Offset | Anchor | How the analysis found it |
 | --- | --- | --- | --- |
 | The engine's `lua_State*` | `0x35d7478` | `0x335440`, `0x20` bytes: the start of the `Infinity_*` registration function, whose `adrp x21`/`add #0x478` at `+0x10` load it | Every registration in that function passes `[x21]` as `L` (ADR-0005) |
-| `g_pBaldurChitin` | `0x35d70d0` | `0x2140c`, `0x2c` bytes: the whole tolua getter | The string `"g_pBaldurChitin"` (`0x63dbad`) is passed to a tolua variable binding at `0x18e34` with getter `0x2140c`; the getter loads `[0x1035d70d0]` and pushes it as a `"CBaldurChitin"` userdata. This is the object behind the game's Lua global `e` |
+| `g_pBaldurChitin` | `0x35d70d0` | `0x2140c`, `0x2c` bytes: the whole tolua getter | A tolua variable binding at `0x18e34` takes the string `"g_pBaldurChitin"` (`0x63dbad`), with getter `0x2140c`; the getter loads `[0x1035d70d0]` and pushes it as a `"CBaldurChitin"` userdata. This is the object behind the game's Lua global `e` |
 
 | The object array | `0x35d8360` | `0x1ae26c`, `0x74` bytes: the whole lookup function, whose `adrp` loads encode the array and its bounds at `0x35d8352` and `0x35d8354` | The lookup `Infinity_UpdateLuaStats` calls with a party member's id (`deno task re annotate 0x3391e0`); its layout is under [Engine structures](#engine-structures) |
 
@@ -105,8 +105,8 @@ arm64, measured with `offsetof` on the vendored source:
 ## Redoing this after a game update
 
 A new build gets a new `LC_UUID`, so the library disables itself until `builds.h` has an entry for it.
-`deno task re` reads the installed game's arm64 slice and does each step below; addresses can be given
-image-relative (`0x5499cc`) or absolute (`0x1005499cc`), and output is image-relative, as in
+`deno task re` reads the installed game's arm64 slice and does each step below; it takes addresses
+image-relative (`0x5499cc`) or absolute (`0x1005499cc`), and its output is image-relative, as in
 `builds.h`. Its subcommands, in the order the steps use them (written once, in `src/re/commands.ts`;
 `deno task test` fails when this table differs from it):
 
@@ -149,11 +149,11 @@ image-relative (`0x5499cc`) or absolute (`0x1005499cc`), and output is image-rel
 
 ## Engine structures
 
-The structures the walker follows. Most were found in the engine function that fills `characters[id]` for
-the record screen (`0x2e24c8`, about 32 KB, called by `Infinity_UpdateLuaStats` at `0x3391e0` with
-the selected party member's sprite) or in code it calls. That function reads exactly the fields an
-inspector needs, so its loads give the arm64 offsets directly; `deno task re annotate 0x2e24c8` shows
-each `characters` key next to the load that feeds it. The areas were found from the console's
+The structures the walker follows. The analysis found most of them in the engine function that fills
+`characters[id]` for the record screen (`0x2e24c8`, about 32 KB, called by `Infinity_UpdateLuaStats`
+at `0x3391e0` with the selected party member's sprite) or in code it calls. That function reads exactly
+the fields an inspector needs, so its loads give the arm64 offsets directly;
+`deno task re annotate 0x2e24c8` shows each `characters` key next to the load that feeds it. The areas came from the console's
 `ExploreArea` and the engine code that compares an object's area with the one on screen. Offsets are
 sprite-relative unless stated:
 
@@ -167,16 +167,16 @@ sprite-relative unless stated:
 | Object array slots | 16 bytes each from `0x35d8360`: `u16` generation at `+0`, pointer at `+8`; an empty slot has generation `0xffff` | the lookup `0x1ae26c`: an id's high 16 bits (masked to 15) are the slot, its low 16 bits the generation, which must match |
 | Object array bounds | `int16` at `0x35d8350` (capacity), `0x35d8352` (highest slot in use), `0x35d8354` (next generation, from 2000) | the lookup, and the functions that add (`0x1ae3xx`) and clear (`0x1aeb1x`) objects |
 | Object type | `u8` at `+0x8`; a sprite is `0x31` | ten engine sites compare it with `0x31` |
-| Object id | `int32` at `+0x48` | `Infinity_UpdateLuaStats` sets the Lua global `id` from it; `characters` is keyed by it |
-| Object area | `CGameArea*` at object `+0x18` | `deno task re area-fields`: 14 engine sites compare it with the area on screen, among them `0x86824` and `0xc3254`; no other field more than 2. In the creature list's runs every party member's matched it, in both areas, and creatures seen on screen were listed by it |
+| Object id | `int32` at `+0x48` | `Infinity_UpdateLuaStats` sets the Lua global `id` from it; it is the key of `characters` |
+| Object area | `CGameArea*` at object `+0x18` | `deno task re area-fields`: 14 engine sites compare it with the area on screen, among them `0x86824` and `0xc3254`; no other field more than 2. In the creature list's runs every party member's matched it, in both areas, and the list picked out the creatures seen on screen by it |
 | EA | `u8` at `+0x38`: the EA byte of the `CAIObjectType` at `+0x30` | the party check's sprite dumps (2026-11-13): the only offset in the first 2 KB of all six party sprites that reads 2, the EA of a PC. Read statically from the type-matching code at `0x3f2xx`, the candidates were `+0x30` and `+0x78`, and the `.cre` header's EA at `+0x7c8` was a third; in the game they read other values for the party, and the header byte read 224 for every member |
 | Stats blocks | `m_derivedStats` at `+0x1120`, `m_tempStats` at `+0x1dc0` (`0xca0` bytes each); `int32` at `+0x4e8c` (`m_bAllowEffectListCall`) non-zero means derived is current | the THAC0 code picks between them on that flag, the rule EEex follows |
 | Each stat by `STATS.IDS` number | `CDerivedStats::GetAtOffset`, `0x7cd50`: ids 1 to 33 are `int16` at `2 * (id + 1)`, so `MAXHITPOINTS` `+0x4`, `ARMORCLASS` `+0x6`, the AC mods `+0x8` to `+0xe`, `THAC0` `+0x10`, saves `+0x14` to `+0x1c`, resistances `+0x1e` to `+0x32` (names as in IESDP's BG:EE `STATS.IDS`); id 151, `HITBONUS`, is `int16` at `+0x1f4` | `deno task re stats 0x7cd50` decodes all 202 from the getter's jump table |
-| `.cre` resref | 8 bytes, NUL-padded, at `+0x540`: the file the creature was made from | `0x2d7e88`, called by `CLUAConsole::CreateCreature` with the resref right after construction, stores it there; the spawn check (2026-11-13) found every spawned creature by it, in two sessions |
+| `.cre` resref | 8 bytes, NUL-padded, at `+0x540`: the file the engine made the creature from | `0x2d7e88`, called by `CLUAConsole::CreateCreature` with the resref right after construction, stores it there; the spawn check (2026-11-13) found every spawned creature by it, in two sessions |
 | Base header | the creature's `.cre` header from file offset 0 at `+0x558`: name strref `+0x560` (file `0x08`), current HP `int16` `+0x57c` (file `0x24`), base saves `u8` `+0x5ac` (file `0x54`) | `characters[id].HP.current` and the save texts read these. The spawn check compared the engine's copy with the file for eight spawned creatures, straight after spawning: 37 to 66 of the header's `0x2d4` bytes differ. The first 8 (the signature) hold `ff ff ff ff ff ff ff 7f`; from `0x270` (the file's EA and other IDS bytes) on, most of the rest differ, so the engine uses that part otherwise: its `0x270` read 224, as the party check found at sprite `+0x7c8`. Between, only the colors at `0x2c` to `0x32` differ, in three of the eight |
 | THAC0 as shown | `derived[+0x10] - int32[+0x1204] - selected[stat 151, HITBONUS]`, or `0` when the weapon slot (`u8` `+0x10f8`, item pointers from `+0xfc0`) is empty | `characters[id].THAC0.current` |
 | Name | strref `+0x560`, through `Infinity_FetchString`; when it is `-1`, the engine string at `+0x3910` (a `char*`) | the name branch and `0x2b0434` |
-| Saves in `characters[]` | text only, in `characters[id].proficiencies.savingThrows`: one line per save, death to spell, such as `Paralysis / Poison / Death: -4 (-7)`: the save as shown, then in brackets, only when it is not 0, how far that is from the base save. The code that builds it makes the shown save 4 better under `STATE_IMPROVEDINVISIBILITY`; no party member had that state in the party check's runs | the format and keys from `0x2e694c` on; the key is set while `proficiencies` is on top of the Lua stack (`Stats` is popped before it), which the party check's logged keys confirm |
+| Saves in `characters[]` | text only, in `characters[id].proficiencies.savingThrows`: one line per save, death to spell, such as `Paralysis / Poison / Death: -4 (-7)`: the save as shown, then in brackets, only when it is not 0, how far that is from the base save. The code that builds it makes the shown save 4 better under `STATE_IMPROVEDINVISIBILITY`; no party member had that state in the party check's runs | the format and keys from `0x2e694c` on; the code sets the key while `proficiencies` is on top of the Lua stack (it pops `Stats` first), which the party check's logged keys confirm |
 
 **Spawned creatures against their files** (the spawn check, 2026-11-13): for creatures whose `.cre`
 has no items and no effects, the walker's max HP, AC modifiers, THAC0, saves, resistances, magic
@@ -187,8 +187,8 @@ by the party, a neutral creature read EA 255, and the dead read HP 0 and stay in
 
 **`C:CreateCreature(resref)`**, the console object's spawn, works from a script loaded with
 `Infinity_DoFile`: `CLUAConsole::CreateCreature` (`0x1304e4`, bound at `0x1bc64`) checks the
-`.cre` exists, builds the creature in the area on screen, and it can be read straight away. In the
-spawn check's first run the creatures appeared east of the party.
+`.cre` exists, builds the creature in the area on screen, and the walker can read it straight away.
+In the spawn check's first run the creatures appeared east of the party.
 
 **The portrait under the pointer** is not in engine memory but in `ui.menu`'s Lua: the global
 `mouseOverPortrait`, set to the portrait's slot, 0 to 5, by each portrait button's `actionEnter` and
@@ -228,7 +228,7 @@ linked lists walked from a creature whose elements the engine tests against cons
   is part 2.
 - **The list at sprite `+0x4cb0` is not effects:** the record screen builds `statusEffects` from it
   (`0x2e3cc8`), reading each element's first field as 32 bits, where an effect object holds a
-  pointer. In the game's Lua, `characters[id].statusEffects` is keyed by icon number, each entry
+  pointer. In the game's Lua, `characters[id].statusEffects` has icon numbers for keys, each entry
   `{ bam, current, strRef }`; an icon can also come from an opcode other than 142 (icon 92,
   "Spell Sequencer Active", with Spell Sequencer).
 

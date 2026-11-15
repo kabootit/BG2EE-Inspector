@@ -6,9 +6,9 @@ description: "Three refactors in the spawn check's verifier: one statement per f
 # Reading data back: the format as data, not as statements
 
 A learning piece from the spawn check (`src/verify/spawn.ts`). The examples are three small
-functions that read the game's log and files back into named values, but the same shapes turn up wherever
-structured lines are read back: telemetry, test output, any `key=value` record format. The lesson is
-general: when a function repeats one operation for a list of things, or picks one of several
+functions that read the game's log and files back into named values, but the same shapes turn up
+wherever a program reads structured lines back: telemetry, test output, any `key=value` record
+format. The lesson is general: when a function repeats one operation for a list of things, or picks one of several
 operations by name, the list or the names are data, and the code should say so.
 
 - **Example 1**, the fields of one line: one statement per field becomes a table of fields.
@@ -111,20 +111,20 @@ function creatureValues(rest: string): SpawnedCreature | null {
 - **The format reads as a table.** `LISTS` is the line format, key by key, in the order the Lua side
   writes it. Checking the parser against `a7xspawn.lua` means reading two lists side by side, not
   tracing statements. A reader sees at a glance that `saves` fills five fields and `thac0` one.
-- **One operation is written once.** The split-and-name step exists in one place, so a fix or a change
+- **One operation appears once.** The split-and-name step exists in one place, so a fix or a change
   to it (trimming spaces, say) applies to every field. In the "before" version, each of the five
   copies could drift on its own: one forgetting `?? ""`, one splitting on the wrong character.
 - **Adding a field is adding a row.** When the check grows a field, the change is one line of data
-  beside its neighbours, and a reviewer sees exactly what was added. Before, it was a new statement
+  beside its neighbours, and a reviewer sees exactly what it adds. Before, it was a new statement
   whose shape depended on which of the three patterns the author copied.
 - **One-value keys stop being special.** `thac0`, `mr` and `ea` are lists of one field. The "before"
   version handled them with their own `set` calls, a third pattern that only existed because the
-  general one had not been named.
-- **The map is built, not mutated.** `values` is one expression from its inputs. Nothing assigns to it
-  later, so there is no order of statements to get wrong and no half-filled state to reason about.
+  code had not yet named the general one.
+- **The code builds the map instead of mutating it.** `values` is one expression from its inputs.
+  Nothing assigns to it later, so there is no order of statements to get wrong and no half-filled state to reason about.
 - **Smaller fixes come along.** Destructuring (`const [id, ...words]`) replaces `words[0]` and
-  `words.slice(1)`; `indexOf("=")` is computed once per word instead of twice; `max = ""` gives the
-  default where the value is declared instead of where it is used.
+  `words.slice(1)`; the parser computes `indexOf("=")` once per word instead of twice; `max = ""`
+  gives the default where the code declares the value instead of where it uses it.
 
 The behaviour is unchanged, which is what made this a safe refactor: the existing tests in
 `test/verify/spawn_test.ts` pass untouched, and `deno task verify` judges both real spawn-check logs
@@ -175,7 +175,7 @@ export function parseSpawns(log: string): SpawnRun[] {
 }
 ```
 
-The grouping and the four kinds are interleaved in one loop body: to find what a `header` line does,
+One loop body interleaves the grouping and the four kinds: to find what a `header` line does,
 a reader has to read past the matching, the run bookkeeping and two other branches, and to see which
 kinds exist at all, scan the chain for its `kind ===` tests.
 
@@ -219,18 +219,19 @@ export function parseSpawns(log: string): SpawnRun[] {
 ### Why this is better
 
 - **The loop says what it does in three steps**: match the line, find its run, hand the rest to its
-  kind. The grouping can be read without reading any kind, and a kind without the grouping.
-- **The kinds are listed in one place.** `KINDS` names every kind of line the check writes, each with
-  its own parsing next to its name, so it can be read against `a7xspawn.lua`'s header comment, which
+  kind. A reader can follow the grouping without reading any kind, and a kind without the grouping.
+- **One place lists the kinds.** `KINDS` names every kind of line the check writes, each with its own
+  parsing next to its name, so a reader can check it against `a7xspawn.lua`'s header comment, which
   lists the same four.
-- **A new kind is a new entry**, not a new branch threaded into a chain. A misspelled kind is still
-  silently ignored, as it was before, but the spellings now sit together as keys, where a reader
+- **A new kind is a new entry**, not a new branch threaded into a chain. The parser still silently
+  ignores a misspelled kind, as before, but the spellings now sit together as keys, where a reader
   checking them against the Lua side sees them all at once.
 - **Unknown kinds need no code.** `KINDS[kind]?.(...)` ignores a kind with no entry, which the chain
   did by falling off its end; now the rule is visible in one expression.
 
-Behaviour is again unchanged: an unknown kind is still ignored, and a line of an unknown kind still
-creates its run, because the run is looked up before the kind is dispatched. The tests pass untouched
+Behaviour is again unchanged: the parser still ignores an unknown kind, and a line of an unknown kind
+still creates its run, because the loop looks up the run before it dispatches the kind. The tests pass
+untouched
 and both spawn-check logs judge as before.
 
 ## Example 3: the values a file gives
@@ -261,8 +262,8 @@ export function fileValues(cre: Creature, dexAc: number): Map<string, string> {
 }
 ```
 
-Nothing here is parsed twice; the repetition is smaller: every line is `v.set(..., String(...))`, and
-the two loops are a third and fourth way of writing the same assignment. What varies, the field and
+This function parses nothing twice; the repetition is smaller: every line is
+`v.set(..., String(...))`, and the two loops are a third and fourth way of writing the same assignment. What varies, the field and
 where its value comes from, sits inside the repeated boilerplate.
 
 ### After
@@ -293,18 +294,18 @@ export function fileValues(cre: Creature, dexAc: number): Map<string, string> {
 - **The rules stand out.** `ac` is the only row with arithmetic, so the Dexterity rule is visible
   at a glance instead of being one `String(...)` among twelve; `mr` reading the file's magic
   resistance is likewise one plain row.
-- **The value is built, not mutated**, as in the other two examples: one expression, no half-filled
-  map.
+- **The code builds the value instead of mutating it**, as in the other two examples: one
+  expression, no half-filled map.
 
-Unlike example 1's `LISTS`, this table cannot be a constant: each row reads from `cre`, so it is
-built per call. That costs nothing that matters for a handful of creatures. Behaviour is unchanged:
-the tests pass untouched, and both spawn-check logs judge as before, 96 fields equal in each.
+Unlike example 1's `LISTS`, this table cannot be a constant: each row reads from `cre`, so the
+function builds it per call. That costs nothing that matters for a handful of creatures. Behaviour
+is unchanged: the tests pass untouched, and both spawn-check logs judge as before, 96 fields equal in each.
 
 ## Where the pattern stops paying
 
-In example 1, HP is deliberately not in the table. Its separator is `/` rather than `,`, and only its maximum is
-compared while the current value is kept as written for the report. Folding it in would mean a
-separator column and a way to mark a part as not compared: two new concepts in the table to serve one
+In example 1, HP is deliberately not in the table. Its separator is `/` rather than `,`, and the
+comparison uses only its maximum, keeping the current value as written for the report. Folding it
+in would mean a separator column and a way to mark a part as not compared: two new concepts in the table to serve one
 row. A table earns its place when its rows are alike; the honest move is to keep the one real
 exception explicit, beside the table, with a comment saying why.
 

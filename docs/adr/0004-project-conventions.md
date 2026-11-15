@@ -2,7 +2,7 @@
 type: ADR
 id: "0004"
 title: "One docs folder, enforced rules, MIT"
-description: "Conventions adapted from the Tranquil projects and BG2EE-GameLog live in one in-repo docs folder, are enforced by lint:docs, lint:security and a committed Claude Code deny list, and the project is MIT with issues and pull requests disabled."
+description: "Conventions adapted from the Tranquil projects and BG2EE-GameLog live in one in-repo docs folder; lint:docs, lint:security and a committed Claude Code deny list enforce them; the project is MIT with issues and pull requests disabled."
 status: active
 date: 2026-11-01
 ---
@@ -14,11 +14,11 @@ date: 2026-11-01
 ## References
 
 - [docs/README.md](../README.md): the index of every rule and document.
-- [Step 0 delivery note](../notes/2026-11-01-setup.md): what was built.
+- [Step 0 delivery note](../notes/2026-11-01-setup.md): what Step 0 built.
 
 ## Context
 
-The project will be developed over time and published. Two existing sets of conventions were available:
+The project will grow over time and go public. Two existing sets of conventions were available:
 
 - **The Tranquil projects:**
   - rules, a docs skill, ADR and delivery-note templates;
@@ -32,8 +32,8 @@ An open-source repo has to be self-contained: outside readers cannot reach a sib
 ## Decision
 
 **All conventions live in this repo: rules in `docs/rules/`, ADRs in `docs/adr/`, plans in `docs/plans/`,
-delivery notes in `docs/notes/`, manual tests in `docs/manual-tests/`, skills in `.claude/skills/`. Mechanical rules are enforced by linters and
-a committed Claude Code settings file. The license is MIT.**
+delivery notes in `docs/notes/`, manual tests in `docs/manual-tests/`, skills in `.claude/skills/`. Linters and a
+committed Claude Code settings file enforce the mechanical rules. The license is MIT.**
 
 - **Taken from Tranquil:**
   - the rule-file shape (rule, why, how to apply);
@@ -49,11 +49,11 @@ a committed Claude Code settings file. The license is MIT.**
   - the deny list is advisory, since it matches command prefixes.
 - **Git:** commits only when asked, no AI attribution, one branch. The repo has issues and pull requests
   disabled, so there is no contributing guide. It starts private and becomes public when ready.
-- **Plans are saved in the project,** unlike Tranquil's out-of-repo plans folder, so the reasoning travels
+- **Plans live in the project,** unlike Tranquil's out-of-repo plans folder, so the reasoning travels
   with the code.
 - **Manual tests are pages of their own** (added at the hook gate, the first test too long for a chat message):
-  undated pages in `docs/manual-tests/`, each with a Runs table, because the same test is run again after
-  fixes and game updates. Delivery notes link them instead of repeating the steps.
+  undated pages in `docs/manual-tests/`, each with a Runs table, because the tester runs the same test
+  again after fixes and game updates. Delivery notes link them instead of repeating the steps.
 
 ## Options considered
 
@@ -62,13 +62,14 @@ a committed Claude Code settings file. The license is MIT.**
   need two repos, and symlinks out of the repo break for outside readers.
 - **Written rules only, no deny list** (Tranquil's model): not taken; a backstop for installs, and a
   confirmation prompt for push, is cheap.
-- **Denying push outright**: tried first, then moved to the ask list, because a denied push also blocks a
-  push that was explicitly requested.
+- **Denying push outright**: tried first, then moved to the ask list, because a denied push also blocks an
+  explicitly requested push.
 - **GPL-3.0**: not taken; MIT matches the Tranquil projects and is common for game tooling.
 
 ## Consequences
 
-- Tranquil-specific material (Electron, the website registry, sibling-repo symlinks) is not carried over.
-- New rules are added as files in `docs/rules/`, linked from `docs/README.md` and `CLAUDE.md`.
+- The project leaves Tranquil-specific material (Electron, the website registry, sibling-repo symlinks)
+  behind.
+- Each new rule becomes a file in `docs/rules/`, linked from `docs/README.md` and `CLAUDE.md`.
 - Re-evaluate the deny list if it blocks a legitimate, approved operation; adjust the list rather than
   bypass it.

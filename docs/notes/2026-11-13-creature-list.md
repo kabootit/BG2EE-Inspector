@@ -9,14 +9,14 @@ description: "The walker lists every creature in the area on screen: the object 
 > [foundation plan](../plans/2026-11-01-inspector-foundation.md), on `initial/07-walker`, as planned in
 > the [creature list plan](../plans/2026-11-13-creature-list.md). It builds on the
 > [party walker](2026-11-13-party-walker.md); the evidence for every offset is in
-> [docs/re-notes.md](../re-notes.md#engine-structures). Terms such as walker are defined in
-> [docs/README.md](../README.md#terms).
+> [docs/re-notes.md](../re-notes.md#engine-structures). [docs/README.md](../README.md#terms) defines
+> terms such as walker.
 
 ## Status
 
 **Manual test passed.** The walker lists the creatures in the area on screen, the whole party among
-them, and groups them by EA. Not yet committed; four commits are planned, as in the plan's order of
-work, plus the record.
+them, and groups them by EA. Not yet committed; the plan's order of work calls for four commits, plus
+the record.
 
 | Piece | State |
 | --- | --- |
@@ -31,11 +31,11 @@ work, plus the record.
 
 The party check proved the walker on the party. Showing enemy stats needs the walker to find the other
 creatures first: the engine's object array holds every object of every loaded area, so the list keeps
-the sprites whose area is the one on screen. The two offsets this needed, a creature's area and the
-area on screen, were found in plan mode from the console's `ExploreArea` and the engine sites that
-compare the two. Proving enemy values themselves is left to the spawn harness.
+the sprites whose area is the one on screen. Plan mode found the two offsets this needed, a
+creature's area and the area on screen, from the console's `ExploreArea` and the engine sites that
+compare the two. Proving enemy values themselves falls to the spawn harness.
 
-## What was built
+## What shipped
 
 ### Code
 
@@ -66,11 +66,12 @@ The pages added or changed:
 
 - **The object array is sparse and spans every loaded area.** The first run scanned 2,109 slots for 67
   objects, 31 of them sprites, and listed 10; the second scanned 2,520 slots for 96 objects, 29
-  sprites, and listed 8. Without the area filter, creatures from areas off screen would be listed.
+  sprites, and listed 8. Without the area filter, the list would include creatures from areas off
+  screen.
 - **A new area takes a new entry.** The area on screen was entry 0, then entry 1 after the area
-  change, so the index has to be read each time, not assumed to be 0.
-- **The game's Lua has no `os.clock`.** Both runs logged `ms=-`, so the scan's time in the game is not
-  known; no stutter was reported. Timing it would need the native library or the game's own clock.
+  change, so the walker has to read the index each time, not assume 0.
+- **The game's Lua has no `os.clock`.** Both runs logged `ms=-`, so the scan's time in the game remains
+  unknown; the tester reported no stutter. Timing it would need the native library or the game's own clock.
 - **One id per creature for the session.** The party had the same six ids in both runs, in both
   areas.
 
@@ -97,12 +98,12 @@ Run on 2026-11-13:
   | 2 (20:48) | `AR4500`, index 1 | 2,520 slots, 96 objects, 29 sprites | the party of six (friendly); Cespenar and Sarevok (neutral, EA 128) | 15 of 15 ok |
 
   The tester named Illasera and three Black Reavers from step 3; all four are in run 1's list, as
-  hostile. No problems in play were reported.
+  hostile. The tester reported no problems in play.
 
 ### Still to check by hand
 
 1. **A creature that is dead, invisible or charmed**: none was in either list, so how each appears
-   (listed or not, and in which group) is not yet known. The spawn harness can set these up.
+   (listed or not, and in which group) remains unknown. The spawn harness can set these up.
 
 ## Follow-ups
 

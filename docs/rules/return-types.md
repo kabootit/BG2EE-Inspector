@@ -1,12 +1,12 @@
 # Return types
 
 **Every function states its return type: every `function` declaration and method, and every exported
-function, arrow functions included. Nothing is typed `any`.**
+function, arrow functions included. Nothing has the type `any`.**
 
 **Why:** an inferred return type follows the body. Change the body and the type changes with it, and
 every caller takes the new shape without a line anywhere that says so. A stated type is a contract
-the body is checked against, and a reader sees the shape at the signature instead of working it out
-from the code. Code review of `src/game/tp2.ts` (2026-11-14) found what inference had let through: a
+the type checker holds the body to, and a reader sees the shape at the signature instead of working it
+out from the code. Code review of `src/game/tp2.ts` (2026-11-14) found what inference had let through: a
 callback whose arguments were `any`, so the group a `\1` stood for was `any`, and an optional regexp
 group typed `string` that was `undefined` whenever the keyword was absent. The same reasoning as the
 [central schemas](../learnings/2026-11-14-central-schemas.md): a shape written down once, at the
@@ -23,8 +23,8 @@ boundary, is where drift is caught.
 - **Absence is in the type.** A value that can be missing is `T | undefined` (or `| null`, as the API
   it comes from has it), never a `T` that is sometimes not there. Shape the code so the type can be
   honest, as `(EVALUATE_BUFFER\s+|)` matches an empty string rather than leaving a group unset.
-- **Inline callbacks** take their types from where they are passed, such as `.map` on a typed array,
-  and need nothing more. Type their parameters when that source is loose: `String.replace`'s
+- **Inline callbacks** take their types from the call that receives them, such as `.map` on a typed
+  array, and need nothing more. Type their parameters when that source is loose: `String.replace`'s
   callback receives the match, each group, an offset and the whole text, so its rest parameter is
   `unknown[]`, not `any[]`.
 - **TypeScript only.** Lua has no type annotations, and the C prototypes in `native/` already state

@@ -9,19 +9,20 @@ duration: "about 10 minutes, 6 of them in the game"
 
 This session checks the walker against the engine itself. For every party member, the walker reads
 name, HP, AC and its four modifiers, THAC0 and the five saves from game memory, and the check script
-compares each with `characters[id]`, the table the engine fills for the record screen. The EA, which
-`characters[id]` does not hold, is compared with 2, a PC, which every party member is. The project
-shows no enemy stats until every value matches (the [gate](../README.md#terms) for Phase 3). What the
-walker reads and where each offset comes from: [docs/re-notes.md](../re-notes.md#engine-structures).
+compares each with `characters[id]`, the table the engine fills for the record screen. The script
+compares the EA, which `characters[id]` does not hold, with 2, a PC, which every party member is.
+The project shows no enemy stats until every value matches (the [gate](../README.md#terms) for
+Phase 3). What the walker reads and where each offset comes from: [docs/re-notes.md](../re-notes.md#engine-structures).
 
-The walker's Lua (`a7xoff.lua`, `a7xwalk.lua`), the JSON writer (`a7xjson.lua`) and the check script
-(`a7xchk.lua`) are copied into the game's `override/` folder for the session; the WeiDU component that
-installs them for good comes in Phase 4. In the game, the only thing typed is `Infinity_DoFile("a7xchk")`, which loads and runs them.
-Results go to the session log; the game shows only a one-line summary when the check is done.
+The tester copies the walker's Lua (`a7xoff.lua`, `a7xwalk.lua`), the JSON writer (`a7xjson.lua`)
+and the check script (`a7xchk.lua`) into the game's `override/` folder for the session; the WeiDU
+component that installs them for good comes in Phase 4. In the game, the tester types only
+`Infinity_DoFile("a7xchk")`, which loads and runs them. Results go to the session log; the game shows
+only a one-line summary when the check finishes.
 
 ## Before you start
 
-- **The game is closed.** `play` starts it.
+- **The game is not running.** `play` starts it.
 - **The repo is in the state to test.** Committed or not; the run tests the local working tree, and
   the Runs row notes the latest commit and whether there were local changes.
 - **`Debug Mode` is 1** in `Baldur.lua`, so Ctrl+Space opens the Lua console in a loaded game.
@@ -34,7 +35,7 @@ Results go to the session log; the game shows only a one-line summary when the c
     test/lua/a7xchk.lua "$G/override/"
   ```
 
-  They are removed again at the end (step 6).
+  Step 6 removes them again at the end.
 - **A save with a party of two or more**, in a quiet place: no fight, nobody about to cast a spell,
   so the engine has nothing to recompute between the record screen's reading and the walker's.
 - **About 10 minutes.**
@@ -61,7 +62,7 @@ Results go to the session log; the game shows only a one-line summary when the c
    Infinity_DoFile("a7xchk")
    ```
 
-   The message window, above the console, shows one line when the check is done, such as
+   The message window, above the console, shows one line when the check finishes, such as
    `A7X party check 1: 6 members, 120 fields equal, 0 differ, 0 skipped (details in the session log)`,
    or `A7X party check 1 could not run: <reason>`. No line means the script did not load: check that
    the four files are in `override/`.
@@ -91,8 +92,8 @@ The walker only reads, so nothing should differ from normal play. Stop and quit 
 - stutter, or a freeze right after running the check;
 - a crash.
 
-Then report what you saw and at which step. If the check was run before every record screen was
-opened, run it again after opening them: `deno task verify` judges only the latest run.
+Then report what you saw and at which step. If the check ran before the tester opened every record
+screen, run it again after opening them: `deno task verify` judges only the latest run.
 
 ## Pass criteria
 
@@ -106,7 +107,7 @@ Say "done" when step 7 has printed its result. The run passes when:
 | No Lua errors | the session log | no `LUA ERROR` line |
 
 A `DIFF` is a finding, not only a failure: the delivery note records the field, both values, and the
-stats block the walker read (`block` on the member's `walk` line), before anything is fixed.
+stats block the walker read (`block` on the member's `walk` line), before any fix.
 
 ## Runs
 
@@ -116,7 +117,7 @@ that records it.
 | Date | Commit | Result | Delivery note |
 | --- | --- | --- | --- |
 | 2026-11-13 | `c823b3c` | Failed: name, HP, AC and THAC0 equal for all six members; every save `nil` on the engine side (the save text was not at the top level of `characters[id]`); neither EA candidate read 2 for the party | [Party walker](../notes/2026-11-13-party-walker.md) |
-| 2026-11-13 | `c823b3c`, local changes | Failed, as planned for evidence: the sprite dumps put the EA at `+0x38` for all six members; the save text was still not found | [Party walker](../notes/2026-11-13-party-walker.md) |
+| 2026-11-13 | `c823b3c`, local changes | Failed, as planned for evidence: the sprite dumps put the EA at `+0x38` for all six members; the check still did not find the save text | [Party walker](../notes/2026-11-13-party-walker.md) |
 | 2026-11-13 | `c823b3c`, local changes | Failed: EA equal for all six; the save text found in `proficiencies` and logged, but read as "base (shown)", the wrong way round | [Party walker](../notes/2026-11-13-party-walker.md) |
 | 2026-11-13 | `c823b3c`, local changes | Passed: 6 members, 120 fields, all equal; `0x38` the only offset reading 2 in every dump; summary line shown in the game | [Party walker](../notes/2026-11-13-party-walker.md) |
 | 2026-11-14 | `bc17e13`, local changes (JSON lines) | Failed: 6 members, 120 fields, all equal, `ea` ok for all; the list of offsets reading 2 missing, because the game's log cut every one-line sprite dump at 4084 characters and `verify` skipped the cut lines without a word | [Data API](../notes/2026-11-14-data-api.md) |
@@ -124,14 +125,14 @@ that records it.
 
 ### Changes to this test
 
-Each change to the steps or pass criteria after the first run, so a Runs row can be read against the
-version of the test it was judged by.
+Each change to the steps or pass criteria after the first run, so a reader can match a Runs row to
+the version of the test that judged it.
 
-| Date | Commit | What changed | Runs before it were judged against |
+| Date | Commit | What changed | Criteria for runs before it |
 | --- | --- | --- | --- |
 | 2026-11-13 | the commit that adds the save text and sprite dumps to the check | Pass criteria: a third EA candidate, the `.cre` header's EA (`ea_cre=`), and `deno task verify`'s list of offsets that read 2 in every party member's sprite; the check also logs the keys of `characters[id]` and the save text it parses | two EA candidates, both of which read other values for the party in the first run |
-| 2026-11-13 | the same commit, after the second run | The walker reads EA at `+0x38`, the offset the second run's dumps found, and the check compares it (every party member is a PC, 2); the save text is read from `characters[id].proficiencies` | three EA candidates, and save text looked for at the top level of `characters[id]` |
+| 2026-11-13 | the same commit, after the second run | The walker reads EA at `+0x38`, the offset the second run's dumps found, and the check compares it (every party member is a PC, 2); the check reads the save text from `characters[id].proficiencies` | three EA candidates, and save text looked for at the top level of `characters[id]` |
 | 2026-11-13 | the same commit, after the third run | The check reads each save line as the third run logged it: the shown save, then, only when not 0, its difference from the base, so the base is the first number less the second | each line read as "base (shown)", which only parsed when a modifier was present, and then as the wrong values |
-| 2026-11-13 | the same commit, before the fourth run | Step 4: the check shows a one-line summary in the message window when it is done | no acknowledgement in the game; the result was visible only in the session log |
-| 2026-11-14 | the commit that writes the checks' lines as JSON | Before you start and the last steps: `a7xjson.lua`, the JSON writer, is copied and removed with the others; the script writes its lines as JSON defined in `src/model/schemas.ts`, which `deno task verify` checks, and its evidence lines (`A7XWALK`, `A7XDUMP`) became `walk` and `dump` lines of `A7XCHECK` | three files copied, and lines written as text |
-| 2026-11-14 | the same commit, after the first run with JSON lines | The sprite dump is written as four `dump` lines of 512 bytes, each with its offset: the game's log cuts a message after 4084 characters, which cut every one-line dump; `deno task verify` reports a line cut short instead of skipping it | the dump in one line, which the log cut, and which `verify` then skipped without a word, so the list of offsets reading 2 was missing |
+| 2026-11-13 | the same commit, before the fourth run | Step 4: the check shows a one-line summary in the message window when it finishes | no acknowledgement in the game; the result was visible only in the session log |
+| 2026-11-14 | the commit that writes the checks' lines as JSON | Before you start and the last steps: the tester copies and removes `a7xjson.lua`, the JSON writer, with the others; the script writes its lines as JSON defined in `src/model/schemas.ts`, which `deno task verify` checks, and its evidence lines (`A7XWALK`, `A7XDUMP`) became `walk` and `dump` lines of `A7XCHECK` | three files copied, and lines written as text |
+| 2026-11-14 | the same commit, after the first run with JSON lines | The check writes the sprite dump as four `dump` lines of 512 bytes, each with its offset: the game's log cuts a message after 4084 characters, which cut every one-line dump; `deno task verify` reports a line cut short instead of skipping it | the dump in one line, which the log cut, and which `verify` then skipped without a word, so the list of offsets reading 2 was missing |

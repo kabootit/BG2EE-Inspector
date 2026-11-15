@@ -5,13 +5,13 @@ change runs `deno task lint:docs` first and then the `docs-review` skill.**
 
 **Why:** each unit of work documents itself in one place, in step with the code, and the linter decides
 everything decidable so review time goes to what it cannot catch (a stale example, a table that omits
-half its subject, a verification section that implies more was exercised than was).
+half its subject, a verification section that implies the tests exercised more than they did).
 
 ## How to apply
 
 - **Page types** and their templates are in the `docs-review` skill's `references/page-types.md`: guide,
   ADR, plan, delivery note, rule.
-- **Fix only findings on the pages being changed.**
+- **Fix only findings on the pages the change touches.**
 - **Diagrams** are Mermaid fences: rendered and looked at before committing (VS Code preview or GitHub),
   vertical layouts, quoted labels, no braces in labels.
 - **Reference docs change with their source**, in the same change (`docs/data-model.md` with
@@ -30,8 +30,8 @@ half its subject, a verification section that implies more was exercised than wa
 
 ## Plans
 
-Work starts in plan mode. An approved plan is saved as `docs/plans/YYYY-MM-DD-topic.md` with the H1
-`# Plan: …`, and edited in place until pushed. It holds Context with "Decisions made (date)",
+Work starts in plan mode. Save an approved plan as `docs/plans/YYYY-MM-DD-topic.md` with the H1
+`# Plan: …`, and edit it in place until pushed. It holds Context with "Decisions made (date)",
 Deliverables, the design, Verification, and an order of work that ends with asking before any commit or
 remote change.
 
@@ -39,10 +39,10 @@ remote change.
 
 After each discrete effort (each step or phase), write `docs/notes/YYYY-MM-DD-<topic>.md` (dated like
 plans, so the folder sorts by time; `lint:docs` checks the name) with frontmatter
-`title` and `description`: a lede linking the ADR and the plan, Status (a piece-by-piece table), Plan
-summary, What was built, Gotchas worth remembering, Verification (what was run, with counts, and a
-numbered "still to check by hand" list, which links the manual test when there is one), and Follow-ups. It
-never claims more verification than happened.
+`title` and `description`: a lede linking the ADR and the plan, then the sections "Status" (a
+piece-by-piece table), "Plan summary", "What shipped", "Gotchas worth remembering", "Verification"
+(what ran, with counts, and a numbered "still to check by hand" list, which links the manual test when
+there is one) and "Follow-ups". It never claims more verification than happened.
 
 ## Learnings
 
@@ -54,14 +54,15 @@ It quotes real code from the repository, and never claims a benefit the change d
 
 ## Manual tests
 
-A manual test longer than a few steps is written up in `docs/manual-tests/<slug>.md` and linked from
-[docs/manual-tests/README.md](../manual-tests/README.md). It is undated, because it is run again after
-fixes and game updates. Frontmatter `type: manual-test`, `title`, `description` and `duration`; the H1
-`# Manual test: <title>`; then Before you start, Steps (each with how long it takes and what it shows),
-What to watch for, Pass criteria (what output decides the result, and where to read it), and Runs, a
-table that gains a row per execution: date, commit, result and the delivery note holding the evidence.
+Write up a manual test longer than a few steps in `docs/manual-tests/<slug>.md` and link it from
+[docs/manual-tests/README.md](../manual-tests/README.md). It is undated, because the tester runs it
+again after fixes and game updates. Frontmatter `type: manual-test`, `title`, `description` and
+`duration`; the H1 `# Manual test: <title>`; then Before you start, Steps (each with how long it takes
+and what it shows), What to watch for, Pass criteria (what output decides the result, and where to read
+it), and Runs, a table that gains a row per execution: date, commit, result and the delivery note
+holding the evidence.
 A page always describes the current code: a change to its steps or pass criteria updates it in the same
-commit and adds a row to its Changes to this test table, and Runs rows are never edited
+commit and adds a row to its Changes to this test table, and no change ever edits a Runs row
 ([docs/manual-tests/README.md](../manual-tests/README.md#when-a-test-changes)). `lint:docs` checks the
 name, frontmatter, heading, sections and registration.
 

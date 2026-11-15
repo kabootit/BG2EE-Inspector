@@ -10,12 +10,12 @@ if it grows a convenience grant. BG2EE-GameLog's audit found and closed exactly 
 ## How to apply
 
 - **Scoped Deno permissions.** Every `--allow-*` flag names its paths, hosts or binaries (`--allow-read=.`,
-  `--allow-run=/usr/bin/ditto`); never bare, never `-A`. Binaries are named by absolute path, in
+  `--allow-run=/usr/bin/ditto`); never bare, never `-A`. Name binaries by absolute path, in
   `--allow-run` and in code (`BIN` in `src/shared/config.ts`), so a directory earlier in `PATH` cannot
   stand in for them. The one other form is a binary this repo builds, named by its repo-relative path
   under `./build/` (the test runners), which `PATH` cannot shadow either; an absolute repo path would
   put a home directory in `deno.json`. `lint:security` checks every task.
-- **The native library is read-only.**
+- **The native library stays read-only.**
   - Reads go through `mach_vm_read_overwrite`, so a bad pointer returns an error instead of crashing.
   - No memory-write call (`mach_vm_write`, `vm_protect` and similar) and no access to other processes.
   - No `mprotect` at all. The one hook is dyld interposing, limited to the functions in
@@ -23,17 +23,17 @@ if it grows a convenience grant. BG2EE-GameLog's audit found and closed exactly 
   - The only engine code it calls is the game's own Lua API functions in `ALLOWED_ENGINE_CALLS`, named
     through `builds.h`'s `A7X_FN_` enum, each one hash-checked before the first call (ADR-0005).
   - `lint:security` checks `native/` for all of this.
-- **Raw reads stay private.** The native functions are hidden from other mods once the inspector loads;
+- **Raw reads stay private.** The inspector hides the native functions from other mods once it loads;
   external mods get only the public data API (Phase 4).
 - **Fail closed.** An unknown game build, any site whose bytes do not hash as `builds.h` expects, or a
   failed read while deciding whether Lua is idle, disables the inspector rather than guessing.
 - **Bind loopback only** for any local server, and **redact** the Steam account id and home paths at the
   point of capture, never as a cleanup pass.
-- **Ask before executing anything not shipped here.** Downloaded files are checked against a pinned
-  SHA-256 before use, and nothing is installed without asking (see [toolchain.md](toolchain.md)).
-- **Licensing.** Code, headers and data files from EEex and InfinityLoader are never copied, vendored or
-  generated from: those repos have no license. Offsets are derived independently and the sources
-  credited. MIT sources such as BG2RadarOverlay may be adapted with attribution.
+- **Ask before executing anything not shipped here.** Check downloaded files against a pinned
+  SHA-256 before use, and install nothing without asking (see [toolchain.md](toolchain.md)).
+- **Licensing.** Never copy, vendor or generate from code, headers and data files from EEex and
+  InfinityLoader: those repos have no license. Derive offsets independently and credit the sources.
+  The project may adapt MIT sources such as BG2RadarOverlay, with attribution.
 - **Say when something is advisory.** The committed deny list in `.claude/settings.json` matches command
   prefixes and is a backstop, not a sandbox; the written rules are the control.
 - **Run the checks.** `deno task lint:security` after any change to code, tasks or settings, and the

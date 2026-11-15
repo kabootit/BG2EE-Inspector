@@ -2,7 +2,7 @@
 type: ADR
 id: "NNNN"
 title: "Short decision title"
-description: "One or two sentences on what was decided and why, for anyone skimming the index."
+description: "One or two sentences on what the project decided and why, for anyone skimming the index."
 status: proposed
 date: YYYY-MM-DD
 ---
@@ -20,11 +20,11 @@ Copy this file to `NNNN-slug.md`, fill it in, and add it to [the ADR index](READ
 
 ## Context
 
-The problem, the forces at play, and what is true today. Facts that were checked say how.
+The problem, the forces at play, and what is true today. For each checked fact, say how the check ran.
 
 ## Decision
 
-**What was decided, in one or two sentences.**
+**State the decision in one or two sentences.**
 
 Detail in `###` subsections as needed.
 

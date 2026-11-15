@@ -1,7 +1,7 @@
 ---
 type: manual-test
 title: "Under the pointer"
-description: "One play session with the inspector's Lua copied into override/: A7X.show() typed in the console with the pointer left over a creature, a party member, empty ground, a door or container, and each portrait. Confirms that CGameArea +0x244 holds the creature under the pointer and that portrait slot N is party slot N, before the hotkey is built on them."
+description: "One play session with the inspector's Lua copied into override/: A7X.show() typed in the console with the pointer left over a creature, a party member, empty ground, a door or container, and each portrait. Confirms that CGameArea +0x244 holds the creature under the pointer and that portrait slot N is party slot N, before the hotkey builds on them."
 duration: "about 10 minutes, 7 of them in the game"
 ---
 
@@ -9,18 +9,19 @@ duration: "about 10 minutes, 7 of them in the game"
 
 This session checks API 1.1's `A7X.hovered` and `A7X.portrait` ([docs/api.md](../api.md)) in the game,
 through `A7X.show()` with no argument, the call the hotkey will make. The creature under the pointer
-comes from the id the engine keeps in the area on screen at `CGameArea +0x244`; that offset was found
-by tallying the game's code (`deno task re id-fields`), so only the game can confirm it. The portrait
+comes from the id the engine keeps in the area on screen at `CGameArea +0x244`; `deno task re id-fields`
+found that offset by tallying the game's code, so only the game can confirm it. The portrait
 comes from `mouseOverPortrait`, which stock `ui.menu` sets to 0 to 5 while the pointer is over a
 portrait; the run confirms portrait N shows party slot N.
 
-There is no hotkey yet: `A7X.show()` is typed in the Ctrl+Space console while the pointer rests where
-the step says. The keyboard types; the mouse does not move until the next step. The inspector's six
-Lua files are copied into `override/` for the session, as for the [Data API](api.md) test.
+There is no hotkey yet: the tester types `A7X.show()` in the Ctrl+Space console while the pointer
+rests where the step says. The keyboard types; the mouse does not move until the next step. The tester
+copies the inspector's six Lua files into `override/` for the session, as for the [Data API](api.md)
+test.
 
 ## Before you start
 
-- **The game is closed.** `play` starts it.
+- **The game is not running.** `play` starts it.
 - **The repo is in the state to test.** Committed or not; the run tests the local working tree, and
   the Runs row notes the latest commit and whether there were local changes.
 - **`Debug Mode` is 1** in `Baldur.lua`, so Ctrl+Space opens the Lua console in a loaded game.
@@ -33,7 +34,7 @@ Lua files are copied into `override/` for the session, as for the [Data API](api
     mod/inspector/lib/a7xjson.lua mod/inspector/lib/a7xfmt.lua mod/inspector/lib/a7xapi.lua "$G/override/"
   ```
 
-  They are removed again at the end (step 9).
+  Step 9 removes them again at the end.
 - **A save with a creature outside the party, and a door or container, in view** in the lower half of
   the screen, where the console does not cover them. Pausing is fine; the game can stay paused
   throughout.
@@ -59,8 +60,8 @@ Lua files are copied into `override/` for the session, as for the [Data API](api
 5. **A party member on the ground** (1 minute). The same, with the pointer on a party member's
    figure in the area, not a portrait.
 6. **Empty ground** (1 minute). The same, with the pointer on ground with nothing on it. Expect the
-   line starting `[A7X] point at a creature or a portrait`; note it if a creature is shown instead,
-   and which.
+   line starting `[A7X] point at a creature or a portrait`; if a creature shows instead, note it, and
+   which.
 7. **A door or container** (1 minute). The same, with the pointer on a door or a container until it
    highlights. Expect `[A7X] not a creature`; note whatever else appears.
 8. **The portraits** (2 minutes). The same, with the pointer on the first portrait, then the last, then
@@ -107,9 +108,9 @@ steps 6 and 7 showed. The run passes when:
 | Every record matches the schema | `deno task verify` | `verify: data passed`, every line a schema-1 record, one for each record shown |
 | No Lua errors | the session log | no `LUA ERROR` line |
 
-Steps 6 and 7 are recorded, not judged: they settle what the engine keeps at `+0x244` when the pointer
-is on no creature. If step 6 shows a creature, the field keeps the last id, and the hotkey's design
-changes before it is built.
+The run records steps 6 and 7 without judging them: they settle what the engine keeps at `+0x244`
+when the pointer is on no creature. If step 6 shows a creature, the field keeps the last id, and the
+hotkey's design changes before the project builds it.
 
 ## Runs
 

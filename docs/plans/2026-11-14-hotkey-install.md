@@ -16,8 +16,8 @@ last part.
 ## Analysis done in plan mode (read-only)
 
 From the arm64 slice with `deno task re`, a scratchpad disassembly, and `ui.menu` read from
-`data/Patch2.bif` (there is no `ui.menu` in `override/` on this install). Each fact is confirmed by the
-manual test before `docs/re-notes.md` records it.
+`data/Patch2.bif` (there is no `ui.menu` in `override/` on this install). The manual test confirms each
+fact before `docs/re-notes.md` records it.
 
 | What | Finding | Evidence |
 | --- | --- | --- |
@@ -25,7 +25,7 @@ manual test before `docs/re-notes.md` records it.
 | The portrait under the pointer | the global `mouseOverPortrait`: the portrait's slot, 0 to 5, while the pointer is over it, -1 otherwise | stock `ui.menu`: each portrait button sets it in `actionEnter` and resets it in `actionExit` |
 | A key handler in `ui.menu` | a button with `on '<key>'` and no `area` | the stock character-creation screen binds `on '8'` this way |
 | Where the key button goes | the `WORLD_ACTIONBAR` menu, open throughout play | its name appears once in `ui.menu`; it opens `WORLD_MESSAGES`, so output appears where the player looks |
-| Where `a7x` is loaded | after `combatLog = {}`, as BG2EE-GameLog loads its tap | one instance in `ui.menu`; GameLog inserts after the same line, and both patches leave it in place, so either may install first |
+| Where `ui.menu` loads `a7x` | after `combatLog = {}`, as BG2EE-GameLog loads its tap | one instance in `ui.menu`; GameLog inserts after the same line, and both patches leave it in place, so either may install first |
 
 Still to establish in the game: whether the world screen hands `e` to `ui.menu` at all (it may take
 the key itself), whether `+0x244` holds the creature under the pointer while the player presses a key,
@@ -39,8 +39,8 @@ The tester could see only one-line summaries of the work: about 110 one-off Deno
 temporary folder, most of them file edits, and the analyses behind the last two findings among them.
 Three practices, adopted from now on and written into the rules:
 
-- **File changes go through the Edit tool**, so each appears in the chat as a diff. A script is used
-  only for an edit too large or repetitive for it, and then named with its path when it runs.
+- **File changes go through the Edit tool**, so each appears in the chat as a diff. Use a script only
+  for an edit too large or repetitive for it, and then name it with its path when it runs.
 - **Analysis whose results the docs cite becomes project tooling**, tested, as `deno task re` became
   in Phase 3. Two new subcommands, both decoding the arm64 slice's instruction bytes as the other
   `re` tools do (`src/re/fields.ts`, with `cmp` and `movz` added to `src/re/arm64.ts`), so the tests
@@ -52,7 +52,7 @@ Three practices, adopted from now on and written into the rules:
 
   `docs/re-notes.md` cites them as the way to re-check each finding after a game update.
 - **One-off scripts stay in the scratchpad**, each named with its full path and its purpose when it
-  runs, so any of them can be opened.
+  runs, so the tester can open any of them.
 
 Written into `docs/rules/working-together.md` and summarized in `CLAUDE.md`. A learning note,
 `docs/learnings/2026-11-14-visible-work.md`, records the problem, what the Claude Code documentation
@@ -80,7 +80,7 @@ Adapted from BG2EE-GameLog's `gamelog.tp2`:
   `PATCH_FAIL` unless it occurs exactly once; then `REPLACE_TEXTUALLY`:
   - after `combatLog = {}`: `Infinity_DoFile("a7x")`;
   - after `name "WORLD_ACTIONBAR"`: `button { on 'e' action "A7X.show()" }`, the key from a tp2
-    variable (`a7x_key`, `e` by default) so it is set in one place.
+    variable (`a7x_key`, `e` by default) so one place sets it.
 - `BACKUP ~inspector/backup~`, so `--uninstall` restores `ui.menu` exactly.
 - The developer test component (`A7XT`) stays out of this part.
 
@@ -90,8 +90,8 @@ Adapted from BG2EE-GameLog's `gamelog.tp2`:
   `inspector/backup/` survives (GameLog's `copyTree()`).
 - Runs the project's own WeiDU (`vendor/weidu/weidu`, from `deno task setup-weidu`), after checking its
   SHA-256 against the pinned one, as `weidu --game <game folder> inspector/inspector.tp2
-  --force-install 0 --language 0 --no-exit-pause` with the game folder as working directory; no
-  `setup-*` binary is copied or borrowed. `--uninstall` runs `--force-uninstall 0`.
+  --force-install 0 --language 0 --no-exit-pause` with the game folder as working directory; it
+  copies or borrows no `setup-*` binary. `--uninstall` runs `--force-uninstall 0`.
 - Permissions: read and write the game folder's `inspector/`, read the game folder, run only
   `./vendor/weidu/weidu`. WeiDU itself writes `override/` and `WeiDU.log`, as it does for any mod;
   ADR-0003 already accepts it as trusted once its hash matches.
@@ -104,9 +104,9 @@ Adapted from BG2EE-GameLog's `gamelog.tp2`:
   slot, -1, no portrait global), `A7X.show()` choosing portrait, then creature, then usage; the fake
   game gains `+0x244`.
 - Deno: the WeiDU arguments for install and uninstall; the copy keeps an existing `backup/`; a wrong
-  WeiDU hash refuses before anything runs; no WeiDU tells the user to run `setup-weidu`.
+  WeiDU hash refuses before anything runs; with no WeiDU, the task says to run `setup-weidu`.
 - A tp2 test: each anchor in the tp2 occurs exactly once in the game's `ui.menu` (a real-data test,
-  skipped when the game is not installed), so a game update that moves an anchor fails here first.
+  skipped on a machine without the game), so a game update that moves an anchor fails here first.
 
 ### Docs
 
@@ -133,7 +133,7 @@ Adapted from BG2EE-GameLog's `gamelog.tp2`:
 
 - `deno task lint` on every commit, `lint:security` covering the new task's permissions.
 - `security-audit` before the install: the first time the project writes into the game folder through
-  WeiDU; the backup and the uninstall are checked by the manual test.
+  WeiDU; the manual test checks the backup and the uninstall.
 - **Manual test `hotkey.md`**, run by the tester on the local tree.
 
 ## Order of work
@@ -146,9 +146,10 @@ Commits on `initial/08-output`, each passing `deno task lint`, messages shown fi
    finds `+0x18` and `+0x244` in the installed game; `docs/re-notes.md` cites them.
 4. `area.picked`, `A7XWALK.picked`, API 1.1 (`hovered`, `portrait`, `show()`), their tests and
    `docs/api.md`; then the manual test [Under the pointer](../manual-tests/pointer.md), `A7X.show()`
-   typed in the console, settles `+0x244` and the portrait slots before anything is built on them.
+   typed in the console, settles `+0x244` and the portrait slots before any later step builds on them.
 5. `mod/inspector/inspector.tp2` and its anchor test.
 6. `deno task install-mod` and its tests.
 7. The manual test page and the other docs.
 
-Then the tester runs the manual test; I draft the record for review, and commit and push on request.
+Then the tester runs the manual test, and the assistant drafts the record for review and commits and
+pushes on request.

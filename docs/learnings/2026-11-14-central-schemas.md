@@ -15,8 +15,8 @@ and consumer that share a data format across a language or process boundary.
 
 ## The drift found in review
 
-The public record (`A7XDATA`) was already safe: its TypeScript type was inferred from a Zod schema,
-and a golden file tied the Lua that writes it to that schema. The three checks were not. Each wrote
+The public record (`A7XDATA`) was already safe: Zod inferred its TypeScript type from a schema, and
+a golden file tied the Lua that writes it to that schema. The three checks were not. Each wrote
 its own text format, and each format lived in three places:
 
 - the **Lua script** that wrote it (`test/lua/a7xchk.lua`, `a7xlist.lua`, `a7xspawn.lua`);
@@ -39,8 +39,8 @@ The resistances are ten numbers by position. The Lua side wrote them in the walk
 const WALKER_RESISTS = CRE_RESISTANCES.filter((r) => r !== "magic");
 ```
 
-which is true today, and stated nowhere a test could check. Reorder either list and every
-resistance would be compared with the wrong one, with both sides' tests still green.
+which is true today, and stated nowhere a test could check. Reorder either list and `verify` would
+compare every resistance with the wrong one, with both sides' tests still green.
 
 The types beside the parsers were no better anchored:
 
@@ -65,8 +65,8 @@ uses (`a7xjson.lua`); here shortened:
 A7XSPAWN	{"ac":{"crushing":0,"missile":0,"piercing":0,"slashing":0,"value":6},"block":"derived","ea":128,"hp":{"cur":34,"max":34},"id":143067270,"kind":"creature","mr":66,"resist":{"acid":0,"cold":0,...},"resref":"DADROW8","run":2,...}
 ```
 
-Every shape is defined once, in one file, `src/model/schemas.ts`, as a Zod schema; each check's lines
-are a discriminated union on `kind`, and every type is inferred from its schema:
+One file, `src/model/schemas.ts`, defines every shape once, as a Zod schema; each check's lines are a
+discriminated union on `kind`, and Zod infers every type from its schema:
 
 ```ts
 export const SpawnLine = z.discriminatedUnion("kind", [
@@ -128,9 +128,9 @@ Before the change, the TypeScript side described the game's data in five files, 
 
 Ten hand-written types and nine regular expressions, each a separate statement of what some line
 looks like. After it, every data shape is in `src/model/schemas.ts`, in one order: shared pieces, the
-record, then one section per check, then the run types built from them. No line type is written by
-hand: each is inferred from its schema, and the run types are composed only of inferred line types
-and plain values. The verify modules import their shapes and define none.
+record, then one section per check, then the run types built from them. No one writes a line type by
+hand: Zod infers each from its schema, and the run types combine only inferred line types and plain
+values. The verify modules import their shapes and define none.
 
 What a single source of truth gives:
 
@@ -140,9 +140,9 @@ What a single source of truth gives:
   Lua script, a regular expression, a type and a test file, and the type described the parser's
   output (every value a string) rather than the data.
 - **No copy to drift from.** A type cannot disagree with its schema, because there is no second
-  statement of it; a field added to a schema appears in the type at once, everywhere it is used.
-- **Shared parts are shared, not repeated.** `SAVES`, `RESISTS`, `Hp` and `integers` are defined once
-  and used by the record and the spawn line alike, so "the ten resistances" means the same names in
+  statement of it; a field added to a schema appears in the type at once, everywhere code uses it.
+- **Shared parts have one definition, not copies.** `schemas.ts` defines `SAVES`, `RESISTS`, `Hp` and
+  `integers` once, and the record and the spawn line both use them, so "the ten resistances" means the same names in
   every shape that has them. Before, the record listed them in `schema.ts` and the spawn check derived
   its own order in `spawn.ts`, from the `.cre` reader's list.
 - **Changes have one starting point, and the compiler finds the rest.** A data change begins in one
@@ -165,12 +165,12 @@ No single mechanism covers a format shared across two languages; each of these c
 | --- | --- | --- |
 | A type and its schema | inference | every type is `z.infer` of a schema; there is no second copy to drift |
 | The Lua writer and the schema | golden files, checked from both sides | `test/fixtures/a7xcheck.txt`, `a7xlist.txt`, `a7xspawn.txt` and `a7xdata.txt` hold what the Lua writes for the fake game; each Lua test requires exactly those lines, and `test/model/schemas_test.ts` requires every one to pass its schema |
-| The schema and the code that judges it | exhaustive `switch` | a new kind is a compile error until it is handled |
-| The schema and the docs | tests over the docs | the record's prose spec and its generated JSON Schema are compared with the Zod schema |
+| The schema and the code that judges it | exhaustive `switch` | a new kind is a compile error until a case handles it |
+| The schema and the docs | tests over the docs | the tests compare the record's prose spec and its generated JSON Schema with the Zod schema |
 | A real session and all of the above | `deno task verify` | any line that does not match its schema fails the run, naming its log line |
 
 The golden file is the piece that reaches across the language boundary. Neither side can see the
-other's code, but both can be held to the same bytes.
+other's code, but tests can hold both to the same bytes.
 
 ## What the types showed during the change itself
 
@@ -206,9 +206,9 @@ const m = raw.trimEnd().match(LINE);
 if (!m) continue;
 ```
 
-A malformed line, a renamed field or a new line kind was silently dropped, and the run was judged
-without it. Now `parseLines` reports every line that fails its schema, with its log line number, and
-`deno task verify` fails the run. A format change that one side forgot is a failure at the first run,
+The parser silently dropped a malformed line, a renamed field or a new line kind, and `verify`
+judged the run without it. Now `parseLines` reports every line that fails its schema, with its log
+line number, and `deno task verify` fails the run. A format change that one side forgot is a failure at the first run,
 not a quiet gap in the evidence.
 
 ## How the code review changed assumptions back to the plans
@@ -218,8 +218,8 @@ already worked and had passed its tests and its manual tests, in this order:
 
 1. **How is the record's schema enforced?** Earlier the same day, a question about the public record
    ("TypeScript? SQL?") showed that the Phase 4 plan's hand-written TypeScript guard would leave the
-   type, the check and a JSON Schema as three things to keep in step. Zod replaced it before the code
-   was written.
+   type, the check and a JSON Schema as three things to keep in step. Zod replaced it before any of
+   that code existed.
 2. **Is there a more declarative way to write this?** Three readability questions about the spawn
    check's verifier (`creatureValues`, `parseSpawns`, `fileValues`) led to the refactors in
    [the earlier learning note](2026-11-14-declarative-line-parsing.md): tables of fields and line
@@ -238,21 +238,21 @@ Each answer overturned an assumption an approved plan had made:
 | [Creature list](../plans/2026-11-13-creature-list.md) and [spawn harness](../plans/2026-11-13-spawn-harness.md) plans | the same text-line pattern, carried over | the same JSON lines and schemas |
 | [Data API plan](../plans/2026-11-14-data-api.md) | a hand-written TypeScript guard and types | Zod, decided before implementation |
 
-Why did the assumptions survive until then? Each plan was reviewed on its own, and each was
-internally sound: a text line and a regex is a reasonable way to read a log. The duplication only
-appears when the Lua that writes a line and the TypeScript that reads it are read side by side, and no
-single plan or file put them side by side. The third check reused the pattern because the first two
+Why did the assumptions survive until then? Each plan had its own review, and each was internally
+sound: a text line and a regex is a reasonable way to read a log. The duplication only appears with
+the Lua that writes a line and the TypeScript that reads it open side by side, and no single plan or
+file put them side by side. The third check reused the pattern because the first two
 had worked.
 
 What to take from it:
 
-- **Read code across the boundary it crosses.** A format shared by two programs is reviewed properly
-  only with both programs open.
+- **Read code across the boundary it crosses.** Only a review with both programs open covers a
+  format two programs share.
 - **Treat an approved plan's mechanisms as revisable.** A plan fixes goals and decisions; its choice of
-  mechanism is a starting point, to be replaced when the code shows a better one. The plans here are
-  left as they were approved and pushed; this note and ADR-0006 record what replaced their mechanisms.
+  mechanism is a starting point, open to replacement when the code shows a better one. The plans here
+  stay as approved and pushed; this note and ADR-0006 record what replaced their mechanisms.
 - **Small questions find large problems.** Each review question was about one function's
-  readability or one type's location; the structural problem was found by following them.
+  readability or one type's location; following them found the structural problem.
 
 ## What the first run in the game found
 
@@ -266,7 +266,7 @@ the list of offsets that read 2 in every sprite dump, one of its pass criteria, 
 
 The game's log keeps at most 4084 characters of an `Infinity_Log` message and drops the rest without
 a sign. That was not new. The Phase 3 logs show every text-format dump cut at the same length, about
-2032 of its 2048 bytes; the old regular expression matched whatever hex was left, the search ran on
+2032 of its 2048 bytes; the old regular expression matched whatever hex remained, the search ran on
 the shorter dumps, and nobody noticed. (The EA at `+0x38` lies well inside what survived, so no Phase 3
 conclusion changes.)
 
@@ -274,14 +274,14 @@ Two lessons, one about each side of the boundary:
 
 - **A strict format makes a silent limit loud, but only if the reader is strict about where a line
   ends.** The first `parseLines` took the JSON to be everything between the first `{` and the last
-  `}`. A cut line has no last `}`, so it matched nothing and was skipped, exactly as the regular
-  expressions had skipped malformed lines. Now everything from the first brace is the JSON, so a cut
-  line fails to parse, is reported with its log line, and fails the run. Running the new `verify` on
+  `}`. A cut line has no last `}`, so it matched nothing and the parser skipped it, exactly as the
+  regular expressions had skipped malformed lines. Now everything from the first brace is the JSON,
+  so a cut line fails to parse, `parseLines` reports it with its log line, and it fails the run. Running the new `verify` on
   that session's log reports all six cut lines.
 - **The writer should refuse what the channel cannot carry.** `A7XJSON.line(prefix, value)`, now the
   one function every Lua writer uses, returns no line and a reason when the line would be longer than
-  4000 characters, so a line is written whole or replaced by an error line, never cut. The dump is
-  written in 512-byte lines, each with its offset, which `verify` places back at their offsets.
+  4000 characters, so each line reaches the log whole or an error line takes its place, never cut.
+  The dump goes out in 512-byte lines, each with its offset, which `verify` places back at their offsets.
 
 Moving every writer onto the shared `A7XJSON.line` also showed why a single source needs care inside
 Lua: the function first looked itself up through the global `A7XJSON`, which the public API clears
@@ -292,13 +292,13 @@ Some limits only show in the real engine: the fake game in the tests had no log 
 the strict format is that when the real run meets such a limit, it fails with a line number instead
 of passing with less evidence.
 
-## A result: the data flow could be drawn
+## A result: a diagram of the data flow
 
 With every shape in one file, a question asked right after the change, whether an architecture
 document could show the data flow from the schemas to every output, had a short answer. The
 [Data flow](../architecture.md#data-flow) section of `docs/architecture.md` now has two diagrams:
 the path of a line from game memory through the Lua writers, the JSON writer and the log to
-`deno task verify`, and how every part is tied to `src/model/schemas.ts`, each arrow labelled with
+`deno task verify`, and how every part ties back to `src/model/schemas.ts`, each arrow labelled with
 what enforces it. A table gives each prefix's writer, schema, golden file and reader.
 
 That was only possible because there was one place to draw from. Before, the same diagram would have
@@ -306,16 +306,17 @@ had five sources of truth on the TypeScript side alone, and the honest version o
 map of where they could disagree. Drawing it also showed how stale the old picture was: the page's
 runtime diagram showed only the record's JSON, named `a7x_api.lua` (the file is `a7xapi.lua`), and
 described `src/model/` as "schema-1 types and guard". A single source of truth makes the
-architecture of the data something that can be written down once and checked, instead of rediscovered
-by reading every file.
+architecture of the data something to write down once and check, instead of rediscovering it by
+reading every file.
 
 ## What it costs
 
-- **Logs from earlier runs can no longer be judged.** The Phase 3 manual tests' session logs are text;
-  their results stay recorded in the delivery notes, and test results were never meant to be replayed.
-- **One more file in the game for each check**: the JSON writer is copied into `override/` with the
-  walker for every check session.
+- **`verify` can no longer judge logs from earlier runs.** The Phase 3 manual tests' session logs are
+  text; their results stay recorded in the delivery notes, and the project never intended to replay
+  test results.
+- **One more file in the game for each check**: the tester copies the JSON writer into `override/`
+  with the walker for every check session.
 - **Longer lines.** JSON repeats its keys; for a log read by programs, that is cheap.
 - **Golden files to regenerate.** A deliberate change to what a script writes means regenerating its
-  golden file and reviewing the difference. That review is the point: it is where a format change is
-  seen by a person before either side depends on it.
+  golden file and reviewing the difference. That review is the point: it is where a person sees a
+  format change before either side depends on it.

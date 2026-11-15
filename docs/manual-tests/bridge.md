@@ -16,17 +16,17 @@ functions themselves: [ADR-0002](../adr/0002-read-only-bridge-lua-walker.md#nati
 
 The calls come from a test script, `test/lua/a7xt.lua`, copied into the game's `override/` folder for
 the session. The debug console opens only in a loaded game, does not accept pasted text, and takes
-one line at a time, so the only thing typed is `Infinity_DoFile("a7xt")`, which loads and runs the
+one line at a time, so the tester types only `Infinity_DoFile("a7xt")`, which loads and runs the
 script; BG2EE-GameLog loads its tap the same way. Each run of the script writes numbered `A7XT` lines
 to the session log; nothing appears on screen.
 
 ## Before you start
 
-- **The game is closed.** `play` starts it.
+- **The game is not running.** `play` starts it.
 - **The repo is in the state to test.** Committed or not; the run tests the local working tree, and
   the Runs row notes the latest commit and whether there were local changes.
 - **`Debug Mode` is 1** in `Baldur.lua`, so Ctrl+Space opens the Lua console in a loaded game.
-  `deno task doctor` reports it; edit it only while the game is closed.
+  `deno task doctor` reports it; edit it only while the game is not running.
 - **The test script is in the game's `override/` folder.** From the repo folder:
 
   ```sh
@@ -34,7 +34,7 @@ to the session log; nothing appears on screen.
   cp test/lua/a7xt.lua "$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition/override/"
   ```
 
-  It is removed again at the end (step 7).
+  Step 7 removes it again at the end.
 - **A save to load**, in an area with an exit nearby. The bridge changes nothing, and the session needs
   no saving.
 - **About 10 minutes.**
@@ -59,10 +59,10 @@ to the session log; nothing appears on screen.
    Infinity_DoFile("a7xt")
    ```
 
-   This is run 1.
+   This makes run 1.
 4. **Play, 2 minutes.** Walk around; open the inventory once.
 5. **Change area** through an exit or a building door, then run the script again the same way
-   (1 minute). This is run 2.
+   (1 minute). This makes run 2.
 6. **Quit from the game's own menu**, not with Ctrl+C. `play` prints its summary and exits.
 7. **Remove the test script**, and the `override/` folder if it is now empty:
 
@@ -90,7 +90,7 @@ the evidence.
 
 ## Pass criteria
 
-Say "done" when `play` has exited. The newest `logs/session-<stamp>.log` is then read for the
+Say "done" when `play` has exited. Then read the newest `logs/session-<stamp>.log` for the
 library's lines, which start with `A7X`, and the script's, which the engine writes inside its own log
 lines (`… INFO: LUA: A7XT 1 native table`). To see both: `grep 'A7X' logs/session-<stamp>.log`.
 
@@ -111,9 +111,10 @@ The run passes when every line below appears as described, for both runs of the 
 | A bad kind | `A7XT 1 badkind nil` | `nil` |
 | The script finished | `A7XT 1 done ok` | `ok`, not `error …` |
 
-The `u8` and `i32` lines are recorded, not judged: they are the first bytes of the same object.
+The run records the `u8` and `i32` lines without judging them: they are the first bytes of the same
+object.
 
-One more value is recorded but is not a pass condition. EEex's headers describe `CBaldurChitin` as a
+The run records one more value that is not a pass condition. EEex's headers describe `CBaldurChitin` as a
 class with virtual functions, so its first 8 bytes should be a vtable pointer. Then the `vtable` value
 minus the image address from the build line falls in `__DATA_CONST,__const` (`0x74c440` to `0x791db0`),
 the only constant section of the game that holds pointers. If it does, that is evidence `Root` returns
@@ -126,16 +127,16 @@ that records it.
 
 | Date | Commit | Result | Delivery note |
 | --- | --- | --- | --- |
-| 2026-11-06 | `37cccc3` | Incomplete: the console opens only in a loaded game and takes no pasted text, so the typed steps could not be followed; the build check and registration passed | [Bridge](../notes/2026-11-06-bridge.md) |
+| 2026-11-06 | `37cccc3` | Incomplete: the console opens only in a loaded game and takes no pasted text, so the tester could not follow the typed steps; the build check and registration passed | [Bridge](../notes/2026-11-06-bridge.md) |
 | 2026-11-06 | `37cccc3`, revised test uncommitted | Incomplete: run 1 passed every check after loading a save; the party died before the area change | [Bridge](../notes/2026-11-06-bridge.md) |
 | 2026-11-06 | `20cfac2` | Passed: both runs of the script, after loading and after an area change | [Bridge](../notes/2026-11-06-bridge.md) |
 
 ### Changes to this test
 
-Each change to the steps or pass criteria after the first run, so a Runs row can be read against the
-version of the test it was judged by; the delivery notes hold the exact lines each run logged.
+Each change to the steps or pass criteria after the first run, so a reader can match a Runs row to
+the version of the test that judged it; the delivery notes hold the exact lines each run logged.
 
-| Date | Commit | What changed | Runs before it were judged against |
+| Date | Commit | What changed | Criteria for runs before it |
 | --- | --- | --- | --- |
-| 2026-11-06 | `20cfac2` | Steps: the four functions are called by `test/lua/a7xt.lua`, loaded with `Infinity_DoFile`, in a loaded game, instead of typed console lines at the main menu | the first run tried the typed steps |
+| 2026-11-06 | `20cfac2` | Steps: `test/lua/a7xt.lua`, loaded with `Infinity_DoFile`, calls the four functions in a loaded game, instead of typed console lines at the main menu | the first run tried the typed steps |
 | 2026-11-06 | `44365b0` | Pass criteria: the build line counts every site (14 from Phase 3) and `Version` reports the current native API version (2 from Phase 3) | 13 sites and version 1, the Phase 2 values |

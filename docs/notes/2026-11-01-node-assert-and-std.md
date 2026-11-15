@@ -1,6 +1,6 @@
 ---
 title: "node:assert versus the Deno standard library: Delivery Notes"
-description: "Why the tests import node:assert/strict rather than jsr:@std/assert: node: modules are built into the deno executable as its Node compatibility layer, while the standard library is a set of versioned JSR packages fetched on first use. Checked three ways (an empty cache with downloads blocked, the executable's contents, Deno's documentation), including a contradicting AI search summary."
+description: "Why the tests import node:assert/strict rather than jsr:@std/assert: the deno executable carries node: modules as its Node compatibility layer, while the standard library is a set of versioned JSR packages that Deno fetches on first use. Checked three ways (an empty cache with downloads blocked, the executable's contents, Deno's documentation), including a contradicting AI search summary."
 ---
 
 # node:assert versus the Deno standard library: Delivery Notes
@@ -11,14 +11,14 @@ description: "Why the tests import node:assert/strict rather than jsr:@std/asser
 
 ## Status
 
-**Answered and verified; no code changed.** The Step 0 choice stands on checked facts and is kept: the
+**Answered and verified; no code changed.** The Step 0 choice stands on checked facts and stays: the
 tests stay on `node:assert/strict`.
 
 | Question | Answer |
 | --- | --- |
 | Why `node:assert/strict` instead of Deno's own testing approach? | The tests do use Deno's approach (`Deno.test`, `deno test`); only the assertion functions come from `node:assert/strict`, because Deno has no built-in assertion module and `@std/assert` is a download |
 | Is `node:assert/strict` really inside the deno executable? | Yes, verified three ways |
-| Then is the standard library inside it too? | No; it is fetched from jsr.io on first use |
+| Then is the standard library inside it too? | No; Deno fetches it from jsr.io on first use |
 | Why the difference? | Deno's docs give no reason; the reading below is an inference |
 | Switch to `@std/assert`? | No; decided 2026-11-01 to keep `node:assert/strict` |
 
@@ -31,11 +31,12 @@ import { deepStrictEqual, strictEqual } from "node:assert/strict";
 ```
 
 and asked why a Deno project uses a Node module instead of Deno's default testing approach. The answer
-depended on a claim made from memory, that `node:assert` ships inside the Deno binary. That claim was then
-challenged twice: directly, and with an AI search summary that stated the opposite. This note records how
-each claim was checked, so the answer rests on evidence rather than on which source sounded surer.
+depended on a claim made from memory, that `node:assert` ships inside the Deno binary. Review then
+challenged that claim twice: directly, and with an AI search summary that stated the opposite. This note
+records how review checked each claim, so the answer rests on evidence rather than on which source
+sounded surer.
 
-The questions, in the order they were raised:
+The questions, in the order review raised them:
 
 1. Why `node:assert/strict` instead of Deno's default testing approach?
 2. Is it certain that `node:assert` ships inside the Deno binary?
@@ -50,21 +51,21 @@ The questions, in the order they were raised:
 Every test is a `Deno.test(...)` run by `deno test`. The only Node piece is the assertion functions. Deno
 has no assertion module built in; its standard one is `@std/assert`, a package on JSR.
 
-The choice was made in Step 0 and recorded in the Step 0 note: "Tests use the built-in
-`node:assert/strict` instead of `jsr:@std/assert`, so nothing had to be fetched and there is no lock file
+Step 0 made the choice, and the Step 0 note records it: "Tests use the built-in
+`node:assert/strict` instead of `jsr:@std/assert`, so Step 0 fetched nothing and there is no lock file
 yet." `toolchain.md` allows exactly that import for tests, and `lint:security` enforces the list. The
 reason was the rule to install nothing without asking: a fresh clone runs `deno task test` offline.
 
-### 2. `node:assert/strict` is built into the deno executable
+### 2. The deno executable contains `node:assert/strict`
 
-The first answer stated this without having tested it. It was then checked three independent ways, on
-Deno 2.9.8:
+The first answer stated this without having tested it. Review then checked it three independent ways,
+on Deno 2.9.8:
 
 - **With downloads blocked.** A script importing `node:assert/strict` ran from a brand-new, empty Deno
   cache with remote and npm loading switched off (`--no-remote --no-npm --cached-only`). Afterwards the
   cache held only Deno's own analysis files and the compiled script, with no `remote/` or `npm/` folder,
-  which is where downloads go. As a control, the same flags refused `jsr:@std/assert`: "A remote specifier
-  was requested: `https://jsr.io/@std/assert/meta.json`, but --no-remote is specified."
+  which is where downloads go. As a control, the same flags refused `jsr:@std/assert`:
+  "A remote specifier was requested: `https://jsr.io/@std/assert/meta.json`, but --no-remote is specified."
 - **In the executable itself.** The installed `deno` executable (78 MB) contains the module and its
   implementation files, under `ext:deno_node`, the name of Deno's Node compatibility layer:
 
@@ -100,10 +101,10 @@ rather than weigh the sources.
   test file, which imports the library from jsr.io. No `ext:` module for the standard library exists, unlike
   the `ext:deno_node` files behind `node:assert`.
 - **Deno's documentation** ([Standard library](https://docs.deno.com/runtime/fundamentals/standard_library/)):
-  "The library is published as a set of modular packages on JSR under the @std scope. You install only
-  the packages you need, and each one is versioned independently."
+  "The library is published as a set of modular packages on JSR under the @std scope."
+  "You install only the packages you need, and each one is versioned independently."
 
-### 5. Why one is built in and the other is not
+### 5. Why Deno builds one in and not the other
 
 Deno's documentation states neither reason. The reading below is an inference from the design, not a
 documented fact:
@@ -115,11 +116,11 @@ documented fact:
 | Versioning | Tied to the Deno version | Each package versioned separately: a project pins `@std/assert@1` and upgrades it independently of Deno |
 | Cost of building it in | Already required for compatibility | Every Deno install would carry every package and every version |
 
-So what is built in is what code must be able to rely on without asking: Deno's own APIs (`Deno.test`,
+So what Deno builds in is what code must be able to rely on without asking: Deno's own APIs (`Deno.test`,
 `Deno.Command`), the web platform APIs (`fetch`, `crypto.subtle`, `TextDecoderStream`) and Node
 compatibility. Everything else is a library a project chooses and pins.
 
-A historical detail fits this picture but was not checked: Node compatibility reportedly began inside
+A historical detail fits this picture, though this note did not check it: Node compatibility reportedly began inside
 the standard library and moved into the runtime once npm support made it essential.
 
 ### Trade-off for this project
@@ -136,8 +137,8 @@ What switching the tests to `@std/assert` would change:
 
 ## Gotchas worth remembering
 
-- **A claim from memory is not a finding.** "Ships inside the Deno binary" was right, but it was first
-  stated without a test. The empty-cache run is what made it a fact.
+- **A claim from memory is not a finding.** "Ships inside the Deno binary" was right, but the first answer
+  stated it without a test. The empty-cache run is what made it a fact.
 - **A string in a binary is not a module in it.** `jsr:@std/assert@1` appears in the deno executable, as
   template text. The test that settles it is importing with downloads blocked, not searching for names.
 - **An unfiltered `strings` search on the executable returns minified JavaScript a line at a time**

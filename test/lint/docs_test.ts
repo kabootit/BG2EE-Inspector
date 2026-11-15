@@ -7,6 +7,7 @@ import {
   checkLinks,
   checkManualTests,
   checkNotes,
+  checkPassive,
   checkPersonalInfo,
   checkPlans,
   checkReachable,
@@ -56,6 +57,53 @@ Deno.test("em dash is a finding, in prose and in code", () => {
     ["em-dash"],
   );
   deepStrictEqual(checkEmDash({ path: "a.md", text: "one, two: three" }), []);
+});
+
+Deno.test("the passive voice is a finding, with its words; the active voice is not", () => {
+  const passive = (text: string) => checkPassive({ path: "a.md", text }).map((f) => f.detail);
+  deepStrictEqual(passive("The slice is written on every run."), [
+    '"is written": say who or what acts',
+  ]);
+  deepStrictEqual(passive("It was checked, then they were built."), [
+    '"was checked": say who or what acts',
+    '"were built": say who or what acts',
+  ]);
+  deepStrictEqual(passive("The ids are not read. A file is only unpacked once."), [
+    '"are not read": say who or what acts',
+    '"is only unpacked": say who or what acts',
+  ]);
+  deepStrictEqual(passive("The task writes the slice on every run."), []);
+});
+
+Deno.test("a passive split across lines, contracted, or in a quoted frontmatter value is a finding", () => {
+  const found = (text: string) =>
+    checkPassive({ path: "a.md", text }).map((f) => [f.line, f.detail]);
+  deepStrictEqual(found("One line.\nThe slice is\nwritten on every run."), [
+    [2, '"is written": say who or what acts'],
+  ]);
+  deepStrictEqual(found("It isn't stated, and it's defined later."), [
+    [1, `"isn't stated": say who or what acts`],
+    [1, `"it's defined": say who or what acts`],
+  ]);
+  deepStrictEqual(found('---\ndescription: "The list is read by the walker."\n---\n# A'), [
+    [2, '"is read": say who or what acts'],
+  ]);
+});
+
+Deno.test("a hyphenated adjective or a possessive is not passive", () => {
+  const passive = (text: string) => checkPassive({ path: "a.md", text });
+  deepStrictEqual(passive("The library is read-only."), []);
+  deepStrictEqual(passive("The game's read access is narrow, and the task's set grows."), []);
+});
+
+Deno.test("passive words in code, inline code or quotes, and un- adjectives, are not findings", () => {
+  const passive = (text: string) => checkPassive({ path: "a.md", text });
+  deepStrictEqual(passive(`${FENCE}text\nit is written\n${FENCE}`), []);
+  deepStrictEqual(passive("The test `it is written` passes."), []);
+  deepStrictEqual(passive('The forum post says "files are loaded at startup".'), []);
+  deepStrictEqual(passive("Compatibility is untested, and the output is unchanged."), []);
+  deepStrictEqual(passive("This is indeed the speed it is."), []);
+  deepStrictEqual(checkPassive({ path: "LICENSE.md", text: "THE SOFTWARE IS PROVIDED" }), []);
 });
 
 Deno.test("home paths and email addresses are findings; the placeholder is not", () => {

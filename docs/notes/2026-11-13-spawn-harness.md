@@ -1,6 +1,6 @@
 ---
 title: "Phase 3, the spawn harness: Delivery Notes"
-description: "The spawn check creates four known creatures with the engine's console and compares what the walker reads with their .cre files, read in Deno from the game's archives. It passed on its second run: four creatures, 96 fields, every one equal, with AC compared as the engine computes it, the file's plus a Dexterity adjustment from DEXMOD.2DA. Phase 3 is done."
+description: "The spawn check creates four known creatures with the engine's console and compares what the walker reads with their .cre files, read in Deno from the game's archives. It passed on its second run: four creatures, 96 fields, every one equal, with AC compared as the engine computes it, the file's plus a Dexterity adjustment from DEXMOD.2DA. Phase 3 is complete."
 ---
 
 # Phase 3, the spawn harness: Delivery Notes
@@ -9,14 +9,14 @@ description: "The spawn check creates four known creatures with the engine's con
 > [foundation plan](../plans/2026-11-01-inspector-foundation.md), on `initial/07-walker`, as planned in
 > the [spawn harness plan](../plans/2026-11-13-spawn-harness.md). It builds on the
 > [party walker](2026-11-13-party-walker.md) and the [creature list](2026-11-13-creature-list.md); the
-> evidence for every offset is in [docs/re-notes.md](../re-notes.md#engine-structures). Terms such as
-> walker and gate are defined in [docs/README.md](../README.md#terms).
+> evidence for every offset is in [docs/re-notes.md](../re-notes.md#engine-structures).
+> [docs/README.md](../README.md#terms) defines terms such as walker and gate.
 
 ## Status
 
-**Gate passed; Phase 3 is done.** For creatures outside the party, whose stats the engine never
-shows, the walker reads what their `.cre` files give, once the engine's Dexterity rule for AC is
-applied. Enemy values may now be shown. Not yet committed.
+**Gate passed; Phase 3 is complete.** For creatures outside the party, whose stats the engine never
+shows, the walker reads what their `.cre` files give, once the comparison applies the engine's
+Dexterity rule for AC. The inspector may now show enemy values. Not yet committed.
 
 | Piece | State |
 | --- | --- |
@@ -31,11 +31,11 @@ applied. Enemy values may now be shown. Not yet committed.
 
 The party check proved the walker against the record screen, and the creature list proved it finds
 the creatures around the party. Neither proved its values for an enemy. The spawn harness does: the
-engine's own console object spawns creatures whose files are known, and `deno task verify` reads
-those files from the game and compares. Fixtures were chosen by scanning the game's 4,735 `.cre`
+engine's own console object spawns creatures with known files, and `deno task verify` reads those
+files from the game and compares. The plan chose the fixtures by scanning the game's 4,735 `.cre`
 files for ones with no items and no effects, so that equipment could not change their stats.
 
-## What was built
+## What shipped
 
 ### Code
 
@@ -76,8 +76,8 @@ The pages added or changed:
   for colors; the signature and most bytes from the IDS fields onward differ. Its `0x270` read 224,
   the value the party check found at sprite `+0x7c8` (`0x558 + 0x270`) when it looked for the EA.
 - **No suitable script-free creature has a negative resistance.** Among the neutral creatures with
-  no items, no effects and one AC, none without a script has one, so negative values are proven only
-  by `MUMFIG01`'s first reading.
+  no items, no effects and one AC, none without a script has one, so only `MUMFIG01`'s first reading
+  proves negative values.
 - **The `test` task cannot write files**, so `resources.ts` takes a `Disk`: the tests describe a game
   folder in memory instead of building one in a temporary directory.
 
@@ -89,12 +89,13 @@ Run on 2026-11-13:
   `test:lua` (5 of 5 files), `lint:docs` and `lint:security` with no findings.
 - **The readers against the game:** the real-data test reads `chitin.key` and finds each fixture as a
   `CRE V1.0` with no items, no effects and one AC; the four fixtures read the same values as the
-  plan-mode scan with BG2EE-GameLog's reader. The offsets were checked against IESDP's CRE V1.0 page.
+  plan-mode scan with BG2EE-GameLog's reader. A comparison with IESDP's CRE V1.0 page checked the
+  offsets.
 - **`deno task verify` end to end** on a scratch log built from the real files, with one value changed
   on purpose: it named that field with both values and the changed header byte.
 - **Security:** the native library is unchanged and nothing writes a save; the one game-changing
   action is the engine's own spawn, in a test script never installed, and the test page says to quit
-  without saving. `verify`'s new read access to the game folder is read-only and scoped.
+  without saving. `verify`'s new access to the game folder only reads, and its scope is narrow.
 - **The [spawn check](../manual-tests/spawn.md)**, two runs, each in its own session against
   `bc17e13` with local changes, at Insane difficulty. Both logs show `A7X build 2.7.3 arm64 matched,
   14 sites checked` and `A7X registered A7X_native`, no `A7X disabled` and no `LUA ERROR`; the only
@@ -114,13 +115,13 @@ Run on 2026-11-13:
 ### Still to check by hand
 
 1. **The walker's temp stats block**: every creature in every reading, party and spawned, was on the
-   derived block, so the temp-block branch is still tested only against the fake game.
+   derived block, so only the fake game still tests the temp-block branch.
 2. **Improved invisibility and an empty weapon slot**, from the [party walker](2026-11-13-party-walker.md):
    still not met in the game.
 
 ## Follow-ups
 
 - **Phase 4** (`TODO.md`): the data API (`a7x_api.lua`, schema 1), its JSON at the boundary, and the
-  hotkey and console output. Enemy values are now proven for the fields compared here.
+  hotkey and console output. The spawn check now proves enemy values for the fields it compares.
 - **Fields not yet proven for enemies**: name (logged by the walker, not compared with `dialog.tlk`),
   current HP beyond the spawned value, and anything the `.cre` header copy holds from `0x270` on.

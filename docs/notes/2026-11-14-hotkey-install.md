@@ -36,10 +36,10 @@ install run, the idempotent load, the step 7 docs and this record.
 The first part of Phase 4 gave other mods the `A7X` API, loaded by hand from the console. This part
 makes the inspector something a player uses: installed with WeiDU, loaded by `ui.menu` at startup, and
 answering one key over a creature or a party portrait. The creature under the pointer comes from an
-engine field found by tallying the game's code, so the plan had it confirmed in the game, from the
-console, before anything was built on it.
+engine field found by tallying the game's code, so the plan confirmed it in the game, from the
+console, before building anything on it.
 
-## What was built
+## What shipped
 
 ### Code
 
@@ -56,7 +56,7 @@ The changes, by file:
 | `mod/inspector/lib/a7xapi.lua` | API 1.1: `hovered()`, `portrait()`, and `show()` with no argument showing the portrait, else the creature, else the usage line or the reason |
 | `test/re/fields_test.ts`, `commands_test.ts` | New: synthetic code shaped like the real sites, the installed game's counts, the re-notes table against the list |
 | `test/lua/a7xwalk_test.lua`, `a7xapi_test.lua`, `fakegame.lua` | The fake areas hold `-1` under the pointer; tests for each case of `picked`, `hovered`, `portrait` and `show()`, and for loading twice |
-| `mod/inspector/lib/a7x.lua` | Returns at once when `A7X` is already loaded |
+| `mod/inspector/lib/a7x.lua` | Returns at once when `A7X` already exists |
 | `mod/inspector/inspector.tp2` | New: copies the six Lua files, loads `a7x` after `combatLog = {}`, adds the `e` button to `WORLD_ACTIONBAR`; each anchor must occur once |
 | `src/game/tp2.ts`, `test/game/tp2_test.ts` | New: the tp2's copies, patterns and replacements, checked against `mod/inspector/lib`, a stock-shaped menu and the game's own `ui.menu`; `patch()` gives the bytes WeiDU writes |
 | `src/game/install_mod.ts`, `src/tasks/install_mod.ts`, `test/game/install_mod_test.ts` | New: `deno task install-mod`: the game folder and the pinned WeiDU checked first, a merge that keeps WeiDU's backup, WeiDU run in the game folder, success read from `WeiDU.log` |
@@ -78,11 +78,11 @@ The pages added or changed:
 | `docs/manual-tests/pointer.md` | New: Under the pointer |
 | `docs/manual-tests/api.md` | Step 4: what `A7X.show()` does now, with a Changes row |
 | `docs/manual-tests/hotkey.md` | New: Hotkey and install |
-| `docs/manual-tests/README.md` | The check scripts need a session in which `e` has not been pressed; loading `a7x` again is harmless |
+| `docs/manual-tests/README.md` | The check scripts need a session with no `e` press yet; loading `a7x` again is harmless |
 | `docs/rules/return-types.md`, `CLAUDE.md` | New rule: a stated return type on every function |
 | `docs/adr/0002-read-only-bridge-lua-walker.md` | The triggers as built; `e` then a portrait click, not needed |
 | `docs/architecture.md` | The `e` key in the runtime layers, the data flow, the boot sequence and the inspect workflow |
-| `docs/requirements.md` | WeiDU is run by `install-mod`, only from `vendor/weidu/weidu` |
+| `docs/requirements.md` | `install-mod` runs WeiDU, only from `vendor/weidu/weidu` |
 | `README.md`, `TODO.md` | Status, installation and a Use section; Phase 4 progress |
 
 ## Gotchas worth remembering
@@ -91,20 +91,20 @@ The pages added or changed:
   that object: `A7X.show()` printed `not a creature`, which only the type check after the lookup can
   say. Without that check the walker would read a door as a creature.
 - **Over empty ground the engine writes an id below 0, not the last one.** `A7X.show()` printed the
-  usage line, the path taken only for an id below 0. The exact value was not logged.
-- **The field follows the pointer while the console is open.** Each `A7X.show()` was typed with the
-  pointer resting on its target and the console open, and each answered for that target; the
+  usage line, the path taken only for an id below 0. The log did not record the exact value.
+- **The field follows the pointer while the console is open.** The tester typed each `A7X.show()`
+  with the pointer resting on its target and the console open, and each answered for that target; the
   console's own window did not reset the field.
 - **The tallies decode bytes, not disassembly text.** The scratch scripts searched `llvm-objdump`
   output; the test task may not run it, so `fields.ts` decodes the instruction words as the rest of
   `re` does. Both gave the same counts.
 - **WeiDU exits 0 after a FATAL ERROR.** In the first Hotkey and install run it could not parse the
-  tp2, wrote nothing, and exited 0; `install-mod` took that as success. Success is now read from
-  `WeiDU.log`, which WeiDU writes only when a component installs.
+  tp2, wrote nothing, and exited 0; `install-mod` took that as success. `install-mod` now reads
+  success from `WeiDU.log`, which WeiDU writes only when a component installs.
 - **`REPLACE_TEXTUALLY` takes no `EVALUATE_BUFFER`, and needs none:** WeiDU substitutes `%var%` in
-  the replacement by itself. The tests passed with the keyword because `tp2.ts` was written to
-  accept it; a simulation of a tool can only be as right as what it was told. `tp2.ts` now reads
-  only the plain form, and its `patch()` gives the same bytes as WeiDU, checked by running the pinned
+  the replacement by itself. The tests passed with the keyword because `tp2.ts` then accepted it; a
+  simulation of a tool can only be as right as the description of the tool it follows. `tp2.ts` now
+  reads only the plain form, and its `patch()` gives the same bytes as WeiDU, checked by running the pinned
   WeiDU on a scratch copy of the game folder (copied `chitin.key`, `weidu.conf` and English
   `dialog.tlk`, the `data/` folder linked).
 - **An uninstall leaves traces by design.** WeiDU leaves `override/` as an empty folder and adds a
@@ -151,7 +151,7 @@ The pages added or changed:
   registered. `e` printed, in order: party members Sticker and Boom Boom; Hobgoblin Elite and Hobgoblin
   Captain (HP 40/40); the usage line; the Captain again (HP 14/40, in a fight); Hobgoblin Shaman; the
   usage line; `not a creature` twice; party members Pinner and Edwin. The tester confirmed every
-  name against the tooltip or portrait it was pressed over, and the same result paused.
+  name against the tooltip or portrait under the pointer at each press, and the same result paused.
   `deno task verify`: data passed, 8 lines, every one a schema-1 record. No `LUA ERROR` line. After
   the uninstall `override/` was empty and `WeiDU.log` as before, plus the `Recently Uninstalled`
   comment.

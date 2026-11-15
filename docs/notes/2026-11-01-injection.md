@@ -29,7 +29,7 @@ the hardened-runtime 2.7.3 game? The library does nothing but announce itself. T
 much as the library, because the variable has to survive the pseudo-terminal wrapper that keeps the
 game's output line-buffered.
 
-## What was built
+## What shipped
 
 ### Code
 
@@ -62,7 +62,7 @@ absolute path.
 - **Set the variable on the game, not on `script`.** `/usr/bin/script` is SIP-protected, so dyld strips
   `DYLD_*` variables from it and they never reach the child. The launch is
   `script -q /dev/null /usr/bin/env DYLD_INSERT_LIBRARIES=<dylib> <game>`. A stand-in program showed both
-  halves before the game was touched: the library loaded through `env`, and the variable set on `script`
+  halves before any test touched the game: the library loaded through `env`, and the variable set on `script`
   produced no marker.
 - **`script` needs stdin from `/dev/null`** when it does not run in a terminal of its own. It then echoes
   end-of-input at once, so its `^D` and two backspaces arrive at the start of the first line, not at exit.
@@ -70,8 +70,8 @@ absolute path.
 - **The constructor runs before the engine logs anything.** The marker is the first line of the injected
   session, ahead of the engine's working-directory line, which matches running before `main`.
 - **An unanchored `.gitignore` entry hid source folders.** `build/` matched every folder of that name,
-  so `src/build/` and `test/build/` were ignored by git and, because `deno fmt` skips gitignored files,
-  by the format check too. The entry is now `/build/`, and the two files were formatted.
+  so git ignored `src/build/` and `test/build/` and, because `deno fmt` skips gitignored files, so did
+  the format check. The entry is now `/build/`, and `deno fmt` has formatted the two files.
 - **Baseline engine errors.** Both runs log `Failed to load file` for `dialogf.tlk` and four music files.
   They appear without the library too, so they are the install's own noise, not an effect of injection.
 - **The engine mounts zip archives from three places at startup.** The 2.7.3 executable lists
@@ -96,16 +96,16 @@ Commands run on 2026-11-01:
   - `deno task play --no-inject`: the game ran to the main menu and exited with code 0; 82 lines captured,
     0 load markers.
   - `deno task play`: `A7X loaded into BaldursGateIIEnhancedEdition pid=…`, then a clean exit with code
-    0; 222 lines captured. The log goes past the main menu: game globals are set and the resource folders
-    are rescanned eight more times than in the control run, consistent with a save being loaded.
+    0; 222 lines captured. The log goes past the main menu: the engine sets game globals and rescans the
+    resource folders eight more times than in the control run, consistent with loading a save.
   - `deno task play`, a longer session: 10 minutes of play with the library loaded, including an area
     change, with no difference from normal play; 1,316 lines captured. The log shows combat (globals
     marking a troll and a zombie dead) and quest progress (`KELDORNMETPLAYER`), and no errors beyond the
-    baseline ones above. The engine does not log area transitions, so the area change was confirmed by
-    the player, not by the log.
+    baseline ones above. The engine does not log area transitions, so the player, not the log,
+    confirmed the area change.
   - All three session logs: no home path and no Steam id; the engine's Steam id line reads `<steam-id>`.
 
-Nothing is left to check by hand for this phase.
+No hand check remains for this phase.
 
 ## Follow-ups
 
