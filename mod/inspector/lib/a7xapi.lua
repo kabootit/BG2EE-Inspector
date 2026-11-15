@@ -1,4 +1,4 @@
--- a7xapi.lua: the inspector's public API, the global A7X (docs/api.md), API 1.0, records of schema 1
+-- a7xapi.lua: the inspector's public API, the global A7X (docs/api.md), API 1.1, records of schema 1
 -- (docs/data-model.md).
 --
 -- Loaded last by a7x.lua. It keeps the other inspector files' tables as locals and clears their
@@ -10,7 +10,7 @@
 local O, W, J, F = A7XOFF, A7XWALK, A7XJSON, A7XFMT
 A7XOFF, A7XWALK, A7XJSON, A7XFMT = nil, nil, nil, nil
 
-local API, SCHEMA = "1.0", 1
+local API, SCHEMA = "1.1", 1
 
 local N
 local function native()
@@ -138,6 +138,33 @@ local function get(id)
   return record(sprite, party_ids())
 end
 
+local NO_PORTRAIT, NOTHING = "no portrait under the pointer", "nothing under the pointer"
+
+-- The record of the creature under the pointer in the area on screen.
+local function hovered()
+  local s = state()
+  if s ~= "ok" then return nil, s end
+  local sprite, why = W.picked()
+  if not sprite then return nil, why end
+  return record(sprite, party_ids())
+end
+
+-- The record of the party member whose portrait is under the pointer. ui.menu sets the global
+-- mouseOverPortrait to the portrait's slot, 0 to 5, as the pointer enters it and to -1 as it leaves;
+-- portrait N shows party slot N.
+local function portrait()
+  local s = state()
+  if s ~= "ok" then return nil, s end
+  local slot = mouseOverPortrait
+  if type(slot) ~= "number" or slot < 0 then return nil, NO_PORTRAIT end
+  local party, why = W.party()
+  if not party then return nil, why end
+  local member = party[slot + 1]
+  if not member then return nil, "no party member in slot " .. slot end
+  if not member.sprite then return nil, member.why end
+  return record(member.sprite, party_ids())
+end
+
 A7X = {}
 
 function A7X.version()
@@ -155,6 +182,14 @@ end
 
 function A7X.get(id)
   return guarded(get, id)
+end
+
+function A7X.hovered()
+  return guarded(hovered)
+end
+
+function A7X.portrait()
+  return guarded(portrait)
 end
 
 function A7X.list(filter)
@@ -179,10 +214,21 @@ local function emit(r)
   if not line then say("[A7X] could not write the record: " .. tostring(why)) end
 end
 
-local USAGE = '[A7X] A7X.show(id), A7X.show("enemies"), A7X.show("party") or A7X.show("all")'
+local USAGE = '[A7X] point at a creature or a portrait, or A7X.show(id), A7X.show("enemies"), ' ..
+  'A7X.show("party") or A7X.show("all")'
+
+-- What the hotkey shows: the portrait under the pointer, else the creature under it; the usage line
+-- when the pointer is on neither, and the reason when what is there cannot be read.
+local function show_pointed()
+  local r, why = portrait()
+  if not r and why == NO_PORTRAIT then r, why = hovered() end
+  if r then return emit(r) end
+  if why == NOTHING then return say(USAGE) end
+  say("[A7X] " .. tostring(why))
+end
 
 local function show(what)
-  if what == nil then return say(USAGE) end
+  if what == nil then return show_pointed() end
   if type(what) == "number" then
     local r, why = get(what)
     if not r then return say("[A7X] " .. tostring(what) .. ": " .. tostring(why)) end

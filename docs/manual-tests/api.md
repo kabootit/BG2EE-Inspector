@@ -73,7 +73,8 @@ typed is `Infinity_DoFile("a7x")` and the `A7X.show` commands below.
 
    `enemies` lists the hostile creatures, or says there are none; `all` lists every creature in the
    area; the third line shows the first of them again, found by its id, which tests `A7X.list` and
-   `A7X.get`; `A7X.show()` prints how to call it. `enemies` and `all` each end with a summary line,
+   `A7X.get`; `A7X.show()` shows the creature or portrait under the pointer, or, with the pointer on
+   neither, prints how to call it. `enemies` and `all` each end with a summary line,
    such as `[A7X] all in AR0602: 12 shown, 0 not readable`; a command without one did not finish, so
    note what it printed instead. Every line the message window shows is also in the session log.
 5. **Check the memory-reading table is private** (1 minute). Type:
@@ -149,3 +150,4 @@ version of the test it was judged by.
 | Date | Commit | What changed | Runs before it were judged against |
 | --- | --- | --- | --- |
 | 2026-11-14 | the commit that adds the data API, after the first run | Step 4: `enemies` and `all` end with a summary line, and every message-window line is also in the session log, so a command that prints nothing can be told apart from one that never ran; one creature that cannot be read no longer stops the rest; the colors are written as `0xAABBGGRR` | no summary line, and the message window's text only on screen |
+| 2026-11-14 | the commit that adds API 1.1 | Step 4: `A7X.show()` with no argument shows the creature or portrait under the pointer, and prints how to call it only when the pointer is on neither | `A7X.show()` always printed how to call it |

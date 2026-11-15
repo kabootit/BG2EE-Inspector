@@ -1,5 +1,5 @@
--- a7xwalk.lua: follow engine structures from A7X_native.Root() to the party and to the creatures in
--- the area on screen, and read a creature.
+-- a7xwalk.lua: follow engine structures from A7X_native.Root() to the party, to the creatures in
+-- the area on screen and to the one under the pointer, and read a creature.
 --
 -- Every read goes through A7X_native (read-only, a bad address gives nil) and every field through
 -- A7XOFF (a7xoff.lua), so this file holds no numbers of its own. Before a pointer is followed it
@@ -99,6 +99,21 @@ function A7XWALK.visible_area()
   local resref = W.resref(area + O.area.resref, O.area.resref_size)
   if not resref then return nil, "area unreadable" end
   return { index = index, pointer = area, resref = resref }
+end
+
+-- The sprite under the pointer in the area on screen, or nil and a reason: nothing there (an id
+-- below 0), an id the object array no longer holds, or an object that is not a creature (doors,
+-- containers and regions are objects too).
+function A7XWALK.picked()
+  local area, why = W.visible_area()
+  if not area then return nil, why end
+  local id = R(area.pointer, O.area.picked)
+  if id == nil then return nil, "area unreadable" end
+  if id < 0 then return nil, "nothing under the pointer" end
+  local object, lost = W.lookup(id)
+  if not object then return nil, lost end
+  if R(object, O.object.type) ~= O.sprite_type then return nil, "not a creature" end
+  return object
 end
 
 -- Every sprite in `area` (a CGameArea pointer), in object-array order, as { id, sprite, ea }, and

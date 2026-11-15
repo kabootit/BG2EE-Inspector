@@ -1,7 +1,8 @@
 -- fakegame.lua: a fake game for the Lua tests, as bytes in a Lua table, read through a fake
 -- A7X_native the way the real one reads game memory. world() builds a party of two: A on the derived
 -- stats block with a custom name and a weapon, B on the temp block with a strref name, no weapon and
--- improved invisibility, both in the area on screen (AR0602). crowd() adds, past the first 256
+-- improved invisibility, both in the area on screen (AR0602), with nothing under the pointer (id -1
+-- at the area's picked field). crowd() adds, past the first 256
 -- slots, a hostile creature in the same area, a neutral one in another area and an object that is not
 -- a sprite. Tests change single fields with field() to make the hostile cases, and make a block read
 -- fail by adding its address to F.fail_blocks.
@@ -101,6 +102,8 @@ local function world()
   field(GAME, O.game.visible_area, 0)
   area(AREA1, "AR0602")
   area(AREA2, "AR0603")
+  field(AREA1, O.area.picked, -1) -- nothing under the pointer
+  field(AREA2, O.area.picked, -1)
   field(GAME, O.game.party_count, 2)
   put(GAME + O.game.party_ids[1], "i32", ID_A)
   put(GAME + O.game.party_ids[1] + 4, "i32", ID_B)

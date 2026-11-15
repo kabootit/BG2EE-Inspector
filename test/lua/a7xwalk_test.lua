@@ -1,7 +1,8 @@
 -- The walker (mod/inspector/lib/a7xwalk.lua) against a fake game in a Lua table of bytes: a party of
 -- two, one on each stats block, a custom name and a strref name, an empty weapon slot, improved
--- invisibility, the area on screen and the creatures in it, EA groups, and the hostile cases (bad
--- counts, stale ids, wrong types, unreadable pointers and blocks, a bad area index).
+-- invisibility, the area on screen, the creatures in it and the one under the pointer, EA groups, and
+-- the hostile cases (bad counts, stale ids, wrong types, unreadable pointers and blocks, a bad area
+-- index).
 
 local T = dofile("test/lua/testlib.lua")
 local F = dofile("test/lua/fakegame.lua") -- loads a7xoff.lua, which the walker reads at load
@@ -130,6 +131,29 @@ T.test("a scan stops at the array's capacity, and an unreadable block or bad are
   T.eq(select(2, A7XWALK.creatures(0)), "bad area pointer", "null area")
 end)
 
+T.test("the creature under the pointer is the sprite whose id the area on screen holds", function()
+  world()
+  F.crowd()
+  field(F.AREA1, O.area.picked, F.ID_C)
+  T.eq(A7XWALK.picked(), F.C, "C, from the second block")
+  field(F.AREA1, O.area.picked, ID_B)
+  T.eq(A7XWALK.picked(), B, "a party member")
+  field(F.AREA2, O.area.picked, F.ID_D)
+  T.eq(A7XWALK.picked(), B, "the other area's field is not read")
+end)
+
+T.test("nothing, a stale id, an object that is no creature and no area are refused", function()
+  world()
+  F.crowd()
+  T.eq(select(2, A7XWALK.picked()), "nothing under the pointer", "id -1")
+  field(F.AREA1, O.area.picked, ID_A + 1)
+  T.eq(select(2, A7XWALK.picked()), "stale id", "a generation the slot no longer has")
+  field(F.AREA1, O.area.picked, F.ID_E)
+  T.eq(select(2, A7XWALK.picked()), "not a creature", "E, a door or container")
+  field(GAME, O.game.visible_area, 2)
+  T.eq(select(2, A7XWALK.picked()), "no visible area", "no area on screen")
+end)
+
 T.test("EA groups follow the engine's cut-offs at 30 and 200", function()
   T.eq(A7XWALK.ea_group(2), "friendly", "PC")
   T.eq(A7XWALK.ea_group(30), "friendly", "GOODCUTOFF")
@@ -146,6 +170,7 @@ T.test("without A7X_native every function says so", function()
   T.eq(select(2, A7XWALK.lookup(ID_A)), "no A7X_native", "lookup")
   T.eq(select(2, A7XWALK.visible_area()), "no A7X_native", "visible area")
   T.eq(select(2, A7XWALK.creatures(F.AREA1)), "no A7X_native", "creatures")
+  T.eq(select(2, A7XWALK.picked()), "no A7X_native", "picked")
   A7X_native = saved
 end)
 

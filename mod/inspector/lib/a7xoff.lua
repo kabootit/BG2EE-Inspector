@@ -25,6 +25,9 @@ A7XOFF = {
   area = {
     resref = 0x204, -- 8 bytes, NUL-padded: the area's resource name, such as AR0602
     resref_size = 8,
+    -- The id of the object under the pointer. Found by tally (deno task re id-fields): 24 engine
+    -- sites compare an object's id with its own area's +0x244, among them a hover highlight.
+    picked = { 0x244, "i32" },
   },
 
   -- The object array at A7X_native.Objects(): 16-byte slots, its bounds in the 16 bytes before it.

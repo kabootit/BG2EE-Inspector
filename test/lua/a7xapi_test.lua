@@ -1,6 +1,7 @@
 -- The public API (mod/inspector/lib/a7xapi.lua, loaded through a7x.lua) on the fake game with its
--- crowd: the native table taken private, status in each state, get, list and show, the A7XDATA lines
--- against the golden file shared with the Deno tests, fresh tables, and no raise on failure.
+-- crowd: the native table taken private, status in each state, get, list, hovered, portrait and show,
+-- the A7XDATA lines against the golden file shared with the Deno tests, fresh tables, and no raise on
+-- failure.
 
 local T = dofile("test/lua/testlib.lua")
 local F = dofile("test/lua/fakegame.lua")
@@ -16,6 +17,7 @@ function Infinity_DisplayString(s) said[#said + 1] = s end
 local function load()
   said, logged = {}, {}
   A7X, A7X_native = nil, NATIVE
+  mouseOverPortrait = nil -- ui.menu's, set while the pointer is over a portrait
   F.world()
   F.crowd()
   dofile("mod/inspector/lib/a7x.lua")
@@ -58,7 +60,7 @@ end)
 T.test("version names the API, the schema and the build", function()
   load()
   local v = A7X.version()
-  T.eq(v.api .. " " .. v.schema .. " " .. v.build, "1.0 1 2.7.3 arm64", "version")
+  T.eq(v.api .. " " .. v.schema .. " " .. v.build, "1.1 1 2.7.3 arm64", "version")
 end)
 
 T.test("get gives a record of every schema-1 field for a party member and an enemy", function()
@@ -141,12 +143,56 @@ end)
 T.test("show explains instead of printing nothing", function()
   load()
   A7X.show()
-  T.eq(said[1]:match("^%[A7X%] A7X%.show%(id%)") ~= nil, true, "usage with no argument")
+  T.eq(said[1]:match("^%[A7X%] point at a creature or a portrait, or A7X%.show%(id%)") ~= nil, true,
+    "usage with no argument and nothing under the pointer")
   F.field(F.C, O.object.ea, 128) -- the Ogre turns neutral: no enemies left
   A7X.show("enemies")
   T.eq(said[2], "[A7X] no enemies in AR0602", "an empty list")
   A7X.show(12345)
   T.eq(said[3], "[A7X] 12345: stale id", "a bad id")
+end)
+
+T.test("hovered gives the record of the creature under the pointer, or why there is none", function()
+  load()
+  F.field(F.AREA1, O.area.picked, F.ID_C)
+  local c = assert(A7X.hovered())
+  T.eq(c.name .. " " .. c.allegiance.side, "Ogre enemy", "the Ogre")
+  F.field(F.AREA1, O.area.picked, -1)
+  T.eq(select(2, A7X.hovered()), "nothing under the pointer", "nothing")
+  F.field(F.AREA1, O.area.picked, F.ID_E)
+  T.eq(select(2, A7X.hovered()), "not a creature", "a door or container")
+end)
+
+T.test("portrait gives the party member in the portrait's slot, or why there is none", function()
+  load()
+  mouseOverPortrait = 0
+  T.eq(assert(A7X.portrait()).name, "Alarion", "slot 0")
+  mouseOverPortrait = 1
+  T.eq(assert(A7X.portrait()).name, "Jaheira", "slot 1")
+  mouseOverPortrait = 4
+  T.eq(select(2, A7X.portrait()), "no party member in slot 4", "an empty slot")
+  mouseOverPortrait = -1
+  T.eq(select(2, A7X.portrait()), "no portrait under the pointer", "-1 as the pointer leaves")
+  mouseOverPortrait = nil
+  T.eq(select(2, A7X.portrait()), "no portrait under the pointer", "no global, as before ui.menu")
+end)
+
+T.test("show with no argument shows the portrait, else the creature, else usage or the reason", function()
+  load()
+  mouseOverPortrait = 1
+  F.field(F.AREA1, O.area.picked, F.ID_C)
+  A7X.show()
+  T.eq(said[1]:find("Jaheira", 1, true) ~= nil, true, "the portrait first: " .. said[1])
+  T.eq(logged[#logged]:find('^A7XDATA\t.*"name":"Jaheira"') ~= nil, true, "its A7XDATA line")
+  mouseOverPortrait = -1
+  A7X.show()
+  T.eq(said[3]:find("Ogre", 1, true) ~= nil, true, "then the creature: " .. said[3])
+  F.field(F.AREA1, O.area.picked, F.ID_E)
+  A7X.show()
+  T.eq(said[5], "[A7X] not a creature", "what is there cannot be shown")
+  F.field(F.AREA1, O.area.picked, -1)
+  A7X.show()
+  T.eq(said[6]:match("^%[A7X%] point at") ~= nil, true, "usage over empty ground")
 end)
 
 T.test("a creature whose fields cannot be read gives a reason, never a partial record", function()

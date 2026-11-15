@@ -3,7 +3,7 @@
 How another game mod, or a tool outside the game, reads what the inspector reads: the public Lua
 table `A7X` inside the game, and the `A7XDATA` JSON lines in the game's log outside it. Both carry the
 same record, defined in [docs/data-model.md](data-model.md). Why it is shaped this way is in
-[ADR-0006](adr/0006-data-model-and-api.md). This is API **1.0**, records of **schema 1**.
+[ADR-0006](adr/0006-data-model-and-api.md). This is API **1.1**, records of **schema 1**.
 
 ## Inside the game: the `A7X` table
 
@@ -26,11 +26,13 @@ The functions, all of which return fresh tables and none of which raises:
 
 | Function | Returns |
 | --- | --- |
-| `A7X.version()` | `{ api = "1.0", schema = 1, build = "2.7.3 arm64" }`; `build` is missing when the inspector is not running |
+| `A7X.version()` | `{ api = "1.1", schema = 1, build = "2.7.3 arm64" }`; `build` is missing when the inspector is not running |
 | `A7X.status()` | `"ok"`; `"no_native"` when the game was not started with the inspector's library, or the library refused this game build; `"loading"` when no game is loaded or no area is on screen |
 | `A7X.get(id)` | the record for a creature id, or `nil` and a reason: the status, `"stale id"` for an id that no longer names a creature, `"unreadable: <field>"` when a value could not be read |
 | `A7X.list(filter)` | `{ area = "<resref>", creatures = { { id, name, allegiance = { ea, side } }, ... } }` for the area on screen; `filter` is `"all"` (the default), `"enemies"` or `"party"` |
-| `A7X.show(what)` | console output, not data: prints the records for an id, `"enemies"`, `"party"` or `"all"` to the message window, and writes each as an `A7XDATA` line; a list ends with a summary line (`[A7X] all in AR0602: 12 shown, 0 not readable`), a creature that cannot be read is named with the reason, and every line it prints also goes to the game's log as plain text; with no argument it prints how to call it |
+| `A7X.hovered()` | the record of the creature under the pointer in the area on screen, or `nil` and a reason: the status, `"nothing under the pointer"`, `"not a creature"` for a door, container or region, `"stale id"`, or `"unreadable: <field>"` (since 1.1) |
+| `A7X.portrait()` | the record of the party member whose portrait is under the pointer, or `nil` and a reason: the status, `"no portrait under the pointer"`, `"no party member in slot <n>"` (since 1.1) |
+| `A7X.show(what)` | console output, not data: prints the records for an id, `"enemies"`, `"party"` or `"all"` to the message window, and writes each as an `A7XDATA` line; a list ends with a summary line (`[A7X] all in AR0602: 12 shown, 0 not readable`), a creature that cannot be read is named with the reason, and every line it prints also goes to the game's log as plain text. With no argument, what the hotkey calls: the portrait under the pointer, else the creature under it; how to call it when the pointer is on neither, and the reason when what is there cannot be read |
 
 Rules a consumer can rely on:
 
@@ -40,9 +42,8 @@ Rules a consumer can rely on:
   tick, not every frame.
 - **No raw reads.** The inspector's memory-reading table is private once the API has been called;
   other mods get records, never addresses.
-
-Still to come, as API 1.1: `A7X.hovered()`, the creature under the pointer, and `A7X.portrait()`, the
-party member behind a hovered portrait.
+- **The pointer is read when you call.** `hovered` and `portrait` answer for where the pointer is at
+  that moment, so call them from a key press or a click, not from a timer.
 
 ## Outside the game: `A7XDATA` lines
 
