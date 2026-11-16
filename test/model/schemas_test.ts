@@ -10,9 +10,9 @@ import {
   SpawnLine,
 } from "../../src/model/schemas.ts";
 
-// The A7XDATA lines the Lua API writes for the fake game (test/lua/a7xapi_test.lua checks the Lua
+// The INSPECTOR_DATA lines the Lua API writes for the fake game (test/lua/inspapi_test.lua checks the Lua
 // side against the same file), as JSON values.
-const GOLDEN = (await Deno.readTextFile("test/fixtures/a7xdata.txt"))
+const GOLDEN = (await Deno.readTextFile("test/fixtures/inspector_data.txt"))
   .split("\n").filter((l) => l !== "").map((l) => JSON.parse(l.slice(l.indexOf("\t") + 1)));
 
 function problems(json: unknown): string[] {
@@ -87,20 +87,21 @@ Deno.test("every line of every golden file passes its schema", async () => {
     file: string,
     parsed: { count: number; lines: unknown[]; problems: string[] },
   ) => [file, parsed.count, parsed.lines.length, parsed.problems];
-  const check = parseLines(await fixture("a7xcheck.txt"), "A7XCHECK", CheckLine);
-  deepStrictEqual(passes("a7xcheck.txt", check), ["a7xcheck.txt", 27, 27, []]);
-  const list = parseLines(await fixture("a7xlist.txt"), "A7XLIST", ListLine);
-  deepStrictEqual(passes("a7xlist.txt", list), ["a7xlist.txt", 12, 12, []]);
-  const spawn = parseLines(await fixture("a7xspawn.txt"), "A7XSPAWN", SpawnLine);
-  deepStrictEqual(passes("a7xspawn.txt", spawn), ["a7xspawn.txt", 6, 6, []]);
-  const effects = parseLines(await fixture("a7xeff.txt"), "A7XEFF", EffectLine);
-  deepStrictEqual(passes("a7xeff.txt", effects), ["a7xeff.txt", 10, 10, []]);
-  const data = parseLines(await fixture("a7xdata.txt"), "A7XDATA", RecordSchema);
-  deepStrictEqual(passes("a7xdata.txt", data), ["a7xdata.txt", 3, 3, []]);
+  const check = parseLines(await fixture("inspector_check.txt"), "INSPECTOR_CHECK", CheckLine);
+  deepStrictEqual(passes("inspector_check.txt", check), ["inspector_check.txt", 27, 27, []]);
+  const list = parseLines(await fixture("inspector_list.txt"), "INSPECTOR_LIST", ListLine);
+  deepStrictEqual(passes("inspector_list.txt", list), ["inspector_list.txt", 12, 12, []]);
+  const spawn = parseLines(await fixture("inspector_spawn.txt"), "INSPECTOR_SPAWN", SpawnLine);
+  deepStrictEqual(passes("inspector_spawn.txt", spawn), ["inspector_spawn.txt", 6, 6, []]);
+  const effects = parseLines(await fixture("inspector_eff.txt"), "INSPECTOR_EFF", EffectLine);
+  deepStrictEqual(passes("inspector_eff.txt", effects), ["inspector_eff.txt", 10, 10, []]);
+  const data = parseLines(await fixture("inspector_data.txt"), "INSPECTOR_DATA", RecordSchema);
+  deepStrictEqual(passes("inspector_data.txt", data), ["inspector_data.txt", 3, 3, []]);
 });
 
 Deno.test("a check line of an unknown kind, or with a field too many or too few, fails", () => {
-  const bad = (json: string) => parseLines(engine(`A7XLIST\t${json}`), "A7XLIST", ListLine);
+  const bad = (json: string) =>
+    parseLines(engine(`INSPECTOR_LIST\t${json}`), "INSPECTOR_LIST", ListLine);
   strictEqual(bad('{"kind":"party","run":1,"size":2}').problems.length, 1); // not a list kind
   strictEqual(
     bad('{"index":0,"kind":"area","resref":"AR0602","run":1,"extra":1}').problems.length,
@@ -112,25 +113,25 @@ Deno.test("a check line of an unknown kind, or with a field too many or too few,
 
 Deno.test("a line the game's log cut short is reported, not skipped", () => {
   // As the log cut every party-check dump on 2026-11-14: the JSON stops mid-string.
-  const cut = engine('A7XCHECK\t{"hex":"703edd000100000031110000');
-  const parsed = parseLines(cut, "A7XCHECK", CheckLine);
+  const cut = engine('INSPECTOR_CHECK\t{"hex":"703edd000100000031110000');
+  const parsed = parseLines(cut, "INSPECTOR_CHECK", CheckLine);
   deepStrictEqual([parsed.count, parsed.problems], [1, ["log line 1: not JSON"]]);
 });
 
 Deno.test("parseLines finds lines inside engine log lines and names a broken one", () => {
   const log = [
-    "A7X loaded",
-    engine('A7XCHECK\t{"kind":"party","run":1,"size":1}'),
-    engine("A7XCHECK\t{not json}"),
-    engine('A7XCHECK\t{"kind":"party","run":1}'),
-    engine("[A7X] text for the message window"),
+    "Inspector loaded",
+    engine('INSPECTOR_CHECK\t{"kind":"party","run":1,"size":1}'),
+    engine("INSPECTOR_CHECK\t{not json}"),
+    engine('INSPECTOR_CHECK\t{"kind":"party","run":1}'),
+    engine("[Inspector] text for the message window"),
   ].join("\r\n");
-  const parsed = parseLines(log, "A7XCHECK", CheckLine);
+  const parsed = parseLines(log, "INSPECTOR_CHECK", CheckLine);
   strictEqual(parsed.count, 3);
   deepStrictEqual(parsed.lines, [{ kind: "party", run: 1, size: 1 }]);
   strictEqual(parsed.problems[0], "log line 3: not JSON");
   strictEqual(parsed.problems[1].startsWith("log line 4: size: "), true);
-  deepStrictEqual(parseLines("nothing here", "A7XCHECK", CheckLine), {
+  deepStrictEqual(parseLines("nothing here", "INSPECTOR_CHECK", CheckLine), {
     lines: [],
     count: 0,
     problems: [],

@@ -1,7 +1,7 @@
 /**
  * Judging the Effect duration test (docs/manual-tests/durations.md) from the effect probe's runs.
  *
- * The test is the session's last three runs of test/lua/a7xeff.lua: two with the game paused, the
+ * The test is the session's last three runs of test/lua/inspeff.lua: two with the game paused, the
  * tester waiting between them, then one taken the moment a spell's icon left a portrait. Each run's
  * party line holds the game's clock (`time`, CInfGame +0x3fa0); each effect with timing mode 4096
  * holds its expiry (`duration`) and the time it was applied (`applied`), both on that clock. The

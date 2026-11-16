@@ -7,7 +7,7 @@
  * .cre file, read from the installed game, and what later runs saw change. The effect probe
  * (src/verify/effects.ts): its latest run, every effect's fields where the effect layout puts them.
  * The Effect duration test (src/verify/durations.ts): the probe's last three runs, against the game
- * clock and the spell files, when the session has three. The A7XDATA records A7X.show writes: every
+ * clock and the spell files, when the session has three. The INSPECTOR_DATA records I.show writes: every
  * one a schema-1 record, and their active spells against the game files (src/verify/spells.ts).
  * Exits non-zero unless the log holds at least one check and every run judged passed.
  */
@@ -328,7 +328,7 @@ async function spellFacts(resrefs: string[]): Promise<Map<string, SpellFacts> | 
 }
 
 /**
- * The A7XDATA records: every one a schema-1 record, and the active spells of those with any against
+ * The INSPECTOR_DATA records: every one a schema-1 record, and the active spells of those with any against
  * the game files; true when they passed.
  */
 async function judgeData(
@@ -336,7 +336,7 @@ async function judgeData(
   bad: string[],
   path: string,
 ): Promise<boolean> {
-  console.log(`verify: ${path}, ${records.length + bad.length} A7XDATA line(s)`);
+  console.log(`verify: ${path}, ${records.length + bad.length} INSPECTOR_DATA line(s)`);
   for (const r of records) {
     console.log(
       `  ${r.allegiance.side.padEnd(8)} ${String(r.id).padEnd(10)} hp ${
@@ -344,7 +344,7 @@ async function judgeData(
       } ${r.name}`,
     );
   }
-  if (!noBadLines("A7XDATA", bad)) return false;
+  if (!noBadLines("INSPECTOR_DATA", bad)) return false;
   console.log(`verify: data passed, ${records.length} line(s), every one a schema-1 record`);
   const sources = spellSources(records);
   if (sources.length === 0) return true;
@@ -376,19 +376,21 @@ await runTask(async () => {
   const lists = parseLists(log);
   const spawns = parseSpawns(log);
   const effects = parseEffects(log);
-  const data = parseLines(log, "A7XDATA", RecordSchema);
+  const data = parseLines(log, "INSPECTOR_DATA", RecordSchema);
   const lines = checks.runs.length + lists.runs.length + spawns.runs.length + effects.runs.length +
     data.count + checks.problems.length + lists.problems.length + spawns.problems.length +
     effects.problems.length;
   if (lines === 0) {
-    console.error(`verify: ${path} has no A7XCHECK, A7XLIST, A7XSPAWN, A7XEFF or A7XDATA lines`);
+    console.error(
+      `verify: ${path} has no INSPECTOR_CHECK, INSPECTOR_LIST, INSPECTOR_SPAWN, INSPECTOR_EFF or INSPECTOR_DATA lines`,
+    );
     return 1;
   }
   // Every line must match its schema, whatever else is judged.
-  let passed = noBadLines("A7XCHECK", checks.problems);
-  passed = noBadLines("A7XLIST", lists.problems) && passed;
-  passed = noBadLines("A7XSPAWN", spawns.problems) && passed;
-  passed = noBadLines("A7XEFF", effects.problems) && passed;
+  let passed = noBadLines("INSPECTOR_CHECK", checks.problems);
+  passed = noBadLines("INSPECTOR_LIST", lists.problems) && passed;
+  passed = noBadLines("INSPECTOR_SPAWN", spawns.problems) && passed;
+  passed = noBadLines("INSPECTOR_EFF", effects.problems) && passed;
   if (effects.runs.length > 0) passed = await judgeEffects(effects.runs, path) && passed;
   if (effects.runs.length > 0) passed = await judgeDurations(effects.runs) && passed;
   if (checks.runs.length > 0) passed = judgeParty(checks.runs, path) && passed;

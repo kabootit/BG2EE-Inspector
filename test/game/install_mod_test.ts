@@ -23,7 +23,7 @@ const SETUP: ModSetup = {
   modDir: "/repo/mod/inspector",
   weidu: WEIDU,
   weiduSha256: await sha256Hex(BINARY),
-  names: 'A7XNAMES = {\n  ["SPPR101"] = 12089,\n}\n',
+  names: 'INSPECTOR_NAMES = {\n  ["SPPR101"] = 12089,\n}\n',
 };
 
 // WeiDU.log as WeiDU wrote it in a scratch game folder (2026-11-14): its header, then one line per
@@ -46,7 +46,7 @@ function machine(
       [`${GAME}/chitin.key`]: "KEY V1  ",
       [`${GAME}/WeiDU.log`]: LOG_HEADER,
       "/repo/mod/inspector/inspector.tp2": "BACKUP ~inspector/backup~",
-      "/repo/mod/inspector/lib/a7x.lua": "-- a7x",
+      "/repo/mod/inspector/lib/insp.lua": "-- inspector",
       [WEIDU]: BINARY,
     },
     (cmd, args) => {
@@ -89,7 +89,10 @@ Deno.test("the task pins the WeiDU v251 arm64 binary", () => {
 Deno.test("an install copies the mod into the game folder, then runs WeiDU there", async () => {
   const sys = machine();
   const result = await installMod(sys, SETUP, false);
-  strictEqual(new TextDecoder().decode(sys.files.get(`${GAME}/inspector/lib/a7x.lua`)), "-- a7x");
+  strictEqual(
+    new TextDecoder().decode(sys.files.get(`${GAME}/inspector/lib/insp.lua`)),
+    "-- inspector",
+  );
   strictEqual(sys.files.has(`${GAME}/inspector/inspector.tp2`), true, "the tp2");
   strictEqual(
     new TextDecoder().decode(sys.files.get(`${GAME}/inspector/${NAMES_FILE}`)),
@@ -123,7 +126,7 @@ Deno.test("no game folder, no WeiDU, the wrong WeiDU or no names table refuses b
       (sys) => sys.files.set(WEIDU, new TextEncoder().encode("something else")),
       /not the pinned WeiDU v251\.00 arm64 \(SHA-256 [0-9a-f]{64}\)/,
     ],
-    ["no names table", () => {}, /no names table for lib\/a7xnames\.lua/],
+    ["no names table", () => {}, /no names table for lib\/inspname\.lua/],
   ];
   for (const [what, change, message] of cases) {
     const sys = machine();

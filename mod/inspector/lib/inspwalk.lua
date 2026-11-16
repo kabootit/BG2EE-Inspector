@@ -1,35 +1,35 @@
--- a7xwalk.lua: follow engine structures from A7X_native.Root() to the party, to the creatures in
+-- inspwalk.lua: follow engine structures from Inspector_native.Root() to the party, to the creatures in
 -- the area on screen and to the one under the pointer, and read a creature, its effects and the
 -- game's clock.
 --
--- Every read goes through A7X_native (read-only, a bad address gives nil) and every field through
--- A7XOFF (a7xoff.lua), so this file holds no numbers of its own. Before a pointer is followed it
+-- Every read goes through Inspector_native (read-only, a bad address gives nil) and every field through
+-- INSPECTOR_OFF (inspoff.lua), so this file holds no numbers of its own. Before a pointer is followed it
 -- must look like one; before a sprite is read its type must be a sprite's. Each function returns
 -- nil and a reason instead of raising, so a caller in the game's UI never sees a Lua error from
 -- here. The native table is looked up on each call, it may be registered after this file loads:
--- from the provider given to A7XWALK.use (the API's, which keeps the table private), else the global
--- A7X_native. Functions call each other through the local W, so the API may clear the global.
+-- from the provider given to INSPECTOR_WALK.use (the API's, which keeps the table private), else the global
+-- Inspector_native. Functions call each other through the local W, so the API may clear the global.
 
 local W = {}
-A7XWALK = W
+INSPECTOR_WALK = W
 
-local O = A7XOFF
+local O = INSPECTOR_OFF
 local provider
 local POINTER_LIMIT = 2 ^ 47 -- user space on arm64 macOS; also rules out -1 read as unsigned
 
 local function native()
   local N
-  if provider then N = provider() else N = A7X_native end
+  if provider then N = provider() else N = Inspector_native end
   return type(N) == "table" and N or nil
 end
 
--- Take the native table from `fn` from now on, instead of the global A7X_native.
+-- Take the native table from `fn` from now on, instead of the global Inspector_native.
 function W.use(fn) provider = fn end
 
 local function valid_pointer(p)
   return type(p) == "number" and p >= 0x1000 and p < POINTER_LIMIT and p % 1 == 0
 end
-A7XWALK.valid_pointer = valid_pointer
+INSPECTOR_WALK.valid_pointer = valid_pointer
 
 -- Read `field` ({ offset, kind }) at `base`; nil for a bad base or a failed read.
 local function R(base, field)
@@ -37,12 +37,12 @@ local function R(base, field)
   if not N or not valid_pointer(base) then return nil end
   return N.Read(base + field[1], field[2])
 end
-A7XWALK.read = R
+INSPECTOR_WALK.read = R
 
 -- The sprite for an object id, through the object array; nil and a reason otherwise.
-function A7XWALK.lookup(id)
+function INSPECTOR_WALK.lookup(id)
   local N = native()
-  if not N then return nil, "no A7X_native" end
+  if not N then return nil, "no Inspector_native" end
   if type(id) ~= "number" or id < 0 or id % 1 ~= 0 then return nil, "bad id" end
   local array = N.Objects()
   local capacity, highest = R(array, O.objects.capacity), R(array, O.objects.highest)
@@ -57,9 +57,9 @@ function A7XWALK.lookup(id)
 end
 
 -- The party: { { slot, id, sprite } ... } in portrait order, or nil and a reason.
-function A7XWALK.party()
+function INSPECTOR_WALK.party()
   local N = native()
-  if not N then return nil, "no A7X_native" end
+  if not N then return nil, "no Inspector_native" end
   local game = R(N.Root(), O.chitin.game)
   if not valid_pointer(game) then return nil, "no game loaded" end
   local count = R(game, O.game.party_count)
@@ -81,16 +81,16 @@ local function unsigned(block, at, n)
 end
 
 -- A NUL-padded resref of `size` bytes at `addr`, cut at the first NUL; nil when unreadable.
-function A7XWALK.resref(addr, size)
+function INSPECTOR_WALK.resref(addr, size)
   local N = native()
   local block = N and valid_pointer(addr) and N.ReadBlock(addr, size)
   return block and block:match("^[^\0]*") or nil
 end
 
 -- The game's clock (CInfGame time), or nil and a reason.
-function A7XWALK.game_time()
+function INSPECTOR_WALK.game_time()
   local N = native()
-  if not N then return nil, "no A7X_native" end
+  if not N then return nil, "no Inspector_native" end
   local game = R(N.Root(), O.chitin.game)
   if not valid_pointer(game) then return nil, "no game loaded" end
   local time = R(game, O.game.time)
@@ -99,9 +99,9 @@ function A7XWALK.game_time()
 end
 
 -- The area on screen: { index, pointer, resref }, or nil and a reason.
-function A7XWALK.visible_area()
+function INSPECTOR_WALK.visible_area()
   local N = native()
-  if not N then return nil, "no A7X_native" end
+  if not N then return nil, "no Inspector_native" end
   local game = R(N.Root(), O.chitin.game)
   if not valid_pointer(game) then return nil, "no game loaded" end
   local index = R(game, O.game.visible_area)
@@ -116,7 +116,7 @@ end
 -- The sprite under the pointer in the area on screen, or nil and a reason: nothing there (an id
 -- below 0), an id the object array no longer holds, or an object that is not a creature (doors,
 -- containers and regions are objects too).
-function A7XWALK.picked()
+function INSPECTOR_WALK.picked()
   local area, why = W.visible_area()
   if not area then return nil, why end
   local id = R(area.pointer, O.area.picked)
@@ -131,9 +131,9 @@ end
 -- Every sprite in `area` (a CGameArea pointer), in object-array order, as { id, sprite, ea }, and
 -- the scan's counts { slots, objects, sprites }; or nil and a reason. The slots are read 256 at a
 -- time (4 KB, ReadBlock's limit), never past the highest slot in use or the array's capacity.
-function A7XWALK.creatures(area)
+function INSPECTOR_WALK.creatures(area)
   local N = native()
-  if not N then return nil, "no A7X_native" end
+  if not N then return nil, "no Inspector_native" end
   if not valid_pointer(area) then return nil, "bad area pointer" end
   local array = N.Objects()
   local capacity, highest = R(array, O.objects.capacity), R(array, O.objects.highest)
@@ -164,7 +164,7 @@ function A7XWALK.creatures(area)
 end
 
 -- "friendly", "neutral" or "hostile" for an EA value, by the engine's two cut-offs; nil for no EA.
-function A7XWALK.ea_group(ea)
+function INSPECTOR_WALK.ea_group(ea)
   if type(ea) ~= "number" then return nil end
   if ea <= O.ea.friendly_max then return "friendly" end
   if ea >= O.ea.hostile_min then return "hostile" end
@@ -177,7 +177,7 @@ local EFFECT_LISTS = { timed = O.sprite.timed_effects, equipped = O.sprite.equip
 -- effects in list order, each { opcode, p1, p2, timing, duration, applied, source }; or nil and a
 -- reason. The walk follows each node's next pointer to a null one, checking every pointer first,
 -- and gives up past O.effect_node.max nodes, so a broken or circular list ends with a reason.
-function A7XWALK.effects(sprite, which)
+function INSPECTOR_WALK.effects(sprite, which)
   local head = EFFECT_LISTS[which]
   if not head then return nil, "no such list: " .. tostring(which) end
   if not valid_pointer(sprite) then return nil, "bad sprite pointer" end
@@ -201,11 +201,11 @@ function A7XWALK.effects(sprite, which)
   return out
 end
 
--- The game ticks left before effect `e` (from A7XWALK.effects) expires at clock `now`
--- (A7XWALK.game_time()), never below 0; nil for an effect with no expiry (any timing mode but
+-- The game ticks left before effect `e` (from INSPECTOR_WALK.effects) expires at clock `now`
+-- (INSPECTOR_WALK.game_time()), never below 0; nil for an effect with no expiry (any timing mode but
 -- O.effect.absolute: permanent and equipped effects have no countdown). The engine may list an
 -- effect a tick or so past its expiry, since it removes expired effects creature by creature.
-function A7XWALK.remaining(e, now)
+function INSPECTOR_WALK.remaining(e, now)
   if e.timing ~= O.effect.absolute or not e.duration or not now then return nil end
   return math.max(e.duration - now, 0)
 end
@@ -244,7 +244,7 @@ local RESISTS = {
 -- A creature's record from its sprite, or nil and a reason. Stats come from the current stats
 -- block (derived unless the engine is mid-update, as EEex reads them); the *_shown fields mirror
 -- what the record screen computes, for comparison with characters[].
-function A7XWALK.creature(sprite)
+function INSPECTOR_WALK.creature(sprite)
   if not valid_pointer(sprite) then return nil, "bad sprite pointer" end
   if R(sprite, O.object.type) ~= O.sprite_type then return nil, "not a sprite" end
   local allow = R(sprite, O.sprite.allow_effect_list)
@@ -285,5 +285,5 @@ function A7XWALK.creature(sprite)
   return c
 end
 
-A7XWALK.SAVES = SAVES
-A7XWALK.RESISTS = RESISTS
+INSPECTOR_WALK.SAVES = SAVES
+INSPECTOR_WALK.RESISTS = RESISTS

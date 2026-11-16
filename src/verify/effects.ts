@@ -1,7 +1,7 @@
 /**
  * Judging the effect probe from a session log.
  *
- * test/lua/a7xeff.lua writes A7XEFF lines, each a JSON object defined in src/model/schemas.ts
+ * test/lua/inspeff.lua writes INSPECTOR_EFF lines, each a JSON object defined in src/model/schemas.ts
  * (EffectLine). This folds them into runs and judges the latest: both effect lists of every probed
  * member read to their end; every effect's fields look like an effect's (an opcode in range, a
  * timing mode IESDP lists, a source that is a resource name), which a wrong layout would fail; and
@@ -40,7 +40,7 @@ const RESREF = /^[A-Za-z0-9_#!-]{0,8}$/;
 
 /** Every run of the effect probe in a log, in run order, and the lines that are not EffectLines. */
 export function parseEffects(log: string): { runs: EffectRun[]; problems: string[] } {
-  const parsed = parseLines(log, "A7XEFF", EffectLine);
+  const parsed = parseLines(log, "INSPECTOR_EFF", EffectLine);
   const runs = new Map<number, EffectRun>();
   const member = (run: EffectRun, id: number): EffectMember => {
     let m = run.members.find((x) => x.id === id);

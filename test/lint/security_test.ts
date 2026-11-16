@@ -104,9 +104,9 @@ Deno.test("native code has no write path and no mprotect", () => {
   ]);
 });
 
-// The macro as native/a7x.c defines it, cut to the lines the check reads.
+// The macro as native/inspector.c defines it, cut to the lines the check reads.
 const MACRO = [
-  "#define A7X_INTERPOSE(replacement, original) \\",
+  "#define INSPECTOR_INTERPOSE(replacement, original) \\",
   '        __attribute__((section("__DATA,__interpose,interposing"))) = { \\',
   "        (const void *)&replacement, (const void *)&original};",
 ].join("\n");
@@ -114,11 +114,13 @@ const MACRO = [
 Deno.test("native code interposes only allowlisted functions, through the macro", () => {
   const allowed = ALLOWED_INTERPOSE[0];
   deepStrictEqual(
-    checkNative([{ file: "native/a.c", text: `${MACRO}\nA7X_INTERPOSE(mine, ${allowed})` }]),
+    checkNative([{ file: "native/a.c", text: `${MACRO}\nINSPECTOR_INTERPOSE(mine, ${allowed})` }]),
     [],
   );
   deepStrictEqual(
-    checks(checkNative([{ file: "native/a.c", text: `${MACRO}\nA7X_INTERPOSE(mine, open)` }])),
+    checks(
+      checkNative([{ file: "native/a.c", text: `${MACRO}\nINSPECTOR_INTERPOSE(mine, open)` }]),
+    ),
     ["native-interpose"],
   );
   const raw = 'static const void *p[2] __attribute__((section("__DATA, __interpose"))) = {a, b};';
@@ -130,13 +132,13 @@ Deno.test("native code interposes only allowlisted functions, through the macro"
 });
 
 Deno.test("native code names only allowlisted engine functions", () => {
-  const allowed = ALLOWED_ENGINE_CALLS.map((fn) => `    A7X_FN_${fn},`).join("\n");
+  const allowed = ALLOWED_ENGINE_CALLS.map((fn) => `    INSPECTOR_FN_${fn},`).join("\n");
   deepStrictEqual(
-    checkNative([{ file: "native/builds.h", text: `${allowed}\n    A7X_FN_COUNT` }]),
+    checkNative([{ file: "native/builds.h", text: `${allowed}\n    INSPECTOR_FN_COUNT` }]),
     [],
   );
   // A function outside the list, whether declared in the enum or only used in the C code.
-  const extra = "A7X_FN_" + "luaL_loadstring";
+  const extra = "INSPECTOR_FN_" + "luaL_loadstring";
   deepStrictEqual(checks(checkNative([{ file: "native/builds.h", text: `    ${extra},` }])), [
     "native-engine-call",
   ]);

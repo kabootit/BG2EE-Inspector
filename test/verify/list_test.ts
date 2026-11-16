@@ -5,8 +5,10 @@ import { listProblems, parseLists } from "../../src/verify/list.ts";
 const engine = (s: string) =>
   `2026-11-14 19:19:14.780 BaldursGateIIEnhancedEdition[1:2] INFO: LUA: ${s}`;
 
-// What test/lua/a7xlist.lua writes for the fake game: the area on screen and its three creatures.
-const GOLDEN = (await Deno.readTextFile("test/fixtures/a7xlist.txt")).split("\n").filter((l) => l);
+// What test/lua/insplist.lua writes for the fake game: the area on screen and its three creatures.
+const GOLDEN = (await Deno.readTextFile("test/fixtures/inspector_list.txt")).split("\n").filter((
+  l,
+) => l);
 const LOG = GOLDEN.map(engine).join("\n");
 
 Deno.test("the list's lines fold into a run with area, scan, creatures and checks", () => {
@@ -37,17 +39,23 @@ Deno.test("a check that is not ok is named; two runs are judged each on its own"
 });
 
 Deno.test("an error, a missing area line or no party check fails the run", () => {
-  const error = parseLists(engine('A7XLIST\t{"kind":"error","run":1,"why":"no game loaded"}'));
+  const error = parseLists(
+    engine('INSPECTOR_LIST\t{"kind":"error","run":1,"why":"no game loaded"}'),
+  );
   deepStrictEqual(listProblems(error.runs[0]), ["the check could not run: no game loaded"]);
   const bare = parseLists(
-    engine('A7XLIST\t{"detail":"repeated: none","kind":"check","name":"unique","ok":true,"run":1}'),
+    engine(
+      'INSPECTOR_LIST\t{"detail":"repeated: none","kind":"check","name":"unique","ok":true,"run":1}',
+    ),
   );
   deepStrictEqual(listProblems(bare.runs[0]), ["no area line", "no party member checked"]);
 });
 
 Deno.test("a line that does not match its schema is a problem, not a run", () => {
-  const { runs, problems } = parseLists(engine('A7XLIST\t{"kind":"creature","run":1,"id":"x"}'));
+  const { runs, problems } = parseLists(
+    engine('INSPECTOR_LIST\t{"kind":"creature","run":1,"id":"x"}'),
+  );
   deepStrictEqual(runs, []);
   strictEqual(problems.length > 0, true);
-  deepStrictEqual(parseLists("A7X loaded"), { runs: [], problems: [] });
+  deepStrictEqual(parseLists("Inspector loaded"), { runs: [], problems: [] });
 });

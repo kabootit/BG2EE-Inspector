@@ -45,7 +45,7 @@ Deno.test("override/ comes before the archives, whatever the file name's case", 
 });
 
 // The spawn check's fixtures, from the one place they are listed.
-const FIXTURES = (await Deno.readTextFile("test/lua/a7xspawn.lua"))
+const FIXTURES = (await Deno.readTextFile("test/lua/inspspwn.lua"))
   .match(/^local FIXTURES = \{ (.*) \}$/m)![1]
   .split(",").map((s) => s.trim().replace(/"/g, ""));
 

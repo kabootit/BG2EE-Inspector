@@ -11,14 +11,14 @@ This session checks, in the game, what `deno task re effect-lists` found in the 
 creature has two linked lists of effects, headed at sprite `+0x49a0` and `+0x49f0`, and each effect
 probably keeps the layout of an effect file (`EFF V2.0`), its opcode at `+0x10`
 ([docs/re-notes.md](../re-notes.md#engine-structures)). The probe script reads both lists for every
-party member through the walker (`A7XWALK.effects`) and logs each effect's fields, then the engine's
+party member through the walker (`INSPECTOR_WALK.effects`) and logs each effect's fields, then the engine's
 own `characters[id].statusEffects`, the status icons the record screen lists, keyed by icon number.
 It is the [effect-list plan](../plans/2026-11-15-effect-list.md)'s presence gate: every icon an
 effect shows through opcode 142 must be one the record screen lists.
 
-The tester copies the walker's Lua (`a7xoff.lua`, `a7xwalk.lua`), the JSON writer (`a7xjson.lua`)
-and the probe (`a7xeff.lua`) into the game's `override/` folder for the session. In the game, the
-tester types only `Infinity_DoFile("a7xeff")`. Results go to the session log; the game shows a one-line
+The tester copies the walker's Lua (`inspoff.lua`, `inspwalk.lua`), the JSON writer (`inspjson.lua`)
+and the probe (`inspeff.lua`) into the game's `override/` folder for the session. In the game, the
+tester types only `Infinity_DoFile("inspeff")`. Results go to the session log; the game shows a one-line
 summary.
 
 ## Before you start
@@ -27,15 +27,15 @@ summary.
 - **The repo is in the state to test.** Committed or not; the run tests the local working tree, and
   the Runs row notes the latest commit and whether there were local changes.
 - **`Debug Mode` is 1** in `Baldur.lua`, so Ctrl+Space opens the Lua console in a loaded game.
-- **The game has no WeiDU component installed**, so nothing has called `A7X` in the session (the
+- **The game has no WeiDU component installed**, so nothing has called `I` in the session (the
   [manual tests' README](README.md#how-a-run-goes)); `deno task install-mod --uninstall` if it has.
 - **The four files are in the game's `override/` folder.** From the repo folder:
 
   ```sh
   G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
   mkdir -p "$G/override"
-  cp mod/inspector/lib/a7xoff.lua mod/inspector/lib/a7xwalk.lua mod/inspector/lib/a7xjson.lua \
-    test/lua/a7xeff.lua "$G/override/"
+  cp mod/inspector/lib/inspoff.lua mod/inspector/lib/inspwalk.lua mod/inspector/lib/inspjson.lua \
+    test/lua/inspeff.lua "$G/override/"
   ```
 
   Step 7 removes them again at the end.
@@ -52,8 +52,8 @@ summary.
    deno task play
    ```
 
-   Expect `A7X loaded`, `A7X build 2.7.3 arm64 matched, 14 sites checked` and
-   `A7X registered A7X_native`.
+   Expect `Inspector loaded`, `Inspector build 2.7.3 arm64 matched, 14 sites checked` and
+   `Inspector registered Inspector_native`.
 2. **Load the save** (1 minute).
 3. **Cast** (3 minutes), with the game running. Cast two or three spells on party members, at least
    one on someone other than the caster, and drink a potion if one is at hand. Note each spell and
@@ -62,16 +62,16 @@ summary.
 4. **Open every party member's record screen** once (2 minutes), after loading the save and before
    the probe, so the engine fills `characters[id]` for each; a member whose record screen stayed
    closed fails the gate. Note the icons each portrait shows.
-5. **Run the probe** (1 minute). Open the console with Ctrl+Space, type `Infinity_DoFile("a7xeff")`
-   and press Enter. The message window shows `A7X effect probe 1: <n> members, <n> effects read,
+5. **Run the probe** (1 minute). Open the console with Ctrl+Space, type `Infinity_DoFile("inspeff")`
+   and press Enter. The message window shows `Inspector effect probe 1: <n> members, <n> effects read,
    0 skipped`. Close the console.
 6. **Quit from the game's own menu.**
 7. **Remove the four files**, and the `override/` folder if it is now empty:
 
    ```sh
    G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
-   rm "$G/override/a7xoff.lua" "$G/override/a7xwalk.lua" "$G/override/a7xjson.lua" \
-     "$G/override/a7xeff.lua"
+   rm "$G/override/inspoff.lua" "$G/override/inspwalk.lua" "$G/override/inspjson.lua" \
+     "$G/override/inspeff.lua"
    rmdir "$G/override"
    ```
 
@@ -92,7 +92,7 @@ summary.
 
 The probe only reads, so nothing should differ from normal play. Stop and quit if you see:
 
-- stutter, or a freeze right after `Infinity_DoFile("a7xeff")`;
+- stutter, or a freeze right after `Infinity_DoFile("inspeff")`;
 - a crash.
 
 Then report what you saw and at which step.
@@ -104,7 +104,7 @@ step 4. The run passes when:
 
 | Check | Where | Pass when |
 | --- | --- | --- |
-| Build and registration | `A7X build 2.7.3 arm64 matched, 14 sites checked` and `A7X registered A7X_native` | both present, no `A7X disabled` |
+| Build and registration | `Inspector build 2.7.3 arm64 matched, 14 sites checked` and `Inspector registered Inspector_native` | both present, no `Inspector disabled` |
 | The probe ran | the message window, step 5 | the summary line, 0 skipped |
 | Both lists read to their end | `deno task verify` | no member with a list that stopped on a bad pointer or at the node cap |
 | The fields look like an effect's | `deno task verify` | every opcode under 1000, every timing mode one IESDP lists, every source a resource name |
@@ -138,3 +138,4 @@ the version of the test that judged it.
 | 2026-11-15 | the commit that adds this test, after the first run | The probe logs `statusEffects` whatever its shape, and the keys of `characters[id]`; step 8 prints each list grouped by source, with the names the game shows | `statusEffects` read as a list; every effect printed on its own line, sources as resrefs only |
 | 2026-11-15 | the commit that adds the walker's effect lists, after the second run | The probe reads through the walker; step 4 requires every record screen opened; the presence gate and the spells cast become pass criteria | no gate: the fields' plausibility only, the probe reading the lists itself |
 | 2026-11-15 | the same commit, after the third run | Step 3 says to let every spell finish before pausing: in the third run the tester paused the spells mid-cast and they never landed | step 3 as "wait until each shows its icon, then pause" |
+| 2026-11-15 | the commit that renames `A7X` before v0.1.0 ([first-release plan](../plans/2026-11-15-first-release.md#the-name)) | Names only, every check the same: the files take the prefix `insp` (`inspoff.lua`, `inspwalk.lua`, `inspjson.lua`, `inspeff.lua`, `Infinity_DoFile("inspeff")`), the lines `INSPECTOR_EFF`, and the summary and the library's lines `Inspector …` | the same steps under the names `a7x…`, `A7XEFF` and `A7X …` |

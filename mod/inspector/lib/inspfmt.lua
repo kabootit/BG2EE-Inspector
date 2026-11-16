@@ -1,6 +1,6 @@
--- a7xfmt.lua: a schema-1 record (docs/data-model.md) as lines for the message window.
+-- inspfmt.lua: a schema-1 record (docs/data-model.md) as lines for the message window.
 --
---   [A7X] Fire Giant  HP 112/140  AC -1  THAC0 4  MR 0%
+--   [Inspector] Fire Giant  HP 112/140  AC -1  THAC0 4  MR 0%
 --         Saves D3 W5 P4 B4 S6  Resist fire 100
 --         Spells Bless 34s, Haste 1m 42s
 --
@@ -9,7 +9,7 @@
 -- The spells line lists the record's effects in its order, soonest first, in game time; a record
 -- without effects, when the inspector could not read them, has no spells line.
 
-A7XFMT = {}
+INSPECTOR_FMT = {}
 
 -- Colors by side, as 0xAABBGGRR: alpha, then blue, green and red. The Data API manual test of
 -- 2026-11-14 settled the order: written as 0xAARRGGBB, light blue showed gold and red showed blue.
@@ -46,24 +46,24 @@ local function nonzero(t, order, show)
 end
 
 -- Game seconds as the countdown shows them: 34s, 1m 42s, 2h 5m. A local, as lines() calls it after
--- the API has cleared the global A7XFMT.
+-- the API has cleared the global INSPECTOR_FMT.
 local function duration(seconds)
   if seconds < 60 then return seconds .. "s" end
   local floor = math.floor -- Lua 5.2: no // operator
   if seconds < 3600 then return string.format("%dm %ds", floor(seconds / 60), seconds % 60) end
   return string.format("%dh %dm", floor(seconds / 3600), floor(seconds % 3600 / 60))
 end
-A7XFMT.duration = duration
+INSPECTOR_FMT.duration = duration
 
 -- The record's lines, in order.
-function A7XFMT.lines(r)
+function INSPECTOR_FMT.lines(r)
   local ac = tostring(r.ac)
   local mods = nonzero(r.ac_mods, AC_MODS, signed)
   if #mods > 0 then ac = ac .. " (" .. table.concat(mods, ", ") .. ")" end
   local resist = nonzero(r.resist, RESISTS, tostring)
   local s = r.saves
   local lines = {
-    string.format("[A7X] %s  HP %d/%d  AC %s  THAC0 %d  MR %d%%",
+    string.format("[Inspector] %s  HP %d/%d  AC %s  THAC0 %d  MR %d%%",
       colored(r.name, r.allegiance.side), r.hp.cur, r.hp.max, ac, r.thac0, r.mr),
     string.format("      Saves D%d W%d P%d B%d S%d  Resist %s",
       s.death, s.wand, s.poly, s.breath, s.spell, #resist > 0 and table.concat(resist, ", ") or "none"),

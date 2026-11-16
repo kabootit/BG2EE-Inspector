@@ -51,30 +51,49 @@ Deno.test("the tp2 copies every file in mod/inspector/lib and the names table, n
   deepStrictEqual([...tp2.copies].sort(), lib.sort());
 });
 
+// Infinity_DoFile loads names of 8 characters at most (ADR-0002), so a longer one never loads.
+Deno.test("every Lua file the game loads has a name of 8 characters at most", async () => {
+  const names = [...tp2.copies.map((p) => p.split("/").at(-1)!)];
+  for await (const e of Deno.readDir("test/lua")) {
+    if (e.name.endsWith(".lua") && !e.name.endsWith("_test.lua")) names.push(e.name);
+  }
+  deepStrictEqual(names.filter((n) => n.replace(/\.lua$/, "").length > 8), []);
+});
+
+Deno.test("the tp2's VERSION is the newest release in CHANGELOG.md", async () => {
+  const changelog = await Deno.readTextFile("CHANGELOG.md");
+  const newest = changelog.match(/^## (\d+\.\d+\.\d+) \(\d{4}-\d{2}-\d{2}\)$/m)?.[1];
+  strictEqual(tp2.version, `v${newest}`);
+});
+
 Deno.test("every replacement uses a pattern the tp2 counts before patching", () => {
   strictEqual(tp2.replaces.length, 2);
   for (const r of tp2.replaces) strictEqual(tp2.counted.includes(r.pattern), true, r.pattern);
-  strictEqual(tp2.vars.get("a7x_key"), "e");
+  strictEqual(tp2.vars.get("inspector_key"), "e");
 });
 
 Deno.test("each anchor occurs once in a menu shaped like the stock one", () => {
   for (const p of tp2.counted) strictEqual(countMatches(MENU, p), 1, p);
 });
 
-Deno.test("patching loads the names, then a7x, after combatLog and puts the key button after the bar's label", () => {
+Deno.test("patching loads the names, then inspector, after combatLog and puts the key button after the bar's label", () => {
   const lines = patch(MENU, tp2).split(/\r?\n/);
   const at = (text: string) => lines.indexOf(text);
-  strictEqual(at('Infinity_DoFile("a7xnames")'), at("\tcombatLog = {}") + 1, "the names first");
-  strictEqual(at('Infinity_DoFile("a7x")'), at("\tcombatLog = {}") + 2, "then the inspector");
+  strictEqual(
+    at('Infinity_DoFile("inspname")'),
+    at("\tcombatLog = {}") + 1,
+    "the names first",
+  );
+  strictEqual(at('Infinity_DoFile("insp")'), at("\tcombatLog = {}") + 2, "then the inspector");
   deepStrictEqual(lines.slice(at("\t\tmosaic GUWBTP10") + 1, at("\t\tmosaic GUWBTP10") + 7), [
     "\t}",
     "\tbutton",
     "\t{",
     "\t\ton 'e'",
-    '\t\taction "A7X.show()"',
+    '\t\taction "I.show()"',
     "\t}",
   ]);
-  strictEqual(lines.filter((l) => l.includes("A7X.show()")).length, 1, "in WORLD_ACTIONBAR only");
+  strictEqual(lines.filter((l) => l.includes("I.show()")).length, 1, "in WORLD_ACTIONBAR only");
 });
 
 /** The game's ui.menu as the engine finds it, override/ first, or undefined with no game. */

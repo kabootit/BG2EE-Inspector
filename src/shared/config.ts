@@ -47,14 +47,14 @@ export const MOD_DIR = `${ROOT}mod/inspector`;
 export const BUILD_DIR = `${ROOT}build`;
 
 /** The inspector's native library: its one C source and the built dylib. */
-export const DYLIB_SOURCE = `${ROOT}native/a7x.c`;
-export const DYLIB_PATH = `${BUILD_DIR}/a7x.dylib`;
+export const DYLIB_SOURCE = `${ROOT}native/inspector.c`;
+export const DYLIB_PATH = `${BUILD_DIR}/inspector.dylib`;
 
 /** Captured game sessions (gitignored), one file per `deno task play`. */
 export const LOGS_DIR = `${ROOT}logs`;
 
-/** The line the dylib's constructor writes once it is loaded (native/a7x.c). */
-export const LOADED_MARKER = "A7X loaded into ";
+/** The line the dylib's constructor writes once it is loaded (native/inspector.c). */
+export const LOADED_MARKER = "Inspector loaded into ";
 
 /**
  * System binaries, by absolute path so a directory earlier in PATH cannot stand in for them. The

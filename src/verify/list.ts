@@ -1,7 +1,7 @@
 /**
  * Judging the creature list check from a session log.
  *
- * test/lua/a7xlist.lua writes A7XLIST lines, each a JSON object defined in src/model/schemas.ts
+ * test/lua/insplist.lua writes INSPECTOR_LIST lines, each a JSON object defined in src/model/schemas.ts
  * (ListLine). This folds them into runs and keeps every run: the manual test runs the check in two
  * areas, and each run is judged on its own. A run passes when it named the area on screen, made its
  * checks, and every check was ok.
@@ -10,7 +10,7 @@ import { exhaustive, ListLine, type ListRun, parseLines } from "../model/schemas
 
 /** Every run of the list check in a log, in run order, and the lines that are not ListLines. */
 export function parseLists(log: string): { runs: ListRun[]; problems: string[] } {
-  const parsed = parseLines(log, "A7XLIST", ListLine);
+  const parsed = parseLines(log, "INSPECTOR_LIST", ListLine);
   const runs = new Map<number, ListRun>();
   for (const line of parsed.lines) {
     const run: ListRun = runs.get(line.run) ?? { run: line.run, creatures: [], checks: [] };

@@ -8,8 +8,8 @@ import {
   spellSummary,
 } from "../../src/verify/spells.ts";
 
-// The fake game's records, as the Lua API writes them (test/fixtures/a7xdata.txt).
-const RECORDS: CreatureRecord[] = (await Deno.readTextFile("test/fixtures/a7xdata.txt"))
+// The fake game's records, as the Lua API writes them (test/fixtures/inspector_data.txt).
+const RECORDS: CreatureRecord[] = (await Deno.readTextFile("test/fixtures/inspector_data.txt"))
   .split("\n").filter((l) => l !== "").map((l) => JSON.parse(l.slice(l.indexOf("\t") + 1)));
 
 // What the game files give for the fake game's two sources: Bless, 36 seconds at every level; the

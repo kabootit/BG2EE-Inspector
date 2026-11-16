@@ -11,6 +11,12 @@ date: 2026-11-14
 
 **Status:** Active · **Date:** 2026-11-14
 
+**Amended 2026-11-15, before v0.1.0:** the names changed, the decision did not. The public table
+`A7X` is `I`, API 2.0; `A7X_native` is `Inspector_native`; the lines `A7XDATA`, `A7XCHECK`,
+`A7XLIST` and `A7XSPAWN` are `INSPECTOR_DATA`, `INSPECTOR_CHECK`, `INSPECTOR_LIST` and
+`INSPECTOR_SPAWN`. The text below keeps the names as decided
+([first-release plan](../plans/2026-11-15-first-release.md#the-name)).
+
 ## References
 
 - [ADR-0002](0002-read-only-bridge-lua-walker.md): the read-only bridge and the walker this API

@@ -1,7 +1,7 @@
 /**
  * Judging the party check from a session log.
  *
- * test/lua/a7xchk.lua writes A7XCHECK lines, each a JSON object defined in src/model/schemas.ts
+ * test/lua/inspchk.lua writes INSPECTOR_CHECK lines, each a JSON object defined in src/model/schemas.ts
  * (CheckLine). This folds them into runs, keeps the latest (the check may be run several times in
  * one session), and says whether it passed: the party was found, every member was compared, and
  * every compared field was ok.
@@ -16,7 +16,7 @@ import {
 
 /** Every run of the check in a log, in run order, and the lines that are not CheckLines. */
 export function parseChecks(log: string): { runs: CheckRun[]; problems: string[] } {
-  const parsed = parseLines(log, "A7XCHECK", CheckLine);
+  const parsed = parseLines(log, "INSPECTOR_CHECK", CheckLine);
   const runs = new Map<number, CheckRun>();
   const member = (run: CheckRun, id: number): CheckMember => {
     let m = run.members.find((x) => x.id === id);
@@ -78,7 +78,7 @@ export function offsetsHolding(dumps: (number | null)[][], value: number): numbe
 
 /** Why a run does not pass; empty when it does. */
 export function problems(run: CheckRun | undefined): string[] {
-  if (!run) return ["no A7XCHECK lines in the log"];
+  if (!run) return ["no INSPECTOR_CHECK lines in the log"];
   if (run.error) return [`the check could not run: ${run.error}`];
   if (run.size === undefined) return ["no party line"];
   const out: string[] = [];

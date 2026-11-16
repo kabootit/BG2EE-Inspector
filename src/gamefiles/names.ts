@@ -2,7 +2,7 @@
  * The names the game shows for spells and items, as string references, for the inspector's Lua.
  *
  * The game's Lua has no call that names a spell or an item from its resref, but it has
- * `Infinity_FetchString(strref)`. So `deno task install-mod` writes `a7xnames.lua`, a table of
+ * `Infinity_FetchString(strref)`. So `deno task install-mod` writes `inspname.lua`, a table of
  * resref to strref for every spell and item file, and the inspector fetches each name in the game,
  * in the game's own language. A helper spell often has no name of its own (`SPCL920A` holds the
  * effects of `SPCL920`, Enhanced Bard Song), so a nameless spell takes the name of the resref
@@ -92,15 +92,15 @@ export async function nameStrrefs(
 /** A resref as a Lua string: quotes and backslashes escaped; resrefs are printable ASCII. */
 const luaString = (s: string): string => `"${s.replace(/[\\"]/g, (c) => `\\${c}`)}"`;
 
-/** The names table as a Lua file that sets the global A7XNAMES, one entry a line, keys sorted. */
+/** The names table as a Lua file that sets the global INSPECTOR_NAMES, one entry a line, keys sorted. */
 export function namesLua(names: Map<string, number>): string {
   const entries = [...names].filter(([resref]) => /^[\x20-\x7e]+$/.test(resref))
     .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([resref, strref]) => `  [${luaString(resref)}] = ${strref},`);
   return [
-    "-- a7xnames.lua: written by deno task install-mod from the game's spell and item files",
+    "-- inspname.lua: written by deno task install-mod from the game's spell and item files",
     "-- (src/gamefiles/names.ts): resref to the strref of the name the game shows for it.",
-    "A7XNAMES = {",
+    "INSPECTOR_NAMES = {",
     ...entries,
     "}",
     "",

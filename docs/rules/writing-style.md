@@ -18,7 +18,7 @@ output text.
   command is impersonal too: "Run `deno task verify`". `lint:docs` flags a form of "to be" before a
   past participle ("is written", "are not read") outside code, inline code and double-quoted text.
   An adjective with no verb behind it ("untested", "unchanged") is not passive and passes.
-- **Plain and specific.** Name the actual thing ("`A7X.get` and `A7X.list`", not "the getters"). Qualify a
+- **Plain and specific.** Name the actual thing ("`I.get` and `I.list`", not "the getters"). Qualify a
   term that could mean two things ("game ticks", not "ticks", where real time is also in play). Spell out
   vague conditions.
 - **Footnotes for outside sources.** A `[^slug]` marker at the point of use and a

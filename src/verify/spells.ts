@@ -1,5 +1,5 @@
 /**
- * Judging the active spells in A7XDATA records (the record's optional `effects`, Phase 5 part 3)
+ * Judging the active spells in INSPECTOR_DATA records (the record's optional `effects`, Phase 5 part 3)
  * against the game's files, for the Spell countdown test (docs/manual-tests/countdown.md):
  *
  * - each name is what the game files give for its resref, a nameless helper spell its parent's

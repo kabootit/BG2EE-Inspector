@@ -41,7 +41,7 @@ wrong. Function sizes do line up: most of the game's `lapi.c` functions have exa
 same function in stock 5.2.4 built with `clang -arch arm64 -O2`. An instruction-by-instruction
 comparison with that reference build then checked each candidate.
 
-The functions the library calls, in the order of `enum a7x_fn`:
+The functions the library calls, in the order of `enum inspector_fn`:
 
 | Function | Offset | Size | How the analysis confirmed it |
 | --- | --- | --- | --- |
@@ -64,7 +64,7 @@ trip through Lua exactly.
 **`Infinity_Log` keeps at most 4084 characters of a message** and cuts the rest, with no sign of the
 cut. Measured in the session logs: every party-check sprite dump, in all three Phase 3 runs that wrote
 one and in the run of 2026-11-14, ends at exactly 4084 characters after `LUA: `. The inspector's lines stay
-under 4000 (`A7XJSON.MAX_LINE` in `mod/inspector/lib/a7xjson.lua`), and the party check writes
+under 4000 (`INSPECTOR_JSON.MAX_LINE` in `mod/inspector/lib/inspjson.lua`), and the party check writes
 the dump in 512-byte lines.
 
 **The message window's color markup is `^0x`, eight hex digits as `0xAABBGGRR`, the text, then
@@ -143,7 +143,7 @@ image-relative (`0x5499cc`) or absolute (`0x1005499cc`), and its output is image
    in-game manual tests for the bridge decide whether the entry is right.
 5. **Re-check the structure fields** found by tally: `area-fields`, `id-fields` and `effect-lists`
    should still put the offsets in [Engine structures](#engine-structures) first. `deno task test` fails when their
-   counts change (`test/re/fields_test.ts`); the walker's offsets in `mod/inspector/lib/a7xoff.lua`
+   counts change (`test/re/fields_test.ts`); the walker's offsets in `mod/inspector/lib/inspoff.lua`
    follow whatever they print. `game-clock` gives the clock's offset from `CInfGame` the same way
    (`test/re/clock_test.ts`).
 

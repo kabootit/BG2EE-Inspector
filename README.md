@@ -4,12 +4,13 @@
 
 An in-game inspector for Baldur's Gate II: Enhanced Edition on macOS. Press a hotkey over a creature or
 portrait, or type a console command, and it prints that creature's stats (HP, AC, THAC0, saves,
-resistances, MR); the plan adds its active spells, with the time left until each wears off.
+resistances, MR) and its active spells, with the game time left until each wears off.
 
-**Status: under construction,** in the phases of the
-[foundation plan](docs/plans/2026-11-01-inspector-foundation.md). The stats work with the `e` hotkey,
-from the console and through the API other mods use, installed with WeiDU, all checked in the game;
-active spells come in Phase 5.
+**Status: v0.1.0, the first release** ([release notes](CHANGELOG.md)). Everything the
+[foundation plan](docs/plans/2026-11-01-inspector-foundation.md) set out works with the `e` hotkey,
+from the console and through the API other mods use, all checked in the game. **This release
+installs and runs through Deno:** a game started from Steam or the Finder runs without the
+inspector. A WeiDU-compatible install that needs no Deno comes in a later release.
 
 ## Why
 
@@ -22,19 +23,22 @@ with two code-signing entitlements, `allow-dyld-environment-variables` and
 
 ## Installation
 
-A tester has run every step against the game; step 5 in the
-[Hotkey and install](docs/manual-tests/hotkey.md) manual test.
+**v0.1.0 needs Deno** (2.9.8 or later) and the Xcode Command Line Tools: Deno installs the inspector
+and starts the game with its native library loaded, and the tools build that library. A
+WeiDU-compatible install, with the game started the usual way, comes in a later release
+([TODO.md](TODO.md)). The full guide, with uninstalling and trouble, is
+[docs/install.md](docs/install.md); in short, from the source folder:
 
-1. Install the [requirements](docs/requirements.md), including **Deno 2.9.8** or later.
-2. `deno task setup-weidu`: fetch the pinned WeiDU release.
-3. `deno task doctor`: check every requirement.
-4. `deno task build`: build the read-only library.
-5. `deno task install-mod`: install the WeiDU component, which loads the inspector when the game
+1. `deno task setup-weidu`: fetch the pinned WeiDU release.
+2. `deno task doctor`: check every [requirement](docs/requirements.md).
+3. `deno task build`: build the read-only library.
+4. `deno task install-mod`: install the WeiDU component, which loads the inspector when the game
    starts and adds the hotkey (`--uninstall` removes it).
-6. `deno task play`: launch the game with the library loaded.
+5. `deno task play`, **for every session**: start the game with the library loaded.
 
-The inspector supports only the BG2:EE 2.7.3 Steam build, because engine addresses are
-binary-specific. No test has covered compatibility with other mods yet; see [TODO.md](TODO.md).
+The inspector supports only the BG2:EE 2.7.3 Steam build on Apple Silicon, because engine addresses
+are binary-specific; on any other build it turns itself off. No test has covered compatibility with
+other mods yet; see [TODO.md](TODO.md).
 
 ## Use
 
@@ -43,10 +47,10 @@ In a loaded game:
 - **Press `e`** with the pointer over a creature or a party portrait: its stats appear in the message
   window. Over anything else, the inspector says how to use it.
 - **Or type in the console** (Ctrl+Space, with `Debug Mode` on, see the
-  [requirements](docs/requirements.md)): `A7X.show("enemies")`, `A7X.show("party")`,
-  `A7X.show("all")`, or `A7X.show(id)` for one creature.
+  [requirements](docs/requirements.md)): `I.show("enemies")`, `I.show("party")` or
+  `I.show("all")`.
 
-Other mods read the same records through the `A7X` table: [docs/api.md](docs/api.md).
+Other mods read the same records through the `I` table: [docs/api.md](docs/api.md).
 
 Documentation starts at [docs/README.md](docs/README.md).
 

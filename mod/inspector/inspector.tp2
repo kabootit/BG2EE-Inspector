@@ -1,11 +1,13 @@
 // inspector.tp2: installs the inspector's Lua into override/ and patches ui.menu to load it at
-// startup and to call A7X.show() on one key (docs/api.md). Adapted from BG2EE-GameLog's gamelog.tp2.
+// startup and to call I.show() on one key (docs/api.md). Adapted from BG2EE-GameLog's gamelog.tp2.
 // deno task install-mod runs it with the project's own WeiDU. test/game/tp2_test.ts reads this file:
 // every pattern below must occur exactly once in the game's ui.menu, every REPLACE_TEXTUALLY must use
 // a counted pattern, and every file in inspector/lib must be copied.
 
 BACKUP ~inspector/backup~
 AUTHOR ~BG2EE-Inspector~
+// The release, written into WeiDU.log; test/game/tp2_test.ts checks it against CHANGELOG.md.
+VERSION ~v0.1.0~
 
 BEGIN ~BG2EE-Inspector: a creature's stats on one key~
 DESIGNATED 0
@@ -13,49 +15,49 @@ REQUIRE_PREDICATE GAME_IS ~bg2ee~ ~This component requires BG2:EE.~
 REQUIRE_PREDICATE FILE_EXISTS_IN_GAME ~ui.menu~ ~ui.menu was not found in this installation.~
 
 // The key the inspector answers, set here only.
-OUTER_SPRINT a7x_key ~e~
+OUTER_SPRINT inspector_key ~e~
 
-// The Lua. ui.menu loads a7xnames.lua, then a7x.lua, which loads the rest. deno task install-mod
-// writes a7xnames.lua from the game's spell and item files before WeiDU runs (src/gamefiles/names.ts).
-COPY ~inspector/lib/a7x.lua~ ~override~
-  ~inspector/lib/a7xoff.lua~ ~override~
-  ~inspector/lib/a7xwalk.lua~ ~override~
-  ~inspector/lib/a7xjson.lua~ ~override~
-  ~inspector/lib/a7xfmt.lua~ ~override~
-  ~inspector/lib/a7xapi.lua~ ~override~
-  ~inspector/lib/a7xnames.lua~ ~override~
+// The Lua. ui.menu loads inspname.lua, then insp.lua, which loads the rest. deno task install-mod
+// writes inspname.lua from the game's spell and item files before WeiDU runs (src/gamefiles/names.ts).
+COPY ~inspector/lib/insp.lua~ ~override~
+  ~inspector/lib/inspoff.lua~ ~override~
+  ~inspector/lib/inspwalk.lua~ ~override~
+  ~inspector/lib/inspjson.lua~ ~override~
+  ~inspector/lib/inspfmt.lua~ ~override~
+  ~inspector/lib/inspapi.lua~ ~override~
+  ~inspector/lib/inspname.lua~ ~override~
 
 COPY_EXISTING ~ui.menu~ ~override~
   // Fail rather than install a patch that never runs: a missing or doubled anchor would look like a
   // working install until the key did nothing.
-  COUNT_REGEXP_INSTANCES ~combatLog = {}~ a7x_load_anchor
-  COUNT_REGEXP_INSTANCES ~\(name "WORLD_ACTIONBAR"[^}]*}\)~ a7x_key_anchor
-  PATCH_IF (a7x_load_anchor != 1) BEGIN
-    PATCH_FAIL ~inspector: "combatLog = {}" occurs %a7x_load_anchor% times in ui.menu, not once.~
+  COUNT_REGEXP_INSTANCES ~combatLog = {}~ inspector_load_anchor
+  COUNT_REGEXP_INSTANCES ~\(name "WORLD_ACTIONBAR"[^}]*}\)~ inspector_key_anchor
+  PATCH_IF (inspector_load_anchor != 1) BEGIN
+    PATCH_FAIL ~inspector: "combatLog = {}" occurs %inspector_load_anchor% times in ui.menu, not once.~
   END
-  PATCH_IF (a7x_key_anchor != 1) BEGIN
-    PATCH_FAIL ~inspector: the WORLD_ACTIONBAR menu occurs %a7x_key_anchor% times in ui.menu, not once.~
+  PATCH_IF (inspector_key_anchor != 1) BEGIN
+    PATCH_FAIL ~inspector: the WORLD_ACTIONBAR menu occurs %inspector_key_anchor% times in ui.menu, not once.~
   END
 
   // 1. Load the inspector where BG2EE-GameLog loads its tap: both leave the line in place, so either
-  //    may install first. Nothing in a7x.lua calls the engine while ui.menu loads. The names table
+  //    may install first. Nothing in insp.lua calls the engine while ui.menu loads. The names table
   //    loads first, so the API finds it when it loads.
   REPLACE_TEXTUALLY ~combatLog = {}~ ~combatLog = {}
-Infinity_DoFile("a7xnames")
-Infinity_DoFile("a7x")~
+Infinity_DoFile("inspname")
+Infinity_DoFile("insp")~
 
   // 2. The key: a button with no area, as stock ui.menu binds '8' on character creation, in the
   //    action bar, open throughout play. The pattern runs from the menu's name to the first closing
   //    brace, which ends its first item, a label: the button goes in among the items, after the
-  //    menu's properties (onOpen and onClose hold no braces). WeiDU substitutes %a7x_key% in the
+  //    menu's properties (onOpen and onClose hold no braces). WeiDU substitutes %inspector_key% in the
   //    replacement by itself; REPLACE_TEXTUALLY takes no EVALUATE_BUFFER.
   REPLACE_TEXTUALLY ~\(name "WORLD_ACTIONBAR"[^}]*}\)~ ~\1
 	button
 	{
-		on '%a7x_key%'
-		action "A7X.show()"
+		on '%inspector_key%'
+		action "I.show()"
 	}~
 
 BUT_ONLY
 
-PRINT ~inspector installed: press %a7x_key% over a creature or a party portrait. ui.menu is shared: install again after any mod that rewrites it.~
+PRINT ~inspector installed: press %inspector_key% over a creature or a party portrait. ui.menu is shared: install again after any mod that rewrites it.~

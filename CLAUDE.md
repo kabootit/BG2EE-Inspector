@@ -59,7 +59,7 @@ The tasks available so far; more arrive with each step of the plan:
 | `deno task doctor` | check every requirement in docs/requirements.md; reads the game, never runs it or WeiDU |
 | `deno task setup-weidu` | download WeiDU v251 arm64 into `vendor/weidu/`, checked against GitHub's digest |
 | `deno task setup-dev` | download the Lua 5.2.4 source into `vendor/` (contributors only) |
-| `deno task build` | build `build/a7x.dylib` (arm64, ad-hoc signed) from `native/` |
+| `deno task build` | build `build/inspector.dylib` (arm64, ad-hoc signed) from `native/` |
 | `deno task play` | launch the game with the library, log redacted output to `logs/`; `--no-inject` for a control run. Only when asked |
 | `deno task install-mod` | install the WeiDU component (`mod/inspector/`) into the game with the pinned WeiDU, refusing any other binary, with the names table built from the game's files; `--uninstall` restores `ui.menu`. Only when asked |
 | `deno task re <command>` | reverse-engineering tools on the installed game's arm64 slice; `deno task re` alone lists them, as `src/re/commands.ts` and the table in [docs/re-notes.md](docs/re-notes.md) do |
@@ -70,16 +70,17 @@ The tasks available so far; more arrive with each step of the plan:
 | `deno task test:native` | compile and run `test/native/*_test.c` (the bridge with a fake Lua API, the `lua_State` layout) |
 | `deno task test:lua` | build stock Lua 5.2.4 from `vendor/` and run `test/lua/*_test.lua` |
 | `deno task schema` | write `docs/data-model.schema.json` from the Zod schema in `src/model/schemas.ts` |
-| `deno task verify [log]` | judge the checks in a session log (by default the newest): the party check, the creature list, the spawn check (against the game's `.cre` files), and every `A7XDATA` line against the record's schema |
+| `deno task verify [log]` | judge the checks in a session log (by default the newest): the party check, the creature list, the spawn check (against the game's `.cre` files), and every `INSPECTOR_DATA` line against the record's schema |
 | `deno task check` | type-check |
 
 ## Layout
 
 ```text
 native/          the read-only dylib (C) and builds.h, the per-build address table
-mod/inspector/   the in-game Lua, loaded by lib/a7x.lua: a7xoff.lua (offsets by name), a7xwalk.lua (the
-                 walker), a7xjson.lua (JSON writer), a7xfmt.lua (formatter), a7xapi.lua (the public A7X);
-                 the WeiDU component from Phase 4, which also installs a7xnames.lua, the names table
+mod/inspector/   the in-game Lua, loaded by lib/insp.lua: inspoff.lua (offsets by name),
+                 inspwalk.lua (the walker), inspjson.lua (JSON writer), inspfmt.lua
+                 (formatter), inspapi.lua (the public `I` table);
+                 the WeiDU component from Phase 4, which also installs inspname.lua, the names table
                  install-mod writes from the game's files
 src/             Deno, grouped by concern; no loose files (test/structure_test.ts)
   tasks/         one entry point per deno task: `await runTask(main)`; the only code that exits

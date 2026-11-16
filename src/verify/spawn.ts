@@ -1,7 +1,7 @@
 /**
  * Judging the spawn check from a session log.
  *
- * test/lua/a7xspawn.lua spawns fixture creatures and writes A7XSPAWN lines, each a JSON object
+ * test/lua/inspspwn.lua spawns fixture creatures and writes INSPECTOR_SPAWN lines, each a JSON object
  * defined in src/model/schemas.ts (SpawnLine): the spawns, then for each fixture creature in the area
  * on screen the walker's values and the `.cre` header the engine holds. This folds them into runs and
  * compares each creature with its `.cre` file (src/gamefiles/), field by field. The run that spawned
@@ -61,7 +61,7 @@ function hexBytes(hex: string): Uint8Array | null {
 
 /** Every run of the spawn check in a log, in run order, and the lines that are not SpawnLines. */
 export function parseSpawns(log: string): { runs: SpawnRun[]; problems: string[] } {
-  const parsed = parseLines(log, "A7XSPAWN", SpawnLine);
+  const parsed = parseLines(log, "INSPECTOR_SPAWN", SpawnLine);
   const runs = new Map<number, SpawnRun>();
   for (const line of parsed.lines) {
     const run: SpawnRun = runs.get(line.run) ??

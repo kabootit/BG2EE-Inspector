@@ -20,8 +20,8 @@ int main(void) {
                 offsetof(lua_State, field), (int)(want));                                          \
         failures++;                                                                                \
     }
-    EXPECT(ci, A7X_LUA_STATE_CI)
-    EXPECT(base_ci, A7X_LUA_STATE_BASE_CI)
+    EXPECT(ci, INSPECTOR_LUA_STATE_CI)
+    EXPECT(base_ci, INSPECTOR_LUA_STATE_BASE_CI)
     EXPECT(top, 0x10)
     EXPECT(stack_last, 0x30)
     fprintf(stderr, "lua_layout_test: %s (%d failures)\n", failures ? "FAILED" : "passed", failures);

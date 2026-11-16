@@ -11,6 +11,11 @@ date: 2026-11-01
 
 **Status:** Active (the Phase 3 gate passed on 2026-11-13) · **Date:** 2026-11-01
 
+**Amended 2026-11-15, before v0.1.0:** the Lua files take the prefix `insp` in place of `a7x`, still
+in 8 characters (`inspoff.lua`, `inspwalk.lua`); the native table is `Inspector_native` and the
+library `inspector.dylib`. The text below keeps the names as decided
+([first-release plan](../plans/2026-11-15-first-release.md#the-name)).
+
 ## References
 
 - [ADR-0001](0001-native-dylib-injection.md): how the library gets into the process.

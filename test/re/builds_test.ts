@@ -17,7 +17,7 @@ Deno.test("builds.h parses to one build with a site per engine function and thre
   deepStrictEqual(builds.map((b) => [b.name, b.uuid]), [
     ["2.7.3 arm64", "54799B31-C2BF-36E9-9685-65F8EC3CA58F"],
   ]);
-  const enumNames = [...BUILDS_H.matchAll(/^\s+A7X_FN_(lua_\w+),$/gm)].map((m) => m[1]);
+  const enumNames = [...BUILDS_H.matchAll(/^\s+INSPECTOR_FN_(lua_\w+),$/gm)].map((m) => m[1]);
   strictEqual(enumNames.length, 11);
   const names = builds[0].sites.map((s) => s.name);
   deepStrictEqual(names.slice(0, enumNames.length), enumNames);

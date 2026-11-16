@@ -1,10 +1,10 @@
--- a7xchk.lua: the in-game half of docs/manual-tests/walker.md, the party check.
+-- inspchk.lua: the in-game half of docs/manual-tests/walker.md, the party check.
 --
--- Copied into the game's override/ folder with a7xoff.lua, a7xwalk.lua and a7xjson.lua for the test
--- only, and removed after it. Typed in the debug console as Infinity_DoFile("a7xchk"), it loads the
+-- Copied into the game's override/ folder with inspoff.lua, inspwalk.lua and inspjson.lua for the test
+-- only, and removed after it. Typed in the debug console as Infinity_DoFile("inspchk"), it loads the
 -- walker, then for each party member compares what the walker reads with what the engine shows in
 -- characters[id], the table the record screen is drawn from. Every result is one log line through
--- Infinity_Log, read afterwards by deno task verify: "A7XCHECK", a tab, and a JSON object with the
+-- Infinity_Log, read afterwards by deno task verify: "INSPECTOR_CHECK", a tab, and a JSON object with the
 -- run and a kind. The kinds and their fields are defined in src/model/schemas.ts (CheckLine):
 --
 --   party (size), field (id, field, walker, engine, ok), skip (id, why), error (why)
@@ -16,14 +16,14 @@
 -- runs inside pcall, so a failure is logged rather than raised into the game. When it finishes, one
 -- summary line goes to the message window (Infinity_DisplayString), so the tester sees that it ran.
 
-A7XCHK_run = (A7XCHK_run or 0) + 1
-local run = A7XCHK_run
+INSPECTOR_CHK_run = (INSPECTOR_CHK_run or 0) + 1
+local run = INSPECTOR_CHK_run
 
 -- One line: the run and `t`, as JSON. A line that cannot be written whole becomes an error line.
 local function emit(t)
   t.run = run
-  local line, why = A7XJSON.line("A7XCHECK", t)
-  Infinity_Log(line or A7XJSON.line("A7XCHECK", { run = run, kind = "error", why = why }))
+  local line, why = INSPECTOR_JSON.line("INSPECTOR_CHECK", t)
+  Infinity_Log(line or INSPECTOR_JSON.line("INSPECTOR_CHECK", { run = run, kind = "error", why = why }))
 end
 
 local tally = { members = 0, equal = 0, differ = 0, skipped = 0 }
@@ -50,17 +50,17 @@ local function save_values(text)
   end
   return values
 end
-A7XCHK_save_values = save_values
+INSPECTOR_CHK_save_values = save_values
 
 local DUMP_BYTES = 2048
-local DUMP_CHUNK = 512 -- bytes per dump line, so each line stays under A7XJSON.MAX_LINE
+local DUMP_CHUNK = 512 -- bytes per dump line, so each line stays under INSPECTOR_JSON.MAX_LINE
 local PC = 2 -- EA of a party member
 
 -- The bytes at `addr` in hex, read 256 at a time; "??" for each byte of a block that fails.
 local function hex(addr, n)
   local out = {}
   for at = 0, n - 1, 256 do
-    local block = A7X_native.ReadBlock(addr + at, 256)
+    local block = Inspector_native.ReadBlock(addr + at, 256)
     for i = 1, 256 do
       out[#out + 1] = block and string.format("%02x", block:byte(i)) or "??"
     end
@@ -76,7 +76,7 @@ local function check_member(member)
     emit({ kind = "skip", id = id, why = why })
   end
   if not member.sprite then return skip(member.why or "no sprite") end
-  local c, why = A7XWALK.creature(member.sprite)
+  local c, why = INSPECTOR_WALK.creature(member.sprite)
   if not c then return skip(why) end
   local e = type(characters) == "table" and characters[id] or nil
   if type(e) ~= "table" then return skip("not-populated") end
@@ -93,7 +93,7 @@ local function check_member(member)
   -- The save text is in the proficiencies subtable, where the record screen's details are.
   local details = type(e.proficiencies) == "table" and e.proficiencies or {}
   local saves = save_values(details.savingThrows)
-  for i, save in ipairs(A7XWALK.SAVES) do
+  for i, save in ipairs(INSPECTOR_WALK.SAVES) do
     local value = saves[i] or {}
     compare(id, "save." .. save, c.saves_shown[save], value[1])
     compare(id, "save." .. save .. ".base", c.saves_base[save], value[2])
@@ -120,22 +120,22 @@ end
 local failure
 local ok, err = pcall(function()
   if type(Infinity_DoFile) == "function" then
-    Infinity_DoFile("a7xoff")
-    Infinity_DoFile("a7xwalk")
-    Infinity_DoFile("a7xjson")
+    Infinity_DoFile("inspoff")
+    Infinity_DoFile("inspwalk")
+    Infinity_DoFile("inspjson")
   end
-  if type(A7XWALK) ~= "table" or type(A7XJSON) ~= "table" then failure = "walker or JSON writer not loaded" return end
-  local party, why = A7XWALK.party()
+  if type(INSPECTOR_WALK) ~= "table" or type(INSPECTOR_JSON) ~= "table" then failure = "walker or JSON writer not loaded" return end
+  local party, why = INSPECTOR_WALK.party()
   if not party then failure = why return end
   emit({ kind = "party", size = #party })
   for _, member in ipairs(party) do check_member(member) end
 end)
 if not ok then failure = tostring(err) end
-if failure and type(A7XJSON) == "table" then emit({ kind = "error", why = failure }) end
+if failure and type(INSPECTOR_JSON) == "table" then emit({ kind = "error", why = failure }) end
 
 -- The acknowledgement in the game: one line in the message window, which the console shows above itself.
-local summary = failure and string.format("A7X party check %d could not run: %s", run, failure) or
-  string.format("A7X party check %d: %d members, %d fields equal, %d differ, %d skipped (details in the session log)",
+local summary = failure and string.format("Inspector party check %d could not run: %s", run, failure) or
+  string.format("Inspector party check %d: %d members, %d fields equal, %d differ, %d skipped (details in the session log)",
     run, tally.members, tally.equal, tally.differ, tally.skipped)
 if type(Infinity_DisplayString) == "function" then pcall(Infinity_DisplayString, summary) end
-A7XCHK_summary = summary
+INSPECTOR_CHK_summary = summary

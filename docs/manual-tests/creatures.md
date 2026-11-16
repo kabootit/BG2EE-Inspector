@@ -17,10 +17,10 @@ area a creature is in, the area on screen, and an area's name
 ([the plan](../plans/2026-11-13-creature-list.md#analysis-done-in-plan-mode-read-only)). [docs/README.md](../README.md#terms)
 defines terms such as walker.
 
-The tester copies the walker's Lua (`a7xoff.lua`, `a7xwalk.lua`), the JSON writer (`a7xjson.lua`)
-and the list script (`a7xlist.lua`) into the game's `override/` folder for the session; the WeiDU
+The tester copies the walker's Lua (`inspoff.lua`, `inspwalk.lua`), the JSON writer (`inspjson.lua`)
+and the list script (`insplist.lua`) into the game's `override/` folder for the session; the WeiDU
 component that installs them for good comes in Phase 4. In the game, the tester types only
-`Infinity_DoFile("a7xlist")`, which loads and runs them. Results go to the session log; the game
+`Infinity_DoFile("insplist")`, which loads and runs them. Results go to the session log; the game
 shows a one-line summary each time the script runs.
 
 ## Before you start
@@ -34,8 +34,8 @@ shows a one-line summary each time the script runs.
   ```sh
   G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
   mkdir -p "$G/override"
-  cp mod/inspector/lib/a7xoff.lua mod/inspector/lib/a7xwalk.lua mod/inspector/lib/a7xjson.lua \
-    test/lua/a7xlist.lua "$G/override/"
+  cp mod/inspector/lib/inspoff.lua mod/inspector/lib/inspwalk.lua mod/inspector/lib/inspjson.lua \
+    test/lua/insplist.lua "$G/override/"
   ```
 
   Step 7 removes them again at the end.
@@ -53,8 +53,8 @@ shows a one-line summary each time the script runs.
    deno task play
    ```
 
-   `play` shows the library's lines as they arrive: expect `A7X loaded`, `A7X build 2.7.3 arm64
-   matched, 14 sites checked` and `A7X registered A7X_native`.
+   `play` shows the library's lines as they arrive: expect `Inspector loaded`, `Inspector build 2.7.3 arm64
+   matched, 14 sites checked` and `Inspector registered Inspector_native`.
 2. **Load the save** (1 minute).
 3. **Note three creatures** (2 minutes). Hover the pointer over three creatures that are not in the
    party, and write down the name each one shows. Note too whether any creature on screen has a red
@@ -63,23 +63,23 @@ shows a one-line summary each time the script runs.
    and close the console with Ctrl+Space:
 
    ```lua
-   Infinity_DoFile("a7xlist")
+   Infinity_DoFile("insplist")
    ```
 
-   The message window shows one line, such as `A7X creature list 1: AR1000, 23 creatures (6 party,
-   3 hostile, 14 other), all checks ok (details in the session log)`, or `A7X creature list 1 could
+   The message window shows one line, such as `Inspector creature list 1: AR1000, 23 creatures (6 party,
+   3 hostile, 14 other), all checks ok (details in the session log)`, or `Inspector creature list 1 could
    not run: <reason>`. No line means the script did not load: check that the four files are in
    `override/`.
 5. **Change area and run it again** (3 minutes). Walk the party through the door or exit into another
-   area, wait for it to load, and run the same line again. The summary says `A7X creature list 2`
+   area, wait for it to load, and run the same line again. The summary says `Inspector creature list 2`
    and should name a different area.
 6. **Quit from the game's own menu**, not with Ctrl+C. `play` prints its summary and exits.
 7. **Remove the four files**, and the `override/` folder if it is now empty:
 
    ```sh
    G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
-   rm "$G/override/a7xoff.lua" "$G/override/a7xwalk.lua" "$G/override/a7xjson.lua" \
-     "$G/override/a7xlist.lua"
+   rm "$G/override/inspoff.lua" "$G/override/inspwalk.lua" "$G/override/inspjson.lua" \
+     "$G/override/insplist.lua"
    rmdir "$G/override"
    ```
 
@@ -109,7 +109,7 @@ Say "done" when step 8 has printed its result, with the three names from step 3.
 
 | Check | Where | Pass when |
 | --- | --- | --- |
-| Build and registration | `A7X build 2.7.3 arm64 matched, 14 sites checked` and `A7X registered A7X_native` | both present, no `A7X disabled` |
+| Build and registration | `Inspector build 2.7.3 arm64 matched, 14 sites checked` and `Inspector registered Inspector_native` | both present, no `Inspector disabled` |
 | Both runs pass their checks | `deno task verify` | `verify: creature list run <n> passed` for runs 1 and 2: every party member listed and friendly, no id twice, every id leading back, every name read |
 | The area on screen | `verify: creature list areas, in run order` | two different resrefs, each an area code such as `AR1000` |
 | Creatures seen on screen | run 1's creature list in `deno task verify` | the three names from step 3 are in it, and every red-circled creature is `hostile` |
@@ -136,3 +136,4 @@ the version of the test that judged it.
 | Date | Commit | What changed | Criteria for runs before it |
 | --- | --- | --- | --- |
 | 2026-11-14 | the commit that writes the checks' lines as JSON | Before you start and the last steps: the tester copies and removes `a7xjson.lua`, the JSON writer, with the others; the script writes its lines as JSON defined in `src/model/schemas.ts`, which `deno task verify` checks | three files copied, and lines written as text |
+| 2026-11-15 | the commit that renames `A7X` before v0.1.0 ([first-release plan](../plans/2026-11-15-first-release.md#the-name)) | Names only, every check the same: the files take the prefix `insp` (`inspoff.lua`, `inspwalk.lua`, `inspjson.lua`, `insplist.lua`, `Infinity_DoFile("insplist")`), the lines `INSPECTOR_LIST`, the summary and the library's lines `Inspector …`, and `Inspector_native` | the same steps under the names `a7x…`, `A7XLIST`, `A7X …` and `A7X_native` |

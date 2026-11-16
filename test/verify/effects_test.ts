@@ -10,8 +10,10 @@ import {
 const engine = (s: string): string =>
   `2026-11-15 10:00:00.000 BaldursGateIIEnhancedEdition[1:2] INFO: LUA: ${s}`;
 
-// What test/lua/a7xeff.lua writes for the fake game: A with three effects on two lists, B with none.
-const GOLDEN = (await Deno.readTextFile("test/fixtures/a7xeff.txt")).split("\n").filter((l) => l);
+// What test/lua/inspeff.lua writes for the fake game: A with three effects on two lists, B with none.
+const GOLDEN = (await Deno.readTextFile("test/fixtures/inspector_eff.txt")).split("\n").filter((
+  l,
+) => l);
 const LOG = GOLDEN.map(engine).join("\n");
 
 Deno.test("the probe's lines fold into a run of members, each with its lists, effects and icons", () => {
@@ -91,7 +93,7 @@ Deno.test("a list that stopped early, a missing list or a run that could not sta
     "329681 +0x49f0: bad node pointer",
     "395218: no list at +0x49a0",
   ]);
-  const error = engine('A7XEFF\t{"kind":"error","run":1,"why":"no game loaded"}');
+  const error = engine('INSPECTOR_EFF\t{"kind":"error","run":1,"why":"no game loaded"}');
   deepStrictEqual(effectRunProblems(parseEffects(error).runs[0]), [
     "the probe could not run: no game loaded",
   ]);

@@ -1,0 +1,12 @@
+INSPECTOR_LIST	{"index":0,"kind":"area","resref":"AR0602","run":1}
+INSPECTOR_LIST	{"kind":"scan","listed":3,"ms":0,"objects":5,"run":1,"slots":301,"sprites":4}
+INSPECTOR_LIST	{"ea":2,"group":"friendly","hp":{"cur":40,"max":52},"id":329681,"kind":"creature","name":"Alarion","party":true,"run":1,"state":0}
+INSPECTOR_LIST	{"ea":2,"group":"friendly","hp":{"cur":18,"max":30},"id":395218,"kind":"creature","name":"Jaheira","party":true,"run":1,"state":4194304}
+INSPECTOR_LIST	{"ea":255,"group":"hostile","hp":{"cur":60,"max":60},"id":19662803,"kind":"creature","name":"Ogre","party":false,"run":1,"state":0}
+INSPECTOR_LIST	{"detail":"listed","kind":"check","name":"party.329681","ok":true,"run":1}
+INSPECTOR_LIST	{"detail":"ea=2","kind":"check","name":"party.329681.group","ok":true,"run":1}
+INSPECTOR_LIST	{"detail":"listed","kind":"check","name":"party.395218","ok":true,"run":1}
+INSPECTOR_LIST	{"detail":"ea=2","kind":"check","name":"party.395218.group","ok":true,"run":1}
+INSPECTOR_LIST	{"detail":"repeated: none","kind":"check","name":"unique","ok":true,"run":1}
+INSPECTOR_LIST	{"detail":"not leading back: none","kind":"check","name":"lookup","ok":true,"run":1}
+INSPECTOR_LIST	{"detail":"no name: none","kind":"check","name":"names","ok":true,"run":1}

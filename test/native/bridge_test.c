@@ -1,5 +1,5 @@
 /*
- * bridge_test.c: native/a7x.c without the game (deno task test:native).
+ * bridge_test.c: native/inspector.c without the game (deno task test:native).
  *
  * The library's source is included, so its static functions can be called directly; the game's
  * Lua API is replaced by fakes over a small value stack. Checked: every Read kind with sign
@@ -10,7 +10,7 @@
  * Exits 0 when every check passes. The constructor runs first and reports an unknown build: this
  * executable is not the game.
  */
-#include "../../native/a7x.c"
+#include "../../native/inspector.c"
 
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -153,11 +153,11 @@ static void sites_against_slice(const char *path) {
     if (fd < 0) return;
     uint8_t *map = mmap(NULL, (size_t)sb.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
     CHECK(map != MAP_FAILED);
-    const struct a7x_build *b = &A7X_BUILDS[0];
+    const struct inspector_build *b = &INSPECTOR_BUILDS[0];
     CHECK(failed_site((uintptr_t)map, b) == NULL);
-    uint8_t *in_function = map + b->fns[A7X_FN_lua_setfield].offset + 7;
+    uint8_t *in_function = map + b->fns[INSPECTOR_FN_lua_setfield].offset + 7;
     *in_function ^= 1;
-    const struct a7x_site *bad = failed_site((uintptr_t)map, b);
+    const struct inspector_site *bad = failed_site((uintptr_t)map, b);
     CHECK(bad && strcmp(bad->name, "lua_setfield") == 0);
     *in_function ^= 1;
     uint8_t *in_anchor = map + b->anchors[1].offset + 0x10;
@@ -263,7 +263,7 @@ static void strings_and_blocks(void) {
 
 static void version_and_root(void) {
     reset();
-    CHECK(native_version(NULL) == 2 && stack[0].i == A7X_NATIVE_VERSION &&
+    CHECK(native_version(NULL) == 2 && stack[0].i == INSPECTOR_NATIVE_VERSION &&
           stack[1].len == strlen(build->name));
     static uintptr_t root_slot = 0x123456789a;
     game_base = (uintptr_t)&root_slot - build->baldur_chitin;
@@ -284,19 +284,19 @@ static void registration(void) {
     bridge_frame(1);
     CHECK(registered_state == 0 && !disabled); /* no state yet */
     state_slot = (uintptr_t)state_a;
-    *(uintptr_t *)(state_a + A7X_LUA_STATE_CI) = (uintptr_t)state_a + 0x40;
+    *(uintptr_t *)(state_a + INSPECTOR_LUA_STATE_CI) = (uintptr_t)state_a + 0x40;
     bridge_frame(2);
     CHECK(registered_state == 0 && !disabled); /* Lua busy: waits */
-    *(uintptr_t *)(state_a + A7X_LUA_STATE_CI) = (uintptr_t)state_a + A7X_LUA_STATE_BASE_CI;
+    *(uintptr_t *)(state_a + INSPECTOR_LUA_STATE_CI) = (uintptr_t)state_a + INSPECTOR_LUA_STATE_BASE_CI;
     bridge_frame(3);
     CHECK(registered_state == (uintptr_t)state_a); /* idle: registers */
     CHECK(fields == (int)(sizeof NATIVE_FUNCTIONS / sizeof NATIVE_FUNCTIONS[0]));
-    CHECK(strcmp(field_names[0], "Version") == 0 && strcmp(global_name, "A7X_native") == 0);
+    CHECK(strcmp(field_names[0], "Version") == 0 && strcmp(global_name, "Inspector_native") == 0);
     fields = 0;
     bridge_frame(4);
     CHECK(fields == 0); /* same state: nothing */
     state_slot = (uintptr_t)state_b;
-    *(uintptr_t *)(state_b + A7X_LUA_STATE_CI) = (uintptr_t)state_b + A7X_LUA_STATE_BASE_CI;
+    *(uintptr_t *)(state_b + INSPECTOR_LUA_STATE_CI) = (uintptr_t)state_b + INSPECTOR_LUA_STATE_BASE_CI;
     bridge_frame(5);
     CHECK(registered_state == (uintptr_t)state_b && fields > 0); /* a new state: again */
     state_slot = (uintptr_t)state_a;
@@ -315,7 +315,7 @@ static void registration(void) {
 int main(int argc, char **argv) {
     if (argc > 1) sites_against_slice(argv[1]);
     use_fake_lua();
-    build = &A7X_BUILDS[0];
+    build = &INSPECTOR_BUILDS[0];
     reads();
     strings_and_blocks();
     version_and_root();

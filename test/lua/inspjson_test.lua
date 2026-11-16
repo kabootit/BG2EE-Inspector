@@ -1,9 +1,9 @@
--- The JSON writer (mod/inspector/lib/a7xjson.lua): key order, numbers, escapes, arrays and objects,
+-- The JSON writer (mod/inspector/lib/inspjson.lua): key order, numbers, escapes, arrays and objects,
 -- and the values it refuses without raising.
 
 local T = dofile("test/lua/testlib.lua")
-dofile("mod/inspector/lib/a7xjson.lua")
-local J = A7XJSON.encode
+dofile("mod/inspector/lib/inspjson.lua")
+local J = INSPECTOR_JSON.encode
 
 T.test("object keys are sorted, so the output is the same every time", function()
   T.eq(J({ b = 1, a = 2, c = { z = true, y = false } }), '{"a":2,"b":1,"c":{"y":false,"z":true}}', "nested")
@@ -54,11 +54,11 @@ T.test("values JSON cannot hold are refused with a reason, never raised", functi
 end)
 
 T.test("a log line is the prefix, a tab and the JSON, and never longer than the log keeps", function()
-  T.eq(A7XJSON.line("A7XTEST", { b = 2, a = 1 }), 'A7XTEST\t{"a":1,"b":2}', "a line")
-  local long, why = A7XJSON.line("A7XTEST", { hex = ("00"):rep(A7XJSON.MAX_LINE) })
+  T.eq(INSPECTOR_JSON.line("INSPECTOR_TEST", { b = 2, a = 1 }), 'INSPECTOR_TEST\t{"a":1,"b":2}', "a line")
+  local long, why = INSPECTOR_JSON.line("INSPECTOR_TEST", { hex = ("00"):rep(INSPECTOR_JSON.MAX_LINE) })
   T.eq(long, nil, "too long")
   T.eq(why:match("longer than the 4000 the log keeps whole") ~= nil, true, why)
-  local bad, reason = A7XJSON.line("A7XTEST", { f = function() end })
+  local bad, reason = INSPECTOR_JSON.line("INSPECTOR_TEST", { f = function() end })
   T.eq(bad, nil, "not writable")
   T.eq(reason:match("^cannot write a line: ") ~= nil, true, reason)
 end)

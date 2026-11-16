@@ -20,7 +20,7 @@ export const TP2 = `${MOD_FOLDER}/inspector.tp2`;
  * The names table's place in the component's folder: the task writes it from the game's files
  * (src/gamefiles/names.ts), and the tp2 copies it to override/ with the rest of lib/.
  */
-export const NAMES_FILE = "lib/a7xnames.lua";
+export const NAMES_FILE = "lib/inspname.lua";
 
 /**
  * What a run works with: the game folder, the repo's mod folder, the vendored WeiDU, the SHA-256 it

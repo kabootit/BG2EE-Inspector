@@ -1,24 +1,24 @@
--- a7xapi.lua: the inspector's public API, the global A7X (docs/api.md), API 1.1, records of schema 1
+-- inspapi.lua: the inspector's public API, the global I (docs/api.md), API 2.0, records of schema 1
 -- (docs/data-model.md).
 --
--- Loaded last by a7x.lua. It keeps the other inspector files' tables as locals and clears their
--- globals, so A7X is the only global the inspector leaves. That includes A7XNAMES, the names table
--- the WeiDU component loads before a7x (a7xnames.lua, written by deno task install-mod); without it
--- a spell shows its resref. The native table is captured the first time a call finds A7X_native,
+-- Loaded last by insp.lua. It keeps the other inspector files' tables as locals and clears their
+-- globals, so I is the only global the inspector leaves. That includes INSPECTOR_NAMES, the names table
+-- the WeiDU component loads before inspector (inspname.lua, written by deno task install-mod); without it
+-- a spell shows its resref. The native table is captured the first time a call finds Inspector_native,
 -- and that global is cleared too, so no other Lua can make raw memory reads; lazily, because this
 -- file may load before the library registers the table. Every call returns fresh tables and none
 -- raises: a failure is nil and a reason.
 
-local O, W, J, F, NAMES = A7XOFF, A7XWALK, A7XJSON, A7XFMT, A7XNAMES
-A7XOFF, A7XWALK, A7XJSON, A7XFMT, A7XNAMES = nil, nil, nil, nil, nil
+local O, W, J, F, NAMES = INSPECTOR_OFF, INSPECTOR_WALK, INSPECTOR_JSON, INSPECTOR_FMT, INSPECTOR_NAMES
+INSPECTOR_OFF, INSPECTOR_WALK, INSPECTOR_JSON, INSPECTOR_FMT, INSPECTOR_NAMES = nil, nil, nil, nil, nil
 
-local API, SCHEMA = "1.1", 1
+local API, SCHEMA = "2.0", 1
 
 local N
 local function native()
-  if not N and type(A7X_native) == "table" then
-    N = A7X_native
-    A7X_native = nil
+  if not N and type(Inspector_native) == "table" then
+    N = Inspector_native
+    Inspector_native = nil
   end
   return N
 end
@@ -203,9 +203,9 @@ local function portrait()
   return record(member.sprite, party_ids())
 end
 
-A7X = {}
+I = {}
 
-function A7X.version()
+function I.version()
   local build
   if native() then
     local ok, _, name = pcall(N.Version)
@@ -214,23 +214,23 @@ function A7X.version()
   return { api = API, schema = SCHEMA, build = build }
 end
 
-function A7X.status()
+function I.status()
   return (guarded(state)) or "no_native"
 end
 
-function A7X.get(id)
+function I.get(id)
   return guarded(get, id)
 end
 
-function A7X.hovered()
+function I.hovered()
   return guarded(hovered)
 end
 
-function A7X.portrait()
+function I.portrait()
   return guarded(portrait)
 end
 
-function A7X.list(filter)
+function I.list(filter)
   local result, why = guarded(list, filter)
   if not result then return nil, why end
   -- The sprite address is the API's own business, not the caller's.
@@ -247,13 +247,14 @@ end
 
 local function emit(r)
   for _, line in ipairs(F.lines(r)) do say(line) end
-  local line, why = J.line("A7XDATA", r)
+  local line, why = J.line("INSPECTOR_DATA", r)
   if line and type(Infinity_Log) == "function" then Infinity_Log(line) end
-  if not line then say("[A7X] could not write the record: " .. tostring(why)) end
+  if not line then say("[Inspector] could not write the record: " .. tostring(why)) end
 end
 
-local USAGE = '[A7X] point at a creature or a portrait, or A7X.show(id), A7X.show("enemies"), ' ..
-  'A7X.show("party") or A7X.show("all")'
+-- The commands a player types; I.show(id) is for mods holding an id (docs/api.md), so not here.
+local USAGE = '[Inspector] point at a creature or a portrait, or I.show("enemies"), ' ..
+  'I.show("party") or I.show("all")'
 
 -- What the hotkey shows: the portrait under the pointer, else the creature under it; the usage line
 -- when the pointer is on neither, and the reason when what is there cannot be read.
@@ -262,19 +263,19 @@ local function show_pointed()
   if not r and why == NO_PORTRAIT then r, why = hovered() end
   if r then return emit(r) end
   if why == NOTHING then return say(USAGE) end
-  say("[A7X] " .. tostring(why))
+  say("[Inspector] " .. tostring(why))
 end
 
 local function show(what)
   if what == nil then return show_pointed() end
   if type(what) == "number" then
     local r, why = get(what)
-    if not r then return say("[A7X] " .. tostring(what) .. ": " .. tostring(why)) end
+    if not r then return say("[Inspector] " .. tostring(what) .. ": " .. tostring(why)) end
     return emit(r)
   end
   local found, why = list(what)
-  if not found then return say("[A7X] " .. tostring(why)) end
-  if #found.creatures == 0 then return say("[A7X] no " .. what .. " in " .. tostring(found.area)) end
+  if not found then return say("[Inspector] " .. tostring(why)) end
+  if #found.creatures == 0 then return say("[Inspector] no " .. what .. " in " .. tostring(found.area)) end
   local party = party_ids()
   local shown, unreadable = 0, 0
   for _, c in ipairs(found.creatures) do
@@ -285,14 +286,14 @@ local function show(what)
       shown = shown + 1
     else
       unreadable = unreadable + 1
-      say("[A7X] " .. tostring(c.id) .. ": " .. tostring(ok and reason or r))
+      say("[Inspector] " .. tostring(c.id) .. ": " .. tostring(ok and reason or r))
     end
   end
-  say(string.format("[A7X] %s in %s: %d shown, %d not readable", what, tostring(found.area), shown,
+  say(string.format("[Inspector] %s in %s: %d shown, %d not readable", what, tostring(found.area), shown,
     unreadable))
 end
 
-function A7X.show(what)
+function I.show(what)
   local ok, err = pcall(show, what)
-  if not ok then say("[A7X] error: " .. tostring(err)) end
+  if not ok then say("[Inspector] error: " .. tostring(err)) end
 end

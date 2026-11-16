@@ -1,20 +1,20 @@
 /*
- * a7x.dylib: the inspector's read-only native bridge (ADR-0002, ADR-0005).
+ * inspector.dylib: the inspector's read-only native bridge (ADR-0002, ADR-0005).
  *
  * The library interposes glClear, which the game calls about once a frame on
  * its main thread (the hook gate, 2026-11-06). The replacement always calls the
  * real glClear. Before that, on the first call made on the main thread with the
  * engine's Lua state created and idle, it registers one global table,
- * A7X_native, into the game's Lua, using the game's own Lua API functions from
+ * Inspector_native, into the game's Lua, using the game's own Lua API functions from
  * builds.h:
  *
- *   A7X_native.Version()          -> 2, "<build name>"
- *   A7X_native.Root()             -> the address of g_pBaldurChitin's object, or nil
- *   A7X_native.Objects()          -> the address of the engine's object array (its bounds are
+ *   Inspector_native.Version()          -> 2, "<build name>"
+ *   Inspector_native.Root()             -> the address of g_pBaldurChitin's object, or nil
+ *   Inspector_native.Objects()          -> the address of the engine's object array (its bounds are
  *                                    the 16 bytes before it; layout in docs/re-notes.md)
- *   A7X_native.Read(addr, kind)   -> kind u8 i8 u16 i16 u32 i32 ptr: an integer;
+ *   Inspector_native.Read(addr, kind)   -> kind u8 i8 u16 i16 u32 i32 ptr: an integer;
  *                                    cstr: up to 256 bytes to the first NUL; or nil
- *   A7X_native.ReadBlock(addr, n) -> a string of exactly n bytes (1 to 4096), or nil
+ *   Inspector_native.ReadBlock(addr, n) -> a string of exactly n bytes (1 to 4096), or nil
  *
  * Every read goes through mach_vm_read_overwrite, so a bad address returns nil
  * instead of crashing. There is no write path. A bad argument also returns nil;
@@ -49,16 +49,16 @@
  * declares it, with the "interposing" section type. Every use is allowlisted
  * in lint:security (ADR-0005).
  */
-#define A7X_INTERPOSE(replacement, original)                                                       \
+#define INSPECTOR_INTERPOSE(replacement, original)                                                       \
     __attribute__((used)) static const struct {                                                    \
         const void *replacement_fn;                                                                \
         const void *original_fn;                                                                   \
-    } a7x_interpose_##original                                                                     \
+    } inspector_interpose_##original                                                                     \
         __attribute__((section("__DATA,__interpose,interposing"))) = {                             \
             (const void *)&replacement, (const void *)&original};
 
-/* The native API version Version() reports; bumped when the A7X_native functions change. */
-#define A7X_NATIVE_VERSION 2
+/* The native API version Version() reports; bumped when the Inspector_native functions change. */
+#define INSPECTOR_NATIVE_VERSION 2
 
 /* Lua 5.2's C API types, as the game was built: lua_Number is double, lua_Integer ptrdiff_t. */
 typedef struct lua_State lua_State;
@@ -81,7 +81,7 @@ static struct {
 } lua;
 
 /* Set by the constructor when the build is known and every site checks out; NULL means inert. */
-static const struct a7x_build *build;
+static const struct inspector_build *build;
 static uintptr_t game_base;
 static struct timespec started;
 
@@ -118,7 +118,7 @@ static uint64_t fnv1a64(const uint8_t *p, size_t n) {
     return h;
 }
 
-static int site_matches(uintptr_t base, const struct a7x_site *site) {
+static int site_matches(uintptr_t base, const struct inspector_site *site) {
     uint8_t bytes[512];
     return site->size <= sizeof bytes && read_bytes(base + site->offset, bytes, site->size) &&
            fnv1a64(bytes, site->size) == site->fnv1a;
@@ -152,8 +152,8 @@ static void print_uuid(const uint8_t *u) {
 }
 
 /* The first site of `b` whose bytes differ, or NULL when all match. */
-static const struct a7x_site *failed_site(uintptr_t base, const struct a7x_build *b) {
-    for (size_t i = 0; i < A7X_FN_COUNT; i++) {
+static const struct inspector_site *failed_site(uintptr_t base, const struct inspector_build *b) {
+    for (size_t i = 0; i < INSPECTOR_FN_COUNT; i++) {
         if (!site_matches(base, &b->fns[i])) return &b->fns[i];
     }
     for (size_t i = 0; i < sizeof b->anchors / sizeof b->anchors[0]; i++) {
@@ -165,46 +165,46 @@ static const struct a7x_site *failed_site(uintptr_t base, const struct a7x_build
 #define ENGINE_FN(index) ((void *)(game_base + build->fns[index].offset))
 
 static void resolve_lua_api(void) {
-    lua.checkstack = ENGINE_FN(A7X_FN_lua_checkstack);
-    lua.settop = ENGINE_FN(A7X_FN_lua_settop);
-    lua.tointegerx = ENGINE_FN(A7X_FN_lua_tointegerx);
-    lua.tolstring = ENGINE_FN(A7X_FN_lua_tolstring);
-    lua.pushinteger = ENGINE_FN(A7X_FN_lua_pushinteger);
-    lua.pushlstring = ENGINE_FN(A7X_FN_lua_pushlstring);
-    lua.pushcclosure = ENGINE_FN(A7X_FN_lua_pushcclosure);
-    lua.createtable = ENGINE_FN(A7X_FN_lua_createtable);
-    lua.setglobal = ENGINE_FN(A7X_FN_lua_setglobal);
-    lua.setfield = ENGINE_FN(A7X_FN_lua_setfield);
-    lua.pcallk = ENGINE_FN(A7X_FN_lua_pcallk);
+    lua.checkstack = ENGINE_FN(INSPECTOR_FN_lua_checkstack);
+    lua.settop = ENGINE_FN(INSPECTOR_FN_lua_settop);
+    lua.tointegerx = ENGINE_FN(INSPECTOR_FN_lua_tointegerx);
+    lua.tolstring = ENGINE_FN(INSPECTOR_FN_lua_tolstring);
+    lua.pushinteger = ENGINE_FN(INSPECTOR_FN_lua_pushinteger);
+    lua.pushlstring = ENGINE_FN(INSPECTOR_FN_lua_pushlstring);
+    lua.pushcclosure = ENGINE_FN(INSPECTOR_FN_lua_pushcclosure);
+    lua.createtable = ENGINE_FN(INSPECTOR_FN_lua_createtable);
+    lua.setglobal = ENGINE_FN(INSPECTOR_FN_lua_setglobal);
+    lua.setfield = ENGINE_FN(INSPECTOR_FN_lua_setfield);
+    lua.pcallk = ENGINE_FN(INSPECTOR_FN_lua_pcallk);
 }
 
-__attribute__((constructor)) static void a7x_loaded(void) {
+__attribute__((constructor)) static void inspector_loaded(void) {
     clock_gettime(CLOCK_MONOTONIC, &started);
-    fprintf(stderr, "A7X loaded into %s pid=%d\n", getprogname(), (int)getpid());
+    fprintf(stderr, "Inspector loaded into %s pid=%d\n", getprogname(), (int)getpid());
 
     const struct mach_header_64 *h = game_header();
     const uint8_t *uuid = h ? image_uuid(h) : NULL;
     if (!uuid) {
-        fprintf(stderr, "A7X disabled: no main image or no LC_UUID\n");
+        fprintf(stderr, "Inspector disabled: no main image or no LC_UUID\n");
         return;
     }
-    for (size_t i = 0; i < sizeof A7X_BUILDS / sizeof A7X_BUILDS[0]; i++) {
-        if (memcmp(uuid, A7X_BUILDS[i].uuid, 16) != 0) continue;
-        const struct a7x_site *bad = failed_site((uintptr_t)h, &A7X_BUILDS[i]);
+    for (size_t i = 0; i < sizeof INSPECTOR_BUILDS / sizeof INSPECTOR_BUILDS[0]; i++) {
+        if (memcmp(uuid, INSPECTOR_BUILDS[i].uuid, 16) != 0) continue;
+        const struct inspector_site *bad = failed_site((uintptr_t)h, &INSPECTOR_BUILDS[i]);
         if (bad) {
-            fprintf(stderr, "A7X disabled: build %s, bytes differ at %s (+0x%llx)\n",
-                    A7X_BUILDS[i].name, bad->name, (unsigned long long)bad->offset);
+            fprintf(stderr, "Inspector disabled: build %s, bytes differ at %s (+0x%llx)\n",
+                    INSPECTOR_BUILDS[i].name, bad->name, (unsigned long long)bad->offset);
             return;
         }
-        build = &A7X_BUILDS[i];
+        build = &INSPECTOR_BUILDS[i];
         game_base = (uintptr_t)h;
         resolve_lua_api();
-        fprintf(stderr, "A7X build %s matched, %d sites checked, image at 0x%lx\n", build->name,
-                (int)(A7X_FN_COUNT + sizeof build->anchors / sizeof build->anchors[0]),
+        fprintf(stderr, "Inspector build %s matched, %d sites checked, image at 0x%lx\n", build->name,
+                (int)(INSPECTOR_FN_COUNT + sizeof build->anchors / sizeof build->anchors[0]),
                 (unsigned long)game_base);
         return;
     }
-    fprintf(stderr, "A7X disabled: unknown build ");
+    fprintf(stderr, "Inspector disabled: unknown build ");
     print_uuid(uuid);
     fprintf(stderr, "\n");
 }
@@ -221,7 +221,7 @@ static int arg_address(lua_State *L, int idx, uintptr_t *out) {
 }
 
 static int native_version(lua_State *L) {
-    lua.pushinteger(L, A7X_NATIVE_VERSION);
+    lua.pushinteger(L, INSPECTOR_NATIVE_VERSION);
     lua.pushlstring(L, build->name, strlen(build->name));
     return 2;
 }
@@ -321,14 +321,14 @@ static const struct {
 };
 
 /* Runs inside lua_pcallk: any Lua error here, including a GC finalizer's, returns as a status. */
-static int a7x_register(lua_State *L) {
+static int inspector_register(lua_State *L) {
     size_t count = sizeof NATIVE_FUNCTIONS / sizeof NATIVE_FUNCTIONS[0];
     lua.createtable(L, 0, (int)count);
     for (size_t i = 0; i < count; i++) {
         lua.pushcclosure(L, NATIVE_FUNCTIONS[i].fn, 0);
         lua.setfield(L, -2, NATIVE_FUNCTIONS[i].name);
     }
-    lua.setglobal(L, "A7X_native");
+    lua.setglobal(L, "Inspector_native");
     return 0;
 }
 
@@ -336,27 +336,27 @@ static int a7x_register(lua_State *L) {
 
 static void disable(const char *why) {
     disabled = 1;
-    fprintf(stderr, "A7X disabled: %s\n", why);
+    fprintf(stderr, "Inspector disabled: %s\n", why);
 }
 
 static void register_native(lua_State *L, unsigned long call) {
     if (!lua.checkstack(L, 2)) {
-        disable("no Lua stack space to register A7X_native");
+        disable("no Lua stack space to register Inspector_native");
         return;
     }
-    lua.pushcclosure(L, a7x_register, 0); /* a light C function: no allocation, no error */
+    lua.pushcclosure(L, inspector_register, 0); /* a light C function: no allocation, no error */
     int status = lua.pcallk(L, 0, 0, 0, 0, NULL);
     if (status != 0) {
         size_t len = 0;
         const char *message = lua.tolstring(L, -1, &len);
-        fprintf(stderr, "A7X disabled: registering A7X_native failed with status %d: %.*s\n",
+        fprintf(stderr, "Inspector disabled: registering Inspector_native failed with status %d: %.*s\n",
                 status, message ? (int)(len < 200 ? len : 200) : 0, message ? message : "");
         lua.settop(L, -2); /* pop the error */
         disabled = 1;
         return;
     }
     registered_state = (uintptr_t)L;
-    fprintf(stderr, "A7X registered A7X_native at %.1fs, glClear call %lu\n", elapsed(), call);
+    fprintf(stderr, "Inspector registered Inspector_native at %.1fs, glClear call %lu\n", elapsed(), call);
 }
 
 /*
@@ -371,20 +371,20 @@ static void bridge_frame(unsigned long call) {
         return;
     }
     if (!L || L == registered_state) return;
-    if (!read_pointer(L + A7X_LUA_STATE_CI, &ci)) {
+    if (!read_pointer(L + INSPECTOR_LUA_STATE_CI, &ci)) {
         disable("cannot read lua_State->ci");
         return;
     }
-    if (ci != L + A7X_LUA_STATE_BASE_CI) return;
-    if (registered_state) fprintf(stderr, "A7X lua_State changed, registering again\n");
+    if (ci != L + INSPECTOR_LUA_STATE_BASE_CI) return;
+    if (registered_state) fprintf(stderr, "Inspector lua_State changed, registering again\n");
     register_native((lua_State *)L, call);
 }
 
-static void a7x_glClear(GLbitfield mask) {
+static void inspector_glClear(GLbitfield mask) {
     unsigned long call = atomic_fetch_add(&clears, 1) + 1;
     if (!pthread_main_np()) {
         if (!atomic_flag_test_and_set(&reported_off_main)) {
-            fprintf(stderr, "A7X glClear call %lu was off the main thread; ignored\n", call);
+            fprintf(stderr, "Inspector glClear call %lu was off the main thread; ignored\n", call);
         }
     } else if (build && !disabled) {
         bridge_frame(call);
@@ -392,4 +392,4 @@ static void a7x_glClear(GLbitfield mask) {
     glClear(mask);
 }
 
-A7X_INTERPOSE(a7x_glClear, glClear)
+INSPECTOR_INTERPOSE(inspector_glClear, glClear)

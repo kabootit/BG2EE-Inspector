@@ -19,9 +19,9 @@ if it grows a convenience grant. BG2EE-GameLog's audit found and closed exactly 
   - Reads go through `mach_vm_read_overwrite`, so a bad pointer returns an error instead of crashing.
   - No memory-write call (`mach_vm_write`, `vm_protect` and similar) and no access to other processes.
   - No `mprotect` at all. The one hook is dyld interposing, limited to the functions in
-    `ALLOWED_INTERPOSE` and declared only through the `A7X_INTERPOSE` macro (ADR-0005).
+    `ALLOWED_INTERPOSE` and declared only through the `INSPECTOR_INTERPOSE` macro (ADR-0005).
   - The only engine code it calls is the game's own Lua API functions in `ALLOWED_ENGINE_CALLS`, named
-    through `builds.h`'s `A7X_FN_` enum, each one hash-checked before the first call (ADR-0005).
+    through `builds.h`'s `INSPECTOR_FN_` enum, each one hash-checked before the first call (ADR-0005).
   - `lint:security` checks `native/` for all of this.
 - **Raw reads stay private.** The inspector hides the native functions from other mods once it loads;
   external mods get only the public data API (Phase 4).

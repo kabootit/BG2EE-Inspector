@@ -18,14 +18,14 @@ countdown ([time-remaining plan](../plans/2026-11-15-time-remaining.md)):
 - **Removal:** the effect leaves the list when the clock reaches its expiry, and the spell's icon
   leaves the portrait with it, so a countdown that reaches zero means the spell is gone.
 
-The probe is the [Effect presence](effects.md) test's (`a7xeff.lua`), run three times: twice with the
+The probe is the [Effect presence](effects.md) test's (`inspeff.lua`), run three times: twice with the
 game paused, then the moment a spell's icon goes. `deno task verify` judges the session's last three
 runs. The last run also faces the presence gate, so the steps open every record screen first; the
 spell's icon has gone by the last run, so casting after them does not trouble that gate.
 
-The tester copies the walker's Lua (`a7xoff.lua`, `a7xwalk.lua`), the JSON writer (`a7xjson.lua`)
-and the probe (`a7xeff.lua`) into the game's `override/` folder for the session. In the game, the
-tester types only `Infinity_DoFile("a7xeff")`, three times. Results go to the session log; the game
+The tester copies the walker's Lua (`inspoff.lua`, `inspwalk.lua`), the JSON writer (`inspjson.lua`)
+and the probe (`inspeff.lua`) into the game's `override/` folder for the session. In the game, the
+tester types only `Infinity_DoFile("inspeff")`, three times. Results go to the session log; the game
 shows a one-line summary after each run.
 
 This first run is a probe run, as in part 1: where the data contradicts a check (Enhanced Bard
@@ -38,15 +38,15 @@ changes from what the run shows before the gate run.
 - **The repo is in the state to test.** Committed or not; the run tests the local working tree, and
   the Runs row notes the latest commit and whether there were local changes.
 - **`Debug Mode` is 1** in `Baldur.lua`, so Ctrl+Space opens the Lua console in a loaded game.
-- **The game has no WeiDU component installed**, so nothing has called `A7X` in the session (the
+- **The game has no WeiDU component installed**, so nothing has called `I` in the session (the
   [manual tests' README](README.md#how-a-run-goes)); `deno task install-mod --uninstall` if it has.
 - **The four files are in the game's `override/` folder.** From the repo folder:
 
   ```sh
   G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
   mkdir -p "$G/override"
-  cp mod/inspector/lib/a7xoff.lua mod/inspector/lib/a7xwalk.lua mod/inspector/lib/a7xjson.lua \
-    test/lua/a7xeff.lua "$G/override/"
+  cp mod/inspector/lib/inspoff.lua mod/inspector/lib/inspwalk.lua mod/inspector/lib/inspjson.lua \
+    test/lua/inspeff.lua "$G/override/"
   ```
 
   Step 10 removes them again at the end.
@@ -65,8 +65,8 @@ changes from what the run shows before the gate run.
    deno task play
    ```
 
-   Expect `A7X loaded`, `A7X build 2.7.3 arm64 matched, 14 sites checked` and
-   `A7X registered A7X_native`.
+   Expect `Inspector loaded`, `Inspector build 2.7.3 arm64 matched, 14 sites checked` and
+   `Inspector registered Inspector_native`.
 2. **Load the save** (1 minute).
 3. **Open every party member's record screen** once (2 minutes), before casting, so the engine fills
    `characters[id]` for each; the last run's presence gate needs it.
@@ -74,12 +74,12 @@ changes from what the run shows before the gate run.
    spell and whom it is on. The moment its icon appears on the target's portrait, pause with Space:
    Bless lasts only 36 game seconds.
 5. **Run the probe, still paused** (1 minute). Open the console with Ctrl+Space, type
-   `Infinity_DoFile("a7xeff")` and press Enter. The message window shows `A7X effect probe 1: <n>
+   `Infinity_DoFile("inspeff")` and press Enter. The message window shows `Inspector effect probe 1: <n>
    members, <n> effects read, 0 skipped`. Close the console.
 6. **Wait, still paused, and run it again** (1 minute). Leave the game paused for about 20
-   seconds, then run the probe as in step 5: `A7X effect probe 2: …`. Close the console.
+   seconds, then run the probe as in step 5: `Inspector effect probe 2: …`. Close the console.
 7. **Watch the icon** (1 to 3 minutes). Unpause and watch the target's portrait. The moment the
-   spell's icon goes, pause, and run the probe as in step 5: `A7X effect probe 3: …`. Note roughly
+   spell's icon goes, pause, and run the probe as in step 5: `Inspector effect probe 3: …`. Note roughly
    how long after the icon went the game paused. If no icon goes within 3 minutes, the spell lasts
    longer than the test allows: quit, and run the test again with Bless.
 8. **Quit from the game's own menu.**
@@ -89,8 +89,8 @@ changes from what the run shows before the gate run.
 
     ```sh
     G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
-    rm "$G/override/a7xoff.lua" "$G/override/a7xwalk.lua" "$G/override/a7xjson.lua" \
-      "$G/override/a7xeff.lua"
+    rm "$G/override/inspoff.lua" "$G/override/inspwalk.lua" "$G/override/inspjson.lua" \
+      "$G/override/inspeff.lua"
     rmdir "$G/override"
     ```
 
@@ -111,7 +111,7 @@ changes from what the run shows before the gate run.
 
 The probe only reads, so nothing should differ from normal play. Stop and quit if you see:
 
-- stutter, or a freeze right after `Infinity_DoFile("a7xeff")`;
+- stutter, or a freeze right after `Infinity_DoFile("inspeff")`;
 - a crash.
 
 Then report what you saw and at which step.
@@ -122,7 +122,7 @@ Say "done" when step 11 has printed its result, with the notes from step 9. The 
 
 | Check | Where | Pass when |
 | --- | --- | --- |
-| Build and registration | `A7X build 2.7.3 arm64 matched, 14 sites checked` and `A7X registered A7X_native` | both present, no `A7X disabled` |
+| Build and registration | `Inspector build 2.7.3 arm64 matched, 14 sites checked` and `Inspector registered Inspector_native` | both present, no `Inspector disabled` |
 | The probe ran three times | the message window, steps 5 to 7 | three summary lines, 0 skipped; `verify` judges the session's last three, so an extra run belongs before step 5, not after it |
 | The presence gate | `deno task verify` | `verify: effect probe passed` for the last run |
 | The clock | `deno task verify` | every run read it, and the engine applied no effect after it |
@@ -157,3 +157,4 @@ the version of the test that judged it.
 | 2026-11-15 | the commit that adds this test, after the first run | Before you start and step 3 name Bless or Haste, whose icons come from opcode 142, and rule out Blur, Mirror Image and long spells; step 7 says to stop if no icon goes within 3 minutes; `verify` prints the duration summary with fewer than three runs | any spell lasting one to three minutes with an icon, Blur among the examples; the summary only with three runs |
 | 2026-11-15 | the same commit, after the second run | The record screens come before casting (step 3), and the game pauses the moment the spell's icon appears (step 4); an extra probe run belongs before step 5 | record screens after casting, with the game running; pause only at step 5 |
 | 2026-11-15 | the same commit, after the third run | The Removal check allows an effect to stay listed up to one second (15 ticks) past its expiry, and `verify` prints how many did and by how much | no effect listed past its expiry |
+| 2026-11-15 | the commit that renames `A7X` before v0.1.0 ([first-release plan](../plans/2026-11-15-first-release.md#the-name)) | Names only, every check the same: the files take the prefix `insp` (`inspoff.lua`, `inspwalk.lua`, `inspjson.lua`, `inspeff.lua`, `Infinity_DoFile("inspeff")`), the lines `INSPECTOR_EFF`, and the summary and the library's lines `Inspector …` | the same steps under the names `a7x…`, `A7XEFF` and `A7X …` |

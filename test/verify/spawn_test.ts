@@ -15,8 +15,10 @@ import { creFile } from "../gamefiles/fixtures.ts";
 const engine = (s: string) =>
   `2026-11-14 21:00:00.000 BaldursGateIIEnhancedEdition[1:2] INFO: LUA: ${s}`;
 
-// What test/lua/a7xspawn.lua writes for the fake game: four spawns, one fixture found, its header.
-const GOLDEN = (await Deno.readTextFile("test/fixtures/a7xspawn.txt")).split("\n").filter((l) => l);
+// What test/lua/inspspwn.lua writes for the fake game: four spawns, one fixture found, its header.
+const GOLDEN = (await Deno.readTextFile("test/fixtures/inspector_spawn.txt")).split("\n").filter((
+  l,
+) => l);
 const LOG = GOLDEN.map(engine).join("\n");
 
 // The values of test/gamefiles/fixtures.ts's creFile(), as the walker would read them.
@@ -101,7 +103,7 @@ Deno.test("a spawned fixture not found, an error, or no spawn at all fails the r
   deepStrictEqual(spawnProblems(run, ["COWH", "DRBOD"]), ["DRBOD: spawned but not found in run 1"]);
   deepStrictEqual(spawnProblems(run, []), ["no fixture was spawned in this session"]);
   const failed = parseSpawns(
-    engine('A7XSPAWN\t{"kind":"error","run":1,"why":"no console object C"}'),
+    engine('INSPECTOR_SPAWN\t{"kind":"error","run":1,"why":"no console object C"}'),
   );
   deepStrictEqual(spawnProblems(failed.runs[0], ["COWH"]), [
     "the check could not run: no console object C",

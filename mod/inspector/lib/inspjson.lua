@@ -1,4 +1,4 @@
--- a7xjson.lua: an encode-only JSON writer for every line the inspector writes: the A7XDATA record and
+-- inspjson.lua: an encode-only JSON writer for every line the inspector writes: the INSPECTOR_DATA record and
 -- the checks' lines, each defined by a schema in src/model/schemas.ts.
 --
 -- Written for this project rather than vendored: the output must be deterministic, so object keys
@@ -6,13 +6,13 @@
 -- are escaped as RFC 8259 requires and passed through otherwise, the game's text being UTF-8. A
 -- table whose keys are exactly 1 to n is an array, any other table an object with string keys, and a
 -- table with no keys an empty array. Functions, userdata, NaN, infinities, non-string object keys and
--- tables nested more than 16 deep are refused: A7XJSON.encode returns nil and the reason, and never
+-- tables nested more than 16 deep are refused: INSPECTOR_JSON.encode returns nil and the reason, and never
 -- raises. A fraction is written in 14 significant digits when that reads back exactly, so 0.7 is
 -- 0.7, and in 17 otherwise.
 
--- Functions refer to the module through the local M: the API clears the global A7XJSON after loading.
+-- Functions refer to the module through the local M: the API clears the global INSPECTOR_JSON after loading.
 local M = {}
-A7XJSON = M
+INSPECTOR_JSON = M
 
 local MAX_DEPTH = 16
 local ESCAPES = {

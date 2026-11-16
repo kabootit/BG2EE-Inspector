@@ -8,10 +8,10 @@
  */
 import { archSlice, imageUuid, segment } from "./macho.ts";
 
-/** A range of the game's code and the hash its bytes must have (struct a7x_site). */
+/** A range of the game's code and the hash its bytes must have (struct inspector_site). */
 export type Site = { name: string; offset: number; size: number; fnv1a: bigint };
 
-/** One entry of A7X_BUILDS, as far as the check needs it. */
+/** One entry of INSPECTOR_BUILDS, as far as the check needs it. */
 export type Build = { name: string; uuid: string; sites: Site[] };
 
 const SITE = /\{"([^"]+)", (0x[0-9a-f]+), (0x[0-9a-f]+), (0x[0-9a-f]{16})ULL\}/g;
@@ -39,7 +39,7 @@ const FNV_OFFSET = 0xcbf29ce484222325n;
 const FNV_PRIME = 0x100000001b3n;
 const MASK_64 = (1n << 64n) - 1n;
 
-/** FNV-1a, 64-bit: the hash native/a7x.c computes over each site. */
+/** FNV-1a, 64-bit: the hash native/inspector.c computes over each site. */
 export function fnv1a64(bytes: Uint8Array): bigint {
   return bytes.reduce((h, b) => ((h ^ BigInt(b)) * FNV_PRIME) & MASK_64, FNV_OFFSET);
 }

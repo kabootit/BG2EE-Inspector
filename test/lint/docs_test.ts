@@ -143,8 +143,9 @@ Deno.test("dead links and anchors are findings", () => {
 });
 
 Deno.test("heading slugs follow GitHub's rules", () => {
-  const slugs = headingSlugs("# A7X.get(id): returns\n## Same\n## Same\n");
-  strictEqual(slugs.has("a7xgetid-returns"), true);
+  const slugs = headingSlugs("# I.get(id): returns\n## Same\n## Same\n");
+  strictEqual(slugs.has("iget_id-returns"), false, "not underscores");
+  strictEqual(slugs.has("igetid-returns"), true);
   strictEqual(slugs.has("same-1"), true);
 });
 

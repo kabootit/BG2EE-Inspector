@@ -80,7 +80,7 @@ Deno.test("the table holds every named spell and item from the archives and over
   );
 });
 
-Deno.test("the table as Lua: the A7XNAMES global, one quoted resref a line, sorted", () => {
+Deno.test("the table as Lua: the INSPECTOR_NAMES global, one quoted resref a line, sorted", () => {
   const lua = namesLua(new Map([["SPWI112", 1], ['A"B\\', 7], ["RING39", 4], ["BADé", 9]]));
   const entries = lua.split("\n").filter((l) => l.startsWith("  ["));
   deepStrictEqual(entries, [
@@ -88,7 +88,7 @@ Deno.test("the table as Lua: the A7XNAMES global, one quoted resref a line, sort
     '  ["RING39"] = 4,',
     '  ["SPWI112"] = 1,',
   ]);
-  strictEqual(lua.includes("\nA7XNAMES = {\n"), true);
+  strictEqual(lua.includes("\nINSPECTOR_NAMES = {\n"), true);
   strictEqual(lua.endsWith("}\n"), true);
 });
 

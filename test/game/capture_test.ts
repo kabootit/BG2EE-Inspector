@@ -14,7 +14,7 @@ Deno.test("lines split across reads are joined; the remainder waits for the next
 });
 
 Deno.test("pty artifacts are removed", () => {
-  strictEqual(clean("A7X loaded into Game pid=1\r"), "A7X loaded into Game pid=1");
+  strictEqual(clean("Inspector loaded into Game pid=1\r"), "Inspector loaded into Game pid=1");
   strictEqual(clean("^D\x08\x08last line"), "last line");
   strictEqual(clean("plain"), "plain");
 });

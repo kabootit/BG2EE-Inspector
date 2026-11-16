@@ -1,8 +1,9 @@
 /**
- * Reading mod/inspector/inspector.tp2 as the tests need it: its variables, the files it copies, the
- * patterns it counts in ui.menu, and its replacements, which `patch` applies as WeiDU would. The tp2
- * stays the one place its patterns are written; test/game/tp2_test.ts checks them against the game's
- * ui.menu and the copies against mod/inspector/lib/.
+ * Reading mod/inspector/inspector.tp2 as the tests need it: its version, its variables, the files it
+ * copies, the patterns it counts in ui.menu, and its replacements, which `patch` applies as WeiDU
+ * would. The tp2 stays the one place its patterns are written; test/game/tp2_test.ts checks them
+ * against the game's ui.menu, the copies against mod/inspector/lib/, and the version against
+ * CHANGELOG.md.
  *
  * Only the statements inspector.tp2 uses are read, by pattern, not by a WeiDU parser: full-line
  * `//` comments are dropped first, and every string is a `~...~` string.
@@ -12,8 +13,10 @@
 export type Replace = { pattern: string; replacement: string };
 
 export type Tp2 = {
+  /** The VERSION flag, as written (`v0.1.0`); undefined when the tp2 has none. */
+  version: string | undefined;
   vars: Map<string, string>;
-  /** The source of each COPY pair, as written: `inspector/lib/a7x.lua`. */
+  /** The source of each COPY pair, as written: `inspector/lib/insp.lua`. */
   copies: string[];
   /** Each COUNT_REGEXP_INSTANCES pattern. */
   counted: string[];
@@ -25,6 +28,7 @@ export type Tp2 = {
 // so a test counting the replacements fails on it. A pattern that once accepted EVALUATE_BUFFER,
 // which WeiDU rejects there, let a tp2 pass these tests that WeiDU could not parse.
 const STRING = "~([^~]*)~";
+const VERSION = new RegExp(`\\bVERSION\\s+${STRING}`);
 const VAR = new RegExp(`OUTER_SPRINT\\s+(\\w+)\\s+${STRING}`, "g");
 const COPY = /\bCOPY\s((?:\s*~[^~]*~)+)/;
 const COUNT = new RegExp(`COUNT_REGEXP_INSTANCES\\s+${STRING}`, "g");
@@ -42,6 +46,7 @@ export function readTp2(text: string): Tp2 {
   const code: string = lines.join("\n");
   const copy: string = code.match(COPY)?.[1] ?? "";
   return {
+    version: code.match(VERSION)?.[1],
     vars: new Map(groupsOf(code, VAR).map(([name, value]): [string, string] => [name, value])),
     copies: groupsOf(copy, new RegExp(STRING, "g"))
       .map(([path]): string => path)

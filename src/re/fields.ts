@@ -26,7 +26,7 @@ import {
 /** Field offset to the addresses of the comparisons that use it, most used first. */
 export type Tally = [offset: number, sites: number[]][];
 
-/** The offsets the questions start from, as a7xoff.lua has them. */
+/** The offsets the questions start from, as inspoff.lua has them. */
 export const LAYOUT = {
   visibleIndex: 0x6590, // CInfGame: u8 index of the area on screen
   areas: 0x6598, // CInfGame: the areas array

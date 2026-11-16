@@ -49,7 +49,7 @@ restore.
 - Does every read go through `mach_vm_read_overwrite`? A raw pointer dereference can crash the game.
 - Does an unknown build, or a failed site check, register nothing? `test/re/builds_test.ts` checks the
   table against the installed binary; for the library itself, change one hash in a scratch copy of
-  `builds.h`, build, and confirm the stand-in or the game logs `A7X disabled`.
+  `builds.h`, build, and confirm the stand-in or the game logs `Inspector disabled`.
 
 ### Launch path
 
@@ -68,7 +68,7 @@ restore.
 
 - The WeiDU component keeps its uninstall backup intact and patches only with anchors it has verified as
   unique.
-- The e2e runner touches only `A7X-E2E-*` save slots, removes them afterwards, and never saves the game.
+- The e2e runner touches only `Inspector-E2E-*` save slots, removes them afterwards, and never saves the game.
   Compare other slots before and after.
 - No default install includes the developer test component.
 
@@ -79,7 +79,7 @@ restore.
 
 ### Public API
 
-- `A7X_native` is `nil` after load; external mods get only the data API.
+- `Inspector_native` is `nil` after load; external mods get only the data API.
 - Every API call returns fresh tables; no inspector state is mutable from outside.
 
 ### Licensing

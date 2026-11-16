@@ -14,7 +14,7 @@ auto-print-on-hover mode, and a vendored JSON library for the same reason.
 - If an existing primitive or a simpler rule covers it, don't build it.
 - When cutting something, record the removed piece and why under "Options considered" in the ADR, so the
   reasoning survives.
-- The public `A7X` API grows only when a real consumer needs a function (minor version), never by
+- The public `I` API grows only when a real consumer needs a function (minor version), never by
   analogy with another tool.
 
 Related: [docs.md](docs.md).

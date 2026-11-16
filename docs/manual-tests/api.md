@@ -1,14 +1,14 @@
 ---
 type: manual-test
 title: "Data API"
-description: "One play session with the inspector's Lua copied into override/: the console commands print records for the party and the creatures around it, deno task verify checks every A7XDATA line against the schema, and the tester compares a party member with the record screen. Confirms the public A7X API and the console output."
+description: "One play session with the inspector's Lua copied into override/: the console commands print records for the party and the creatures around it, deno task verify checks every INSPECTOR_DATA line against the schema, and the tester compares a party member with the record screen. Confirms the public I API and the console output."
 duration: "about 15 minutes, 10 of them in the game"
 ---
 
 # Manual test: Data API
 
 This session checks the inspector's public API, [docs/api.md](../api.md), in the game. The console
-commands print each creature's record to the message window and write it to the log as an `A7XDATA`
+commands print each creature's record to the message window and write it to the log as an `INSPECTOR_DATA`
 line; `deno task verify` checks every line against the record's schema
 ([docs/data-model.md](../data-model.md)). The tester checks what no script can: the text is readable,
 the colors look right, and a party member's values match the record screen. It also confirms the
@@ -16,7 +16,7 @@ inspector's memory-reading table is no longer reachable from other Lua once the 
 
 The tester copies the inspector's six Lua files into the game's `override/` folder for the session;
 the WeiDU component that installs them for good comes with the next part of Phase 4. In the game, the
-tester types `Infinity_DoFile("a7x")` and the `A7X.show` commands below.
+tester types `Infinity_DoFile("insp")` and the `I.show` commands below.
 
 ## Before you start
 
@@ -29,8 +29,8 @@ tester types `Infinity_DoFile("a7x")` and the `A7X.show` commands below.
   ```sh
   G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
   mkdir -p "$G/override"
-  cp mod/inspector/lib/a7x.lua mod/inspector/lib/a7xoff.lua mod/inspector/lib/a7xwalk.lua \
-    mod/inspector/lib/a7xjson.lua mod/inspector/lib/a7xfmt.lua mod/inspector/lib/a7xapi.lua "$G/override/"
+  cp mod/inspector/lib/insp.lua mod/inspector/lib/inspoff.lua mod/inspector/lib/inspwalk.lua \
+    mod/inspector/lib/inspjson.lua mod/inspector/lib/inspfmt.lua mod/inspector/lib/inspapi.lua "$G/override/"
   ```
 
   Step 7 removes them again at the end.
@@ -47,40 +47,40 @@ tester types `Infinity_DoFile("a7x")` and the `A7X.show` commands below.
    deno task play
    ```
 
-   `play` shows the library's lines as they arrive: expect `A7X loaded`, `A7X build 2.7.3 arm64
-   matched, 14 sites checked` and `A7X registered A7X_native`.
+   `play` shows the library's lines as they arrive: expect `Inspector loaded`, `Inspector build 2.7.3 arm64
+   matched, 14 sites checked` and `Inspector registered Inspector_native`.
 2. **Load the save** (1 minute).
 3. **Load the inspector and show the party** (2 minutes). Open the console with Ctrl+Space and type
    these two lines, pressing Enter after each:
 
    ```lua
-   Infinity_DoFile("a7x")
-   A7X.show("party")
+   Infinity_DoFile("insp")
+   I.show("party")
    ```
 
    The message window shows two lines per party member, such as
-   `[A7X] Imoen  HP 40/52  AC 2  THAC0 15  MR 0%` and a line of saves and resistances, the name in
-   color. A line starting `[A7X]` that says why, such as `loading`, means the API answered but could
-   not read; no line at all means `a7x` did not load: check the six files are in `override/`.
+   `[Inspector] Imoen  HP 40/52  AC 2  THAC0 15  MR 0%` and a line of saves and resistances, the name in
+   color. A line starting `[Inspector]` that says why, such as `loading`, means the API answered but could
+   not read; no line at all means `inspector` did not load: check the six files are in `override/`.
 4. **Show the others** (2 minutes). Type each, pressing Enter after each:
 
    ```lua
-   A7X.show("enemies")
-   A7X.show("all")
-   A7X.show(A7X.list("all").creatures[1].id)
-   A7X.show()
+   I.show("enemies")
+   I.show("all")
+   I.show(I.list("all").creatures[1].id)
+   I.show()
    ```
 
    `enemies` lists the hostile creatures, or says there are none; `all` lists every creature in the
-   area; the third line shows the first of them again, found by its id, which tests `A7X.list` and
-   `A7X.get`; `A7X.show()` shows the creature or portrait under the pointer, or, with the pointer on
+   area; the third line shows the first of them again, found by its id, which tests `I.list` and
+   `I.get`; `I.show()` shows the creature or portrait under the pointer, or, with the pointer on
    neither, prints how to call it. `enemies` and `all` each end with a summary line,
-   such as `[A7X] all in AR0602: 12 shown, 0 not readable`; a command without one did not finish, so
+   such as `[Inspector] all in AR0602: 12 shown, 0 not readable`; a command without one did not finish, so
    note what it printed instead. Every line the message window shows is also in the session log.
 5. **Check the memory-reading table is private** (1 minute). Type:
 
    ```lua
-   Infinity_DisplayString(tostring(A7X_native))
+   Infinity_DisplayString(tostring(Inspector_native))
    ```
 
    The message window must show `nil`. Close the console with Ctrl+Space.
@@ -93,8 +93,8 @@ tester types `Infinity_DoFile("a7x")` and the `A7X.show` commands below.
 
    ```sh
    G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
-   rm "$G/override/a7x.lua" "$G/override/a7xoff.lua" "$G/override/a7xwalk.lua" \
-     "$G/override/a7xjson.lua" "$G/override/a7xfmt.lua" "$G/override/a7xapi.lua"
+   rm "$G/override/insp.lua" "$G/override/inspoff.lua" "$G/override/inspwalk.lua" \
+     "$G/override/inspjson.lua" "$G/override/inspfmt.lua" "$G/override/inspapi.lua"
    rmdir "$G/override"
    ```
 
@@ -105,7 +105,7 @@ tester types `Infinity_DoFile("a7x")` and the `A7X.show` commands below.
    deno task verify
    ```
 
-   It reads the newest session log and prints every `A7XDATA` record (side, id, HP, name) and whether
+   It reads the newest session log and prints every `INSPECTOR_DATA` record (side, id, HP, name) and whether
    each is a schema-1 record.
 
 ## What to watch for
@@ -124,7 +124,7 @@ run passes when:
 
 | Check | Where | Pass when |
 | --- | --- | --- |
-| Build and registration | `A7X build 2.7.3 arm64 matched, 14 sites checked` and `A7X registered A7X_native` | both present, no `A7X disabled` |
+| Build and registration | `Inspector build 2.7.3 arm64 matched, 14 sites checked` and `Inspector registered Inspector_native` | both present, no `Inspector disabled` |
 | Every record matches the schema | `deno task verify` | `verify: data passed, <n> line(s), every one a schema-1 record`, with a line for each party member |
 | The memory-reading table is private | step 5 | the message window shows `nil` |
 | Party values match the record screen | step 6 | HP, AC and the five saves equal; THAC0 may differ by the weapon's bonuses |
@@ -151,3 +151,4 @@ the version of the test that judged it.
 | --- | --- | --- | --- |
 | 2026-11-14 | the commit that adds the data API, after the first run | Step 4: `enemies` and `all` end with a summary line, and every message-window line is also in the session log, so a reader can tell a command that prints nothing from one that never ran; one creature the walker cannot read no longer stops the rest; the formatter writes the colors as `0xAABBGGRR` | no summary line, and the message window's text only on screen |
 | 2026-11-14 | the commit that adds API 1.1 | Step 4: `A7X.show()` with no argument shows the creature or portrait under the pointer, and prints how to call it only when the pointer is on neither | `A7X.show()` always printed how to call it |
+| 2026-11-15 | the commit that renames `A7X` before v0.1.0 ([first-release plan](../plans/2026-11-15-first-release.md#the-name)) | Names only, every check the same: the Lua table `A7X` is `I`, the game's Lua files take the prefix `insp` (`insp.lua`, `inspwalk.lua`, `Infinity_DoFile("insp")`), the log lines `INSPECTOR_…`, and the library's lines and message prefix `Inspector` | the same steps under the names `A7X`, `a7x…` and `A7X…` |

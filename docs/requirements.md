@@ -61,9 +61,10 @@ Files downloaded this way do not get macOS's quarantine attribute, so nothing ne
 
 1. Download `WeiDU-Mac-ARM-251.zip` from the v251.00 release on WeiDU's GitHub page.
 2. Check it: `shasum -a 256 WeiDU-Mac-ARM-251.zip` must print the digest above.
-3. Unzip it. If a browser downloaded it, clear the quarantine flag:
-   `xattr -d com.apple.quarantine WeiDU-Mac/weidu`.
-4. Put it where the project runs it from: `vendor/weidu/weidu` in the repo folder.
+3. Unzip it, and put `WeiDU-Mac/weidu` where the project runs it from: `vendor/weidu/weidu` in the
+   repo folder.
+4. If a browser downloaded it, macOS refuses to run it at first. Run `vendor/weidu/weidu --version`
+   once, allow it in System Settings, Privacy & Security, then run it again and choose Open.
 
 `deno task install-mod` runs only `vendor/weidu/weidu`, and only when its SHA-256 is the pinned
 binary's. `BG2EE_WEIDU` points `deno task doctor` at a WeiDU elsewhere, to identify it, but

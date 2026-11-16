@@ -42,7 +42,7 @@ await runTask(async () => {
   const log = await Deno.open(logPath, { create: true, write: true, truncate: true });
   const encoder = new TextEncoder();
 
-  console.log(`play: ${inject ? "with build/a7x.dylib" : "control run, no library"}`);
+  console.log(`play: ${inject ? "with build/inspector.dylib" : "control run, no library"}`);
   console.log(`play: session log logs/${logPath.split("/").pop()}`);
   console.log("play: quit the game to finish.\n");
 

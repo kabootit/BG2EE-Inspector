@@ -1,14 +1,14 @@
--- a7xoff.lua: engine offsets for BG2:EE 2.7.3 arm64, by name.
+-- inspoff.lua: engine offsets for BG2:EE 2.7.3 arm64, by name.
 --
--- Numbers only; the walker (a7xwalk.lua) reads every field through this table, so a new game build
+-- Numbers only; the walker (inspwalk.lua) reads every field through this table, so a new game build
 -- means a new copy of this file and nothing else in the Lua. Each field is { offset, kind }, with
--- kind as A7X_native.Read takes it. Where each value comes from: docs/re-notes.md, "Engine
+-- kind as Inspector_native.Read takes it. Where each value comes from: docs/re-notes.md, "Engine
 -- structures". The file name is at most 8 characters, the limit for Infinity_DoFile.
 
-A7XOFF = {
+INSPECTOR_OFF = {
   build = "2.7.3 arm64",
 
-  -- From A7X_native.Root(): the CBaldurChitin object.
+  -- From Inspector_native.Root(): the CBaldurChitin object.
   chitin = { game = { 0x10c0, "ptr" } },
 
   -- CInfGame: the party, as object ids in slot order, and the loaded areas.
@@ -33,7 +33,7 @@ A7XOFF = {
     picked = { 0x244, "i32" },
   },
 
-  -- The object array at A7X_native.Objects(): 16-byte slots, its bounds in the 16 bytes before it.
+  -- The object array at Inspector_native.Objects(): 16-byte slots, its bounds in the 16 bytes before it.
   objects = {
     slot_size = 16,
     generation = { 0x0, "u16" },

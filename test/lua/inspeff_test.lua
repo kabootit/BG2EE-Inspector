@@ -1,5 +1,5 @@
--- The effect probe (test/lua/a7xeff.lua) against the fake game: its lines are exactly the golden
--- file test/fixtures/a7xeff.txt, which test/model/schemas_test.ts checks against the schema; then a
+-- The effect probe (test/lua/inspeff.lua) against the fake game: its lines are exactly the golden
+-- file test/fixtures/inspector_eff.txt, which test/model/schemas_test.ts checks against the schema; then a
 -- broken list, a list longer than the node cap, a member whose record screen was not opened, no
 -- game, and the summary line in the message window.
 
@@ -31,14 +31,14 @@ end
 
 local function run()
   logged, shown = {}, nil
-  A7XEFF_run = nil -- every case is run 1, whatever ran before it
-  dofile("test/lua/a7xeff.lua")
+  INSPECTOR_EFF_run = nil -- every case is run 1, whatever ran before it
+  dofile("test/lua/inspeff.lua")
   return logged
 end
 
 local function golden()
   local lines = {}
-  for line in io.lines("test/fixtures/a7xeff.txt") do lines[#lines + 1] = line end
+  for line in io.lines("test/fixtures/inspector_eff.txt") do lines[#lines + 1] = line end
   return lines
 end
 
@@ -53,7 +53,7 @@ T.test("the lines for the party are the golden file", function()
   local lines, want = run(), golden()
   T.eq(#lines, #want, "line count")
   for i = 1, #want do T.eq(lines[i], want[i], "line " .. i) end
-  T.eq(shown, "A7X effect probe 1: 2 members, 3 effects read, 0 skipped (details in the session log)",
+  T.eq(shown, "Inspector effect probe 1: 2 members, 3 effects read, 0 skipped (details in the session log)",
     "the summary")
 end)
 
@@ -86,7 +86,7 @@ end)
 
 T.test("no game loaded is one error line and a could-not-run summary", function()
   world()
-  F.field(F.ROOT, A7XOFF.chitin.game, 0)
+  F.field(F.ROOT, INSPECTOR_OFF.chitin.game, 0)
   local lines = run()
   T.eq(#lines, 1, "one line")
   T.eq(lines[1]:find('"kind":"error"', 1, true) ~= nil, true, "an error line")

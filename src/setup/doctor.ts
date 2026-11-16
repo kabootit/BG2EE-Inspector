@@ -235,7 +235,7 @@ export async function checkLuaSource(sys: System): Promise<Check> {
     );
 }
 
-/** Debug Mode enables the Ctrl+Space console for the A7X console commands. Read-only. */
+/** Debug Mode enables the Ctrl+Space console for the I console commands. Read-only. */
 export async function checkDebugMode(sys: System): Promise<Check> {
   const name = "Debug Mode (Baldur.lua)";
   const text = await sys.readText(BALDUR_LUA);

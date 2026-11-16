@@ -1,23 +1,23 @@
--- a7xt.lua: the in-game half of docs/manual-tests/bridge.md.
+-- inspt.lua: the in-game half of docs/manual-tests/bridge.md.
 --
 -- Copied into the game's override/ folder for the test only, and removed after it. Typed in the
--- debug console as Infinity_DoFile("a7xt"), it calls each A7X_native function from the game's own
--- Lua and writes one "A7XT <run> <check> <value>" line per result to the session log through
+-- debug console as Infinity_DoFile("inspt"), it calls each Inspector_native function from the game's own
+-- Lua and writes one "INSPECTOR_T <run> <check> <value>" line per result to the session log through
 -- Infinity_Log. Numbers are logged in hex (Lua 5.2's %x refuses negative numbers, so those are
 -- written as -0x...). It only reads, like the functions it calls, and runs inside pcall, so a missing
 -- function is logged rather than raised.
 
-A7XT_run = (A7XT_run or 0) + 1
-local run = A7XT_run
+INSPECTOR_T_run = (INSPECTOR_T_run or 0) + 1
+local run = INSPECTOR_T_run
 
 local function log(check, value)
   if type(value) == "number" then
     value = value < 0 and string.format("-0x%x", -value) or string.format("0x%x", value)
   end
-  Infinity_Log("A7XT " .. run .. " " .. check .. " " .. tostring(value))
+  Infinity_Log("INSPECTOR_T " .. run .. " " .. check .. " " .. tostring(value))
 end
 
-local N = A7X_native
+local N = Inspector_native
 log("native", type(N))
 if type(N) ~= "table" then return end
 

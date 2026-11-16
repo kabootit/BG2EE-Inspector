@@ -15,7 +15,7 @@ half its subject, a verification section that implies the tests exercised more t
 - **Diagrams** are Mermaid fences: rendered and looked at before committing (VS Code preview or GitHub),
   vertical layouts, quoted labels, no braces in labels.
 - **Reference docs change with their source**, in the same change (`docs/data-model.md` with
-  `src/model/schemas.ts`, `docs/api.md` with `mod/inspector/lib/a7xapi.lua`).
+  `src/model/schemas.ts`, `docs/api.md` with `mod/inspector/lib/inspapi.lua`).
 
 ## ADRs
 

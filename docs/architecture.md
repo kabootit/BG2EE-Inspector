@@ -34,8 +34,8 @@ Where each part of the repo ends up once the tasks build and install it.
 ```mermaid
 flowchart TD
   subgraph REPO["BG2EE-Inspector repo"]
-    N["native/ a7x.c, builds.h"]
-    M["mod/inspector/ inspector.tp2, lib/a7x_*.lua"]
+    N["native/ inspector.c, builds.h"]
+    M["mod/inspector/ inspector.tp2, lib/inspector_*.lua"]
     T["src/ Deno, by concern: tasks, shared, lint, setup, re, game, gamefiles, model, verify"]
     X["test/ Deno tests, test/lua, test/e2e"]
     D["docs/ rules, adr, plans, notes, specs"]
@@ -43,9 +43,9 @@ flowchart TD
     V["vendor/ gitignored: weidu, lua-5.2.4"]
   end
   subgraph GAME["Game install and user folder"]
-    DY["a7x.dylib, built output"]
-    OV["override/ ui.menu patch, a7x_*.lua"]
-    SV["save/ A7X-E2E-* slots during e2e only"]
+    DY["inspector.dylib, built output"]
+    OV["override/ ui.menu patch, inspector_*.lua"]
+    SV["save/ Inspector-E2E-* slots during e2e only"]
   end
   N -- "deno task build: clang -arch arm64" --> DY
   M -- "deno task install-mod: WeiDU from vendor/weidu" --> OV
@@ -89,18 +89,18 @@ flowchart TD
   subgraph PROC["Game process, arm64, hardened runtime"]
     ENG["Engine C++: CInfGame, CGameSprite, CGameEffect"]
     LUAVM["Engine's embedded Lua 5.2 state"]
-    subgraph NAT["a7x.dylib, native, read-only"]
+    subgraph NAT["inspector.dylib, native, read-only"]
       CT["constructor: LC_UUID lookup; interposed glClear registers once, then passes through"]
-      RD["A7X_native: Read, ReadBlock, Root via mach_vm_read_overwrite"]
+      RD["Inspector_native: Read, ReadBlock, Root via mach_vm_read_overwrite"]
     end
     subgraph LUA["Inspector Lua, in override/"]
-      WK["a7xwalk.lua: named fields, bounded walks, a creature's effect lists, the game's clock"]
-      OF["a7xoff.lua: names to numbers"]
-      API["a7xapi.lua: public A7X table, schema 1"]
-      FM["a7xfmt.lua: text lines"]
-      JS["a7xjson.lua: JSON lines"]
-      TR["triggers: e key button in ui.menu, console A7X.show"]
-      TS["a7x_test.lua: A7XT, dev component, later"]
+      WK["inspwalk.lua: named fields, bounded walks, a creature's effect lists, the game's clock"]
+      OF["inspoff.lua: names to numbers"]
+      API["inspapi.lua: public I table, schema 1"]
+      FM["inspfmt.lua: text lines"]
+      JS["inspjson.lua: JSON lines"]
+      TR["triggers: e key button in ui.menu, console I.show"]
+      TS["inspector_test.lua: INSPECTOR_T, dev component, later"]
     end
   end
   RD -- "reads memory of" --> ENG
@@ -109,13 +109,13 @@ flowchart TD
   WK --> OF
   API --> WK
   FM --> API
-  TR -- "A7X.show" --> API
+  TR -- "I.show" --> API
   API --> FM
   TS --> API
-  EXT["External mods, e.g. a future UI mod"] -- "A7X.get, A7X.list, A7X.hovered, A7X.portrait" --> API
+  EXT["External mods, e.g. a future UI mod"] -- "I.get, I.list, I.hovered, I.portrait" --> API
   FM -- "Infinity_DisplayString" --> MSG["Message window, shown by the debug console"]
   API --> JS
-  JS -- "Infinity_Log A7XDATA json" --> OUT["stdout via script pty"]
+  JS -- "Infinity_Log INSPECTOR_DATA json" --> OUT["stdout via script pty"]
   OUT --> DENO["Deno: verify, e2e, GameLog"]
 ```
 
@@ -134,15 +134,15 @@ copied into the game only for a manual test; the API is the inspector itself.
 
 ```mermaid
 flowchart TD
-  MEM["Game memory"] --> NAT["A7X_native: Read, ReadBlock"]
-  NAT --> WALK["a7xwalk.lua + a7xoff.lua: named fields"]
-  WALK --> API["a7xapi.lua: the A7X table, schema-1 records"]
-  WALK --> CHK["Check scripts, test only: a7xchk, a7xlist, a7xspawn"]
-  KEY["The e key: a button in ui.menu"] -- "A7X.show()" --> API
-  API -- "A7X.get, A7X.list, A7X.hovered, A7X.portrait" --> MODS["Other mods: plain Lua tables"]
-  API -- "A7X.show" --> FMT["a7xfmt.lua: two text lines per record"]
+  MEM["Game memory"] --> NAT["Inspector_native: Read, ReadBlock"]
+  NAT --> WALK["inspwalk.lua + inspoff.lua: named fields"]
+  WALK --> API["inspapi.lua: the I table, schema-1 records"]
+  WALK --> CHK["Check scripts, test only: inspchk, insplist, inspspwn"]
+  KEY["The e key: a button in ui.menu"] -- "I.show()" --> API
+  API -- "I.get, I.list, I.hovered, I.portrait" --> MODS["Other mods: plain Lua tables"]
+  API -- "I.show" --> FMT["inspfmt.lua: two text lines per record"]
   FMT -- "Infinity_DisplayString" --> MSG["Message window"]
-  API -- "A7X.show" --> JSON["a7xjson.lua: sorted keys, integers kept"]
+  API -- "I.show" --> JSON["inspjson.lua: sorted keys, integers kept"]
   CHK --> JSON
   JSON -- "Infinity_Log: prefix, tab, JSON" --> LOG["Game stdout"]
   LOG -- "deno task play" --> CAP["logs/session-*.log"]
@@ -156,13 +156,13 @@ Each prefix, who writes it, what defines it, what pins it and who reads it:
 
 | Prefix | Written by | Schema | Golden file | Read by |
 | --- | --- | --- | --- | --- |
-| `A7XDATA` | `mod/inspector/lib/a7xapi.lua`, through `A7X.show` | `RecordSchema` | `test/fixtures/a7xdata.txt` | `deno task verify`; other tools, through `docs/data-model.schema.json` |
-| `A7XCHECK` | `test/lua/a7xchk.lua` | `CheckLine` | `test/fixtures/a7xcheck.txt` | `src/verify/checks.ts` |
-| `A7XLIST` | `test/lua/a7xlist.lua` | `ListLine` | `test/fixtures/a7xlist.txt` | `src/verify/list.ts` |
-| `A7XSPAWN` | `test/lua/a7xspawn.lua` | `SpawnLine` | `test/fixtures/a7xspawn.txt` | `src/verify/spawn.ts`, with the game's `.cre` files |
+| `INSPECTOR_DATA` | `mod/inspector/lib/inspapi.lua`, through `I.show` | `RecordSchema` | `test/fixtures/inspector_data.txt` | `deno task verify`; other tools, through `docs/data-model.schema.json` |
+| `INSPECTOR_CHECK` | `test/lua/inspchk.lua` | `CheckLine` | `test/fixtures/inspector_check.txt` | `src/verify/checks.ts` |
+| `INSPECTOR_LIST` | `test/lua/insplist.lua` | `ListLine` | `test/fixtures/inspector_list.txt` | `src/verify/list.ts` |
+| `INSPECTOR_SPAWN` | `test/lua/inspspwn.lua` | `SpawnLine` | `test/fixtures/inspector_spawn.txt` | `src/verify/spawn.ts`, with the game's `.cre` files |
 
-The two outputs that are not JSON have the same source: the tables `A7X.get` returns are the records
-`A7XDATA` carries, before encoding, and `a7xfmt.lua` makes the message-window text from them for
+The two outputs that are not JSON have the same source: the tables `I.get` returns are the records
+`INSPECTOR_DATA` carries, before encoding, and `inspfmt.lua` makes the message-window text from them for
 people, not programs.
 
 ### How every part stays tied to the schema
@@ -177,7 +177,7 @@ flowchart TD
   TYPES -- "exhaustive switch: a new kind will not compile until handled" --> VER["src/verify modules"]
   SCH -- "deno task schema" --> JS["docs/data-model.schema.json"]
   JS -- "test: the file equals the schema" --> SCHT["test/model/schemas_test.ts"]
-  LUA["Lua writers: a7xapi.lua and the check scripts"] -- "Lua tests: exactly these lines" --> GOLD["test/fixtures: one golden file per prefix"]
+  LUA["Lua writers: inspapi.lua and the check scripts"] -- "Lua tests: exactly these lines" --> GOLD["test/fixtures: one golden file per prefix"]
   GOLD -- "test: every line passes its schema" --> SCHT
   SCH --> SCHT
   DM["docs/data-model.md: the record's fields"] -- "test: the same fields" --> SPEC["test/model/spec_test.ts"]
@@ -201,27 +201,27 @@ sequenceDiagram
   participant P as deno task play
   participant S as script + env
   participant DY as dyld
-  participant A as a7x.dylib
+  participant A as inspector.dylib
   participant G as Game engine
   participant L as Lua in ui.menu
-  P->>S: script -q /dev/null env DYLD_INSERT_LIBRARIES=a7x.dylib game
+  P->>S: script -q /dev/null env DYLD_INSERT_LIBRARIES=inspector.dylib game
   S->>DY: exec game with DYLD_INSERT_LIBRARIES
   DY->>A: load and run constructor, before main
-  DY->>DY: bind the game's glClear calls to a7x_glClear, from the interpose section
+  DY->>DY: bind the game's glClear calls to inspector_glClear, from the interpose section
   A->>A: read LC_UUID, find builds.h entry, add ASLR slide
   A->>A: verify expected bytes at every address
   alt unknown build or mismatch
-    A-->>G: log A7X disabled, glClear only passes through
+    A-->>G: log Inspector disabled, glClear only passes through
   end
   G->>G: main, create the Lua state, register Infinity_* functions
-  G->>L: load ui.menu: after combatLog, Infinity_DoFile a7xnames, then a7x, from the WeiDU patch
-  Note over L: A7X_native may not exist yet: status() is no_native
+  G->>L: load ui.menu: after combatLog, Infinity_DoFile inspname, then insp, from the WeiDU patch
+  Note over L: Inspector_native may not exist yet: status() is no_native
   G->>A: glClear, once a frame on the main thread
   A->>A: Lua state set and idle? if not, wait for the next frame
-  A->>L: register the A7X_native table with the game's own Lua API, under its lua_pcallk
+  A->>L: register the Inspector_native table with the game's own Lua API, under its lua_pcallk
   A->>G: from now on, every call passes straight to the real glClear
-  L->>L: on first use, a7xapi captures A7X_native as a local, sets the global to nil
-  Note over L: A7X.status() is loading until a game is loaded, then ok
+  L->>L: on first use, inspapi captures Inspector_native as a local, sets the global to nil
+  Note over L: I.status() is loading until a game is loaded, then ok
 ```
 
 ## Inspect workflow
@@ -234,12 +234,12 @@ sequenceDiagram
   autonumber
   actor U as Player
   participant UI as ui.menu key button, in WORLD_ACTIONBAR
-  participant API as A7X API
+  participant API as I API
   participant W as Walker
-  participant N as A7X_native
+  participant N as Inspector_native
   participant OUT as Message window and stdout
   U->>UI: press e while hovering a creature or portrait
-  UI->>API: A7X.show()
+  UI->>API: I.show()
   API->>API: status() == ok?
   alt not ok
     API->>OUT: one line naming the status, e.g. no_native
@@ -254,7 +254,7 @@ sequenceDiagram
       N-->>W: values, or nil for a bad pointer
       W-->>API: schema-1 table, fresh copy
       API->>OUT: formatted lines via Infinity_DisplayString
-      API->>OUT: A7XDATA json via Infinity_Log
+      API->>OUT: INSPECTOR_DATA json via Infinity_Log
     end
   end
 ```
@@ -266,10 +266,10 @@ What happens when Steam patches the game, and how the inspector is brought back.
 ```mermaid
 flowchart TD
   A["Steam updates the game"] --> B["doctor: unknown SHA-256"]
-  A --> C["dylib: unknown LC_UUID, A7X disabled, game unaffected"]
+  A --> C["dylib: unknown LC_UUID, Inspector disabled, game unaffected"]
   B --> D["deno task derive on the new binary"]
-  D --> E["New builds.h entry + new a7x_offsets_build.lua"]
-  E --> F["Phase 3 and 5 gates via A7XT.run all or deno task e2e"]
+  D --> E["New builds.h entry + new inspector_offsets_build.lua"]
+  E --> F["Phase 3 and 5 gates via INSPECTOR_T.run all or deno task e2e"]
   F --> G{"pass?"}
   G -- yes --> H["Add SHA-256 to doctor's known list, delivery note"]
   G -- no --> D

@@ -9,7 +9,7 @@ duration: "about 15 minutes, 10 of them in the game"
 
 This session checks the hook that ADR-0005 depends on. It shows whether the game calls the interposed
 `glClear` once a frame, on its main thread, after its Lua has started, and with Lua idle often enough to
-register on. The library is the probe in `native/a7x.c`: it only observes and writes nothing, so the game
+register on. The library is the probe in `native/inspector.c`: it only observes and writes nothing, so the game
 should look and play exactly as usual. Why this matters, and what happens if it fails:
 [ADR-0005](../adr/0005-dyld-interposing-hook.md#the-hook-gate).
 
@@ -59,16 +59,16 @@ the evidence.
 ## Pass criteria
 
 Say "done" when `play` has exited. Then read the newest `logs/session-<stamp>.log` for lines starting
-with `A7X`. To see them yourself: `grep 'A7X' logs/session-<stamp>.log`.
+with `I`. To see them yourself: `grep 'I' logs/session-<stamp>.log`.
 
 The run passes when every line below appears, and the game played normally:
 
 | ADR-0005 condition | Log line | Pass when |
 | --- | --- | --- |
-| 1. Known build | `A7X build 2.7.3 arm64 matched` | present |
-| 2. Main thread | `A7X probe: first glClear at …, main thread yes` | present, with no `off the main thread` line anywhere |
-| 3. Lua starts | `A7X probe: lua_State set at …` | present |
-| 4. Every frame | `A7X probe: N glClear calls in Ts, Lua running during M` | about every two minutes, with even gaps: N rises by about 1800 a minute, as the game draws at most `Maximum Frame Rate` frames a second (`Baldur.lua`, 30 by default) |
+| 1. Known build | `Inspector build 2.7.3 arm64 matched` | present |
+| 2. Main thread | `Inspector probe: first glClear at …, main thread yes` | present, with no `off the main thread` line anywhere |
+| 3. Lua starts | `Inspector probe: lua_State set at …` | present |
+| 4. Every frame | `Inspector probe: N glClear calls in Ts, Lua running during M` | about every two minutes, with even gaps: N rises by about 1800 a minute, as the game draws at most `Maximum Frame Rate` frames a second (`Baldur.lua`, 30 by default) |
 | 5. Idle Lua | the same count lines | M below N, so idle frames exist to register on |
 
 The count lines also answer two questions that are not pass conditions: whether the main menu and a
@@ -82,3 +82,12 @@ that records it.
 | Date | Commit | Result | Delivery note |
 | --- | --- | --- | --- |
 | 2026-11-06 | `09dc2f8` | Passed, all five conditions; condition 4 judged against the 30 frames-per-second cap | [Hook gate](../notes/2026-11-06-hook-gate.md) |
+
+### Changes to this test
+
+Each change to the steps or pass criteria after the first run, so a reader can match a Runs row to
+the version of the test that judged it.
+
+| Date | Commit | What changed | Criteria for runs before it |
+| --- | --- | --- | --- |
+| 2026-11-15 | the commit that renames `A7X` before v0.1.0 ([first-release plan](../plans/2026-11-15-first-release.md#the-name)) | Names only, every condition the same: the library's lines read `Inspector …` (`Inspector probe: first glClear at …`), and the library is `build/inspector.dylib` | `A7X …` and `build/a7x.dylib` |

@@ -27,7 +27,7 @@ export function launchCommand(opts: LaunchOptions): Launch {
 }
 
 export interface SessionSummary {
-  /** Marker lines from the dylib, e.g. "A7X loaded into BaldursGateIIEnhancedEdition pid=123". */
+  /** Marker lines from the dylib, e.g. "Inspector loaded into BaldursGateIIEnhancedEdition pid=123". */
   loaded: string[];
   /** Whether a marker names the game, not a launcher process. */
   loadedIntoGame: boolean;
@@ -36,9 +36,9 @@ export interface SessionSummary {
 /** Whether a captured line is the dylib's load marker. */
 export const isLoadMarker = (line: string): boolean => line.includes(LOADED_MARKER);
 
-/** Whether a captured line comes from the dylib: the load marker, or any line it starts with "A7X ". */
+/** Whether a captured line comes from the dylib: the load marker, or any line it starts with "Inspector ". */
 export const isLibraryLine = (line: string): boolean =>
-  isLoadMarker(line) || line.startsWith("A7X ");
+  isLoadMarker(line) || line.startsWith("Inspector ");
 
 /** What a session's marker lines say about the injection. */
 export function summarize(markers: string[], gameProcess: string): SessionSummary {

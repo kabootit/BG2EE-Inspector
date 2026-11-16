@@ -14,7 +14,7 @@ This run checks the part of Phase 4 a player sees, as the
 - the `e` key prints the record of the creature or party portrait under the pointer, with no console;
 - `deno task install-mod --uninstall` takes it all out again.
 
-The [Under the pointer](pointer.md) test already showed that `A7X.show()` finds the right creature and
+The [Under the pointer](pointer.md) test already showed that `I.show()` finds the right creature and
 portrait. The new questions are whether the WeiDU patch works and whether the world screen hands `e` to
 `ui.menu` at all.
 
@@ -48,8 +48,8 @@ portrait. The new questions are whether the WeiDU patch works and whether the wo
    ```
 
    Expect the number of spell and item names found, WeiDU's output, then `install-mod: installed`.
-   `override/` now holds `ui.menu` and seven files: the six `a7x.lua`, `a7xapi.lua`, `a7xfmt.lua`,
-   `a7xjson.lua`, `a7xoff.lua` and `a7xwalk.lua`, and the names table `a7xnames.lua`. `WeiDU.log`
+   `override/` now holds `ui.menu` and seven files: the six `insp.lua`, `inspapi.lua`, `inspfmt.lua`,
+   `inspjson.lua`, `inspoff.lua` and `inspwalk.lua`, and the names table `inspname.lua`. `WeiDU.log`
    has a line for `INSPECTOR/INSPECTOR.TP2`. If WeiDU fails, stop here and report its
    output; nothing in the game has changed.
 3. **Build and launch.**
@@ -59,18 +59,18 @@ portrait. The new questions are whether the WeiDU patch works and whether the wo
    deno task play
    ```
 
-   Expect `A7X loaded`, `A7X build 2.7.3 arm64 matched, 14 sites checked` and
-   `A7X registered A7X_native`.
+   Expect `Inspector loaded`, `Inspector build 2.7.3 arm64 matched, 14 sites checked` and
+   `Inspector registered Inspector_native`.
 4. **Load the save** (1 minute). Leave the game running, not paused.
 5. **A creature** (1 minute). Rest the pointer on a creature outside the party until its name tooltip
-   shows; note the name; press `e`. Expect two `[A7X]` lines in the message window, that name first.
+   shows; note the name; press `e`. Expect two `[Inspector]` lines in the message window, that name first.
    If nothing appears, note whether `e` did anything else in the game.
 6. **A party member on the ground** (1 minute). The same, with the pointer on a party member's figure.
 7. **Each portrait** (2 minutes). Rest the pointer on each party portrait in turn and press `e`; note
    whom each showed.
 8. **Empty ground, then a door or container** (1 minute). Press `e` over ground with nothing on it:
-   expect the line starting `[A7X] point at a creature or a portrait`. Then over a door or container,
-   once it highlights: expect `[A7X] not a creature`.
+   expect the line starting `[Inspector] point at a creature or a portrait`. Then over a door or container,
+   once it highlights: expect `[Inspector] not a creature`.
 9. **Paused** (1 minute). Pause the game with the space bar, then repeat step 5 with any creature and
    step 7 with one portrait.
 10. **Quit from the game's own menu.**
@@ -80,7 +80,7 @@ portrait. The new questions are whether the WeiDU patch works and whether the wo
     deno task verify
     ```
 
-    It prints every `A7XDATA` record of the newest session log (side, id, HP, name) and whether each
+    It prints every `INSPECTOR_DATA` record of the newest session log (side, id, HP, name) and whether each
     is a schema-1 record.
 12. **Uninstall** (2 minutes):
 
@@ -113,8 +113,8 @@ and 9 showed. The run passes when:
 | Check | Where | Pass when |
 | --- | --- | --- |
 | The install | step 2 | `install-mod: installed`; `ui.menu` and the seven files in `override/`; the inspector's line in `WeiDU.log` |
-| Build and registration | `A7X build 2.7.3 arm64 matched, 14 sites checked` and `A7X registered A7X_native` | both present, no `A7X disabled` |
-| `e` reaches `ui.menu` | step 5 | `[A7X]` lines appear when the tester presses `e` |
+| Build and registration | `Inspector build 2.7.3 arm64 matched, 14 sites checked` and `Inspector registered Inspector_native` | both present, no `Inspector disabled` |
+| `e` reaches `ui.menu` | step 5 | `[Inspector]` lines appear when the tester presses `e` |
 | The creature and the portraits | steps 5 to 7 | each shows the creature, party member or portrait the tester pressed `e` over |
 | Nothing to show | step 8 | the usage line over empty ground, `not a creature` over a door or container |
 | Paused | step 9 | the same as running |
@@ -141,3 +141,4 @@ the version of the test that judged it.
 | --- | --- | --- | --- |
 | 2026-11-14 | the commit that adds this test, after the first run | Step 12 and its pass criterion: the uninstall leaves `override/` as an empty folder, and `WeiDU.log` gains a `Recently Uninstalled` comment, as WeiDU did in a scratch game folder | `override/` and `WeiDU.log` exactly as in step 1 |
 | 2026-11-15 | the commit that adds the names table ([spell-output plan](../plans/2026-11-15-spell-output.md)) | Step 2 and its pass criterion: `install-mod` writes the names table, `a7xnames.lua`, and the install copies it with the six files | six files in `override/` |
+| 2026-11-15 | the commit that renames `A7X` before v0.1.0 ([first-release plan](../plans/2026-11-15-first-release.md#the-name)) | Names only, every check the same: the seven files take the prefix `insp` (`insp.lua`, `inspapi.lua`, `inspname.lua` and the rest), the `e` key calls `I.show()`, the message prefix `[Inspector]`, the lines `INSPECTOR_DATA`, and the library's lines `Inspector …` | the same steps under the names `a7x…`, `A7X.show()`, `[A7X]`, `A7XDATA` and `A7X …` |

@@ -15,7 +15,7 @@ This run checks what part 3 of Phase 5 adds for a player and a mod
 - **The countdown:** the time left starts at the spell's duration, falls as the game runs, and the
   spell leaves the line when its icon leaves the portrait.
 - **Every creature:** a creature outside the party shows its spells too.
-- **The record:** each `A7XDATA` line carries the same spells as `effects`, and `deno task verify`
+- **The record:** each `INSPECTOR_DATA` line carries the same spells as `effects`, and `deno task verify`
   checks each name against the game files and each time against the spell file.
 
 The [Effect duration](durations.md) test proved the clock, the rate and removal through a probe. This
@@ -52,8 +52,8 @@ run checks the same countdown as the player sees it, and the names, which come f
    deno task play
    ```
 
-   Expect `A7X loaded`, `A7X build 2.7.3 arm64 matched, 14 sites checked` and
-   `A7X registered A7X_native`.
+   Expect `Inspector loaded`, `Inspector build 2.7.3 arm64 matched, 14 sites checked` and
+   `Inspector registered Inspector_native`.
 3. **Load the save** (1 minute).
 4. **Cast Bless** (1 minute) on the party, with the game running. The moment its icon appears on a
    portrait, press `e` over that portrait. The message window shows the member's stats, then
@@ -66,7 +66,7 @@ run checks the same countdown as the player sees it, and the names, which come f
    outside the party, and press `e` over the creature while the spell lasts. Note the spell and what
    the `Spells` line shows.
 7. **The party in the console** (1 minute). Open the console with Ctrl+Space, type
-   `A7X.show("party")` and press Enter: three lines per member and a summary line. Close the console.
+   `I.show("party")` and press Enter: three lines per member and a summary line. Close the console.
 8. **Quit from the game's own menu.**
 9. **Uninstall** (1 minute):
 
@@ -101,7 +101,7 @@ showed. The run passes when:
 | Check | Where | Pass when |
 | --- | --- | --- |
 | The install | step 1 | thousands of names found, `install-mod: installed` |
-| Build and registration | `A7X build 2.7.3 arm64 matched, 14 sites checked` and `A7X registered A7X_native` | both present, no `A7X disabled` |
+| Build and registration | `Inspector build 2.7.3 arm64 matched, 14 sites checked` and `Inspector registered Inspector_native` | both present, no `Inspector disabled` |
 | Bless by name | step 4 | `Spells` names `Bless`, with 30 to 36 seconds left |
 | The countdown | step 5 | each press shows less time; the press after the icon goes lists no Bless, and the press before it showed 10 seconds or less |
 | Outside the party | step 6 | the creature's `Spells` line names the spell cast on it, with time left |
@@ -121,3 +121,12 @@ that records it.
 | Date | Commit | Result | Delivery note |
 | --- | --- | --- | --- |
 | 2026-11-15 | `3dcf372`, local changes (the names table, the record's `effects`, the spells line) | Passed (`session-20261115-185434`): the install found the names and installed; on Boom Boom, Bless read 33, 27, 21, 16, 11, 8, 5 and 1 seconds across eight presses, and the press after its icon went listed none; THAC0 read 11 while Bless lasted and 12 without it; Protection From Evil counted down from 2m 42s; the Hobgoblin Archer showed `Command 6s`, which the party cast on it, and `Bless 35s`, the Hobgoblin Captain `Bless 35s`, both from the hobgoblins' own priest, as the tester confirmed; `A7X.show("party")` gave six members, each with the bard song's `FJBARDB`; `verify` passed 22 `A7XDATA` lines and 4 sources, every name as the game files give it and every time within its spell file; no `LUA ERROR`; the uninstall left `override/` empty | [spells in the output](../notes/2026-11-15-spell-output.md) |
+
+### Changes to this test
+
+Each change to the steps or pass criteria after the first run, so a reader can match a Runs row to
+the version of the test that judged it.
+
+| Date | Commit | What changed | Criteria for runs before it |
+| --- | --- | --- | --- |
+| 2026-11-15 | the commit that renames `A7X` before v0.1.0 ([first-release plan](../plans/2026-11-15-first-release.md#the-name)) | Names only, every check the same: step 7 types `I.show("party")`, the lines are `INSPECTOR_DATA`, the library's lines `Inspector …`, and the installed files take the prefix `insp` | `A7X.show("party")`, `A7XDATA`, `A7X …` and `a7x…` |

@@ -5,6 +5,7 @@ apply to all work in the repo.
 
 ## Overview
 
+- [Installing](install.md): the player's guide to v0.1.0, from requirements to uninstalling.
 - [Requirements](requirements.md): what to install first, and how `deno task doctor` checks it.
 - [Architecture](architecture.md): diagrams of the roadmap, code organization, runtime layers, data
   flow (every JSON line, from the game to its schema and its readers), boot sequence, inspect workflow
@@ -25,7 +26,7 @@ time; this table explains them.
 | Term | Meaning |
 | --- | --- |
 | anchor | A short piece of the game's code whose instructions encode the address of a global the library reads. Hashing the anchor checks the global's offset, which the library cannot hash directly because it is data (`native/builds.h`) |
-| bridge | The native library's read-only interface to the game's Lua: the `A7X_native` table of read functions it registers (Phase 2, ADR-0002, ADR-0005) |
+| bridge | The native library's read-only interface to the game's Lua: the `Inspector_native` table of read functions it registers (Phase 2, ADR-0002, ADR-0005) |
 | gate | A pass/fail check that must pass before the next phase may build on a result. The roadmap's diamonds are gates; each runs as a [manual test](manual-tests/README.md), and its result goes in that test's Runs table and a delivery note. Examples: the hook gate (does the hook run on the main thread with Lua idle?) and the party check (do the walker's values equal the engine's for every party member?) |
 | hook | The one place the library gets to run code inside the game after start-up: its replacement for the game's `glClear` (ADR-0005) |
 | marker branch | A branch named `initial/NN-<summary>`, pushed when a step or phase of the foundation plan finishes, so each stage stays available to check out later |
@@ -33,7 +34,7 @@ time; this table explains them.
 | site | A range of the game's code the library depends on, recorded in `native/builds.h` with its offset, size and hash, and checked at load and by `deno task test` |
 | slice | One architecture's part of a universal binary; the game ships x86_64 and arm64 slices, and the inspector supports only the arm64 one |
 | stats block | One of a creature's two copies of its computed stats, `m_derivedStats` and `m_tempStats`; the engine says which one is current |
-| walker | The Lua code that follows engine structures from `A7X_native.Root()` to each creature and reads its fields by name (Phase 3) |
+| walker | The Lua code that follows engine structures from `Inspector_native.Root()` to each creature and reads its fields by name (Phase 3) |
 
 ## Decisions
 
@@ -74,7 +75,8 @@ Manual tests run at the game, step by step, each with its record of runs:
   [2026-11-14 Phase 4, the hotkey and the install](plans/2026-11-14-hotkey-install.md),
   [2026-11-15 Phase 5, part 1: finding and proving the effect list](plans/2026-11-15-effect-list.md),
   [2026-11-15 Phase 5, part 2: time remaining](plans/2026-11-15-time-remaining.md),
-  [2026-11-15 Phase 5, part 3: spells in the output](plans/2026-11-15-spell-output.md).
+  [2026-11-15 Phase 5, part 3: spells in the output](plans/2026-11-15-spell-output.md),
+  [2026-11-15 the first release, v0.1.0](plans/2026-11-15-first-release.md).
 - Delivery notes, named `YYYY-MM-DD-<topic>.md` so they sort by time:
   [2026-11-01 Step 0, setup](notes/2026-11-01-setup.md),
   [2026-11-01 Step 1, requirements](notes/2026-11-01-requirements.md),
@@ -92,7 +94,8 @@ Manual tests run at the game, step by step, each with its record of runs:
   [2026-11-14 Phase 4, the hotkey and the install](notes/2026-11-14-hotkey-install.md),
   [2026-11-15 Phase 5, part 1, the effect list](notes/2026-11-15-effect-list.md),
   [2026-11-15 Phase 5, part 2, time remaining](notes/2026-11-15-time-remaining.md),
-  [2026-11-15 Phase 5, part 3, spells in the output](notes/2026-11-15-spell-output.md).
+  [2026-11-15 Phase 5, part 3, spells in the output](notes/2026-11-15-spell-output.md),
+  [2026-11-16 the first release, v0.1.0](notes/2026-11-16-first-release.md).
 - Learnings, named `YYYY-MM-DD-<topic>.md` so they sort by time: a lesson from the work, with code
   before and after and why the change is better:
   [2026-11-14 reading data back: the format as data, not as statements](learnings/2026-11-14-declarative-line-parsing.md),

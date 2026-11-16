@@ -11,9 +11,12 @@ import {
 const engine = (s: string) =>
   `2026-11-14 19:01:32.541 BaldursGateIIEnhancedEdition[1:2] INFO: LUA: ${s}`;
 
-// What test/lua/a7xchk.lua writes for the fake game: member A compared, member B not populated.
-const GOLDEN = (await Deno.readTextFile("test/fixtures/a7xcheck.txt")).split("\n").filter((l) => l);
-const LOG = ["A7X registered A7X_native at 0.5s, glClear call 1", ...GOLDEN.map(engine)].join("\n");
+// What test/lua/inspchk.lua writes for the fake game: member A compared, member B not populated.
+const GOLDEN = (await Deno.readTextFile("test/fixtures/inspector_check.txt")).split("\n").filter((
+  l,
+) => l);
+const LOG = ["Inspector registered Inspector_native at 0.5s, glClear call 1", ...GOLDEN.map(engine)]
+  .join("\n");
 const A = 329681, B = 395218;
 
 Deno.test("the party check's lines fold into a run of members, fields and evidence", () => {
@@ -47,26 +50,33 @@ Deno.test("a skipped member, a difference or a missing member fails the run", ()
 
 Deno.test("a value the walker could not read is nil in the report", () => {
   const unread = engine(
-    'A7XCHECK\t{"field":"name","id":5,"kind":"field","ok":false,"run":1,"walker":"X"}',
+    'INSPECTOR_CHECK\t{"field":"name","id":5,"kind":"field","ok":false,"run":1,"walker":"X"}',
   );
   const run =
-    parseChecks([engine('A7XCHECK\t{"kind":"party","run":1,"size":1}'), unread].join("\n"))
+    parseChecks([engine('INSPECTOR_CHECK\t{"kind":"party","run":1,"size":1}'), unread].join("\n"))
       .runs[0];
   deepStrictEqual(problems(run), ["5 name: walker X, engine nil"]);
 });
 
 Deno.test("an error line, or no lines, fails; the latest run is the one judged", () => {
-  const error = parseChecks(engine('A7XCHECK\t{"kind":"error","run":1,"why":"no game loaded"}'));
+  const error = parseChecks(
+    engine('INSPECTOR_CHECK\t{"kind":"error","run":1,"why":"no game loaded"}'),
+  );
   deepStrictEqual(problems(error.runs[0]), ["the check could not run: no game loaded"]);
-  deepStrictEqual(problems(undefined), ["no A7XCHECK lines in the log"]);
-  const two = parseChecks(LOG + "\n" + engine('A7XCHECK\t{"kind":"party","run":2,"size":0}'));
+  deepStrictEqual(problems(undefined), ["no INSPECTOR_CHECK lines in the log"]);
+  const two = parseChecks(
+    LOG + "\n" + engine('INSPECTOR_CHECK\t{"kind":"party","run":2,"size":0}'),
+  );
   deepStrictEqual(two.runs.map((r) => r.run), [1, 2]);
   deepStrictEqual(problems(two.runs.at(-1)), []);
 });
 
 Deno.test("a line that does not match its schema is a problem naming the log line", () => {
   const { runs, problems: bad } = parseChecks(
-    [engine('A7XCHECK\t{"kind":"party","run":1,"size":2,"extra":1}'), engine("A7XCHECK\t{oops}")]
+    [
+      engine('INSPECTOR_CHECK\t{"kind":"party","run":1,"size":2,"extra":1}'),
+      engine("INSPECTOR_CHECK\t{oops}"),
+    ]
       .join("\n"),
   );
   deepStrictEqual(runs, []);

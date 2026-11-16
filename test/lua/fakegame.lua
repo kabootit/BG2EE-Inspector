@@ -1,5 +1,5 @@
 -- fakegame.lua: a fake game for the Lua tests, as bytes in a Lua table, read through a fake
--- A7X_native the way the real one reads game memory. world() builds a party of two: A on the derived
+-- Inspector_native the way the real one reads game memory. world() builds a party of two: A on the derived
 -- stats block with a custom name and a weapon, B on the temp block with a strref name, no weapon and
 -- improved invisibility, both in the area on screen (AR0602), with nothing under the pointer (id -1
 -- at the area's picked field). crowd() adds, past the first 256
@@ -7,8 +7,8 @@
 -- a sprite. Tests change single fields with field() to make the hostile cases, and make a block read
 -- fail by adding its address to F.fail_blocks.
 
-dofile("mod/inspector/lib/a7xoff.lua")
-local O = A7XOFF
+dofile("mod/inspector/lib/inspoff.lua")
+local O = INSPECTOR_OFF
 local F = {}
 
 -- Memory: address -> byte. Unwritten bytes are unmapped, so a read touching one fails.
@@ -184,7 +184,7 @@ local function crowd()
   field(E, O.object.area, AREA1)
 end
 
-A7X_native = {
+Inspector_native = {
   Version = function() return 2, "2.7.3 arm64" end,
   Root = function() return ROOT end,
   Objects = function() return ARRAY end,

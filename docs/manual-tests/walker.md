@@ -14,10 +14,10 @@ compares the EA, which `characters[id]` does not hold, with 2, a PC, which every
 The project shows no enemy stats until every value matches (the [gate](../README.md#terms) for
 Phase 3). What the walker reads and where each offset comes from: [docs/re-notes.md](../re-notes.md#engine-structures).
 
-The tester copies the walker's Lua (`a7xoff.lua`, `a7xwalk.lua`), the JSON writer (`a7xjson.lua`)
-and the check script (`a7xchk.lua`) into the game's `override/` folder for the session; the WeiDU
+The tester copies the walker's Lua (`inspoff.lua`, `inspwalk.lua`), the JSON writer (`inspjson.lua`)
+and the check script (`inspchk.lua`) into the game's `override/` folder for the session; the WeiDU
 component that installs them for good comes in Phase 4. In the game, the tester types only
-`Infinity_DoFile("a7xchk")`, which loads and runs them. Results go to the session log; the game shows
+`Infinity_DoFile("inspchk")`, which loads and runs them. Results go to the session log; the game shows
 only a one-line summary when the check finishes.
 
 ## Before you start
@@ -31,8 +31,8 @@ only a one-line summary when the check finishes.
   ```sh
   G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
   mkdir -p "$G/override"
-  cp mod/inspector/lib/a7xoff.lua mod/inspector/lib/a7xwalk.lua mod/inspector/lib/a7xjson.lua \
-    test/lua/a7xchk.lua "$G/override/"
+  cp mod/inspector/lib/inspoff.lua mod/inspector/lib/inspwalk.lua mod/inspector/lib/inspjson.lua \
+    test/lua/inspchk.lua "$G/override/"
   ```
 
   Step 6 removes them again at the end.
@@ -49,8 +49,8 @@ only a one-line summary when the check finishes.
    deno task play
    ```
 
-   `play` shows the library's lines as they arrive: expect `A7X loaded`, `A7X build 2.7.3 arm64
-   matched, 14 sites checked` and `A7X registered A7X_native`.
+   `play` shows the library's lines as they arrive: expect `Inspector loaded`, `Inspector build 2.7.3 arm64
+   matched, 14 sites checked` and `Inspector registered Inspector_native`.
 2. **Load the save** (1 minute).
 3. **Open the record screen for every party member** (2 minutes). Open the character record screen,
    then click each portrait in turn, so the engine fills `characters[id]` for each one. Close the
@@ -59,20 +59,20 @@ only a one-line summary when the check finishes.
    and close the console with Ctrl+Space:
 
    ```lua
-   Infinity_DoFile("a7xchk")
+   Infinity_DoFile("inspchk")
    ```
 
    The message window, above the console, shows one line when the check finishes, such as
-   `A7X party check 1: 6 members, 120 fields equal, 0 differ, 0 skipped (details in the session log)`,
-   or `A7X party check 1 could not run: <reason>`. No line means the script did not load: check that
+   `Inspector party check 1: 6 members, 120 fields equal, 0 differ, 0 skipped (details in the session log)`,
+   or `Inspector party check 1 could not run: <reason>`. No line means the script did not load: check that
    the four files are in `override/`.
 5. **Quit from the game's own menu**, not with Ctrl+C. `play` prints its summary and exits.
 6. **Remove the four files**, and the `override/` folder if it is now empty:
 
    ```sh
    G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
-   rm "$G/override/a7xoff.lua" "$G/override/a7xwalk.lua" "$G/override/a7xjson.lua" \
-     "$G/override/a7xchk.lua"
+   rm "$G/override/inspoff.lua" "$G/override/inspwalk.lua" "$G/override/inspjson.lua" \
+     "$G/override/inspchk.lua"
    rmdir "$G/override"
    ```
 
@@ -101,7 +101,7 @@ Say "done" when step 7 has printed its result. The run passes when:
 
 | Check | Where | Pass when |
 | --- | --- | --- |
-| Build and registration | `A7X build 2.7.3 arm64 matched, 14 sites checked` and `A7X registered A7X_native` | both present, no `A7X disabled` |
+| Build and registration | `Inspector build 2.7.3 arm64 matched, 14 sites checked` and `Inspector registered Inspector_native` | both present, no `Inspector disabled` |
 | Every party member compared, every field equal | `deno task verify` | `verify: passed, <n> members, <fields> fields, all equal`, with `<n>` the party size |
 | The live EA | the `ea` field in `deno task verify`, and its list of offsets that read 2 in every member's sprite dump | `ea` is `ok` (2, a PC) for every party member, and `0x38` is in the list |
 | No Lua errors | the session log | no `LUA ERROR` line |
@@ -136,3 +136,4 @@ the version of the test that judged it.
 | 2026-11-13 | the same commit, before the fourth run | Step 4: the check shows a one-line summary in the message window when it finishes | no acknowledgement in the game; the result was visible only in the session log |
 | 2026-11-14 | the commit that writes the checks' lines as JSON | Before you start and the last steps: the tester copies and removes `a7xjson.lua`, the JSON writer, with the others; the script writes its lines as JSON defined in `src/model/schemas.ts`, which `deno task verify` checks, and its evidence lines (`A7XWALK`, `A7XDUMP`) became `walk` and `dump` lines of `A7XCHECK` | three files copied, and lines written as text |
 | 2026-11-14 | the same commit, after the first run with JSON lines | The check writes the sprite dump as four `dump` lines of 512 bytes, each with its offset: the game's log cuts a message after 4084 characters, which cut every one-line dump; `deno task verify` reports a line cut short instead of skipping it | the dump in one line, which the log cut, and which `verify` then skipped without a word, so the list of offsets reading 2 was missing |
+| 2026-11-15 | the commit that renames `A7X` before v0.1.0 ([first-release plan](../plans/2026-11-15-first-release.md#the-name)) | Names only, every check the same: the files take the prefix `insp` (`inspoff.lua`, `inspwalk.lua`, `inspjson.lua`, `inspchk.lua`, `Infinity_DoFile("inspchk")`), the lines `INSPECTOR_CHECK`, the summary and the library's lines `Inspector …`, and `Inspector_native` | the same steps under the names `a7x…`, `A7XCHECK`, `A7X …` and `A7X_native` |

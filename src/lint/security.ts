@@ -62,8 +62,8 @@ export const FORBIDDEN_NATIVE = [
 export const ALLOWED_INTERPOSE = ["glClear"];
 
 /**
- * The only engine functions the library may call, by their `enum a7x_fn` names in builds.h
- * (ADR-0005). They are the game's own Lua 5.2 API: enough to register the A7X_native table under
+ * The only engine functions the library may call, by their `enum inspector_fn` names in builds.h
+ * (ADR-0005). They are the game's own Lua 5.2 API: enough to register the Inspector_native table under
  * pcall and to read arguments and push results. None of them reads or writes engine state beyond the
  * Lua stack and that one global, so adding one is a design change for an ADR.
  */
@@ -222,8 +222,8 @@ export function checkBindAddress(file: string, text: string): Finding[] {
 
 /**
  * The dylib has no write path and no mprotect at all, interposes only allowlisted functions (one
- * __interpose section, through the A7X_INTERPOSE macro), and calls only allowlisted engine
- * functions, named through builds.h's A7X_FN_ enum (ADR-0005).
+ * __interpose section, through the INSPECTOR_INTERPOSE macro), and calls only allowlisted engine
+ * functions, named through builds.h's INSPECTOR_FN_ enum (ADR-0005).
  */
 export function checkNative(sources: Array<{ file: string; text: string }>): Finding[] {
   const out: Finding[] = [];
@@ -247,11 +247,11 @@ export function checkNative(sources: Array<{ file: string; text: string }>): Fin
           out.push({
             check: "native-interpose",
             file,
-            detail: `${at} declares __interpose outside the A7X_INTERPOSE macro`,
+            detail: `${at} declares __interpose outside the INSPECTOR_INTERPOSE macro`,
           });
         }
       }
-      const use = line.match(/^\s*A7X_INTERPOSE\s*\(\s*\w+\s*,\s*(\w+)\s*\)/);
+      const use = line.match(/^\s*INSPECTOR_INTERPOSE\s*\(\s*\w+\s*,\s*(\w+)\s*\)/);
       if (use && !ALLOWED_INTERPOSE.includes(use[1])) {
         out.push({
           check: "native-interpose",
@@ -259,7 +259,7 @@ export function checkNative(sources: Array<{ file: string; text: string }>): Fin
           detail: `${at} interposes ${use[1]}, which is not in ALLOWED_INTERPOSE`,
         });
       }
-      for (const [, fn] of line.matchAll(/\bA7X_FN_(\w+)/g)) {
+      for (const [, fn] of line.matchAll(/\bINSPECTOR_FN_(\w+)/g)) {
         if (fn !== "COUNT" && !ALLOWED_ENGINE_CALLS.includes(fn)) {
           out.push({
             check: "native-engine-call",
@@ -275,7 +275,7 @@ export function checkNative(sources: Array<{ file: string; text: string }>): Fin
       check: "native-interpose",
       file: "native/",
       detail:
-        `${interposeSections} __interpose sections; only the A7X_INTERPOSE macro may declare one`,
+        `${interposeSections} __interpose sections; only the INSPECTOR_INTERPOSE macro may declare one`,
     });
   }
   return out;

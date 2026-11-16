@@ -22,9 +22,9 @@ in [the plan](../plans/2026-11-13-spawn-harness.md#analysis-done-in-plan-mode-re
 **Spawning changes the game.** Load a save you do not mind losing the state of, and quit without
 saving: the four creatures would otherwise stay in that save.
 
-The tester copies the walker's Lua (`a7xoff.lua`, `a7xwalk.lua`), the JSON writer (`a7xjson.lua`)
-and the spawn script (`a7xspawn.lua`) into the game's `override/` folder for the session. In the
-game, the tester types only `Infinity_DoFile("a7xspawn")`. Results go to the session log; the game shows a
+The tester copies the walker's Lua (`inspoff.lua`, `inspwalk.lua`), the JSON writer (`inspjson.lua`)
+and the spawn script (`inspspwn.lua`) into the game's `override/` folder for the session. In the
+game, the tester types only `Infinity_DoFile("inspspwn")`. Results go to the session log; the game shows a
 one-line summary each time the script runs.
 
 ## Before you start
@@ -38,8 +38,8 @@ one-line summary each time the script runs.
   ```sh
   G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
   mkdir -p "$G/override"
-  cp mod/inspector/lib/a7xoff.lua mod/inspector/lib/a7xwalk.lua mod/inspector/lib/a7xjson.lua \
-    test/lua/a7xspawn.lua "$G/override/"
+  cp mod/inspector/lib/inspoff.lua mod/inspector/lib/inspwalk.lua mod/inspector/lib/inspjson.lua \
+    test/lua/inspspwn.lua "$G/override/"
   ```
 
   Step 7 removes them again at the end.
@@ -56,8 +56,8 @@ one-line summary each time the script runs.
    deno task play
    ```
 
-   `play` shows the library's lines as they arrive: expect `A7X loaded`, `A7X build 2.7.3 arm64
-   matched, 14 sites checked` and `A7X registered A7X_native`.
+   `play` shows the library's lines as they arrive: expect `Inspector loaded`, `Inspector build 2.7.3 arm64
+   matched, 14 sites checked` and `Inspector registered Inspector_native`.
 2. **Load the save** (1 minute), and note the difficulty setting from the game's options; the Runs
    row records it.
 3. **Spawn and read** (2 minutes). Pause the game with the space bar. Move the pointer over open
@@ -65,15 +65,15 @@ one-line summary each time the script runs.
    close the console with Ctrl+Space:
 
    ```lua
-   Infinity_DoFile("a7xspawn")
+   Infinity_DoFile("inspspwn")
    ```
 
-   The message window shows one line, such as `A7X spawn check 1: spawned 4, found 4 of 4 (details in
-   the session log)`, or what is missing, or `A7X spawn check 1 could not run: <reason>`. Note where
+   The message window shows one line, such as `Inspector spawn check 1: spawned 4, found 4 of 4 (details in
+   the session log)`, or what is missing, or `Inspector spawn check 1 could not run: <reason>`. Note where
    the creatures appeared: at the pointer, beside the party, or elsewhere. No line means the script
    did not load: check that the four files are in `override/`.
 4. **Let the game run, then read again** (2 minutes). Unpause for about three seconds, pause again,
-   and run the same line. The summary says `A7X spawn check 2: spawned earlier, found 4 of 4`, or
+   and run the same line. The summary says `Inspector spawn check 2: spawned earlier, found 4 of 4`, or
    fewer if one has left the area. `deno task verify` judges the first reading, because a `.cre`
    describes a creature as the engine spawns it; this one shows what the game changes once it runs,
    such as a fight.
@@ -85,8 +85,8 @@ one-line summary each time the script runs.
 
    ```sh
    G="$HOME/Library/Application Support/Steam/steamapps/common/Baldur's Gate II Enhanced Edition"
-   rm "$G/override/a7xoff.lua" "$G/override/a7xwalk.lua" "$G/override/a7xjson.lua" \
-     "$G/override/a7xspawn.lua"
+   rm "$G/override/inspoff.lua" "$G/override/inspwalk.lua" "$G/override/inspjson.lua" \
+     "$G/override/inspspwn.lua"
    rmdir "$G/override"
    ```
 
@@ -121,7 +121,7 @@ appeared. The run passes when:
 
 | Check | Where | Pass when |
 | --- | --- | --- |
-| Build and registration | `A7X build 2.7.3 arm64 matched, 14 sites checked` and `A7X registered A7X_native` | both present, no `A7X disabled` |
+| Build and registration | `Inspector build 2.7.3 arm64 matched, 14 sites checked` and `Inspector registered Inspector_native` | both present, no `Inspector disabled` |
 | Every fixture spawned and found | `deno task verify` | four `spawn <resref> ok` lines, and each fixture in the run that spawned |
 | Every value equal to the file | `deno task verify` | `verify: spawn check passed, <n> creatures, every field equal to its .cre` |
 | No Lua errors | the session log | no `LUA ERROR` line |
@@ -151,3 +151,4 @@ the version of the test that judged it.
 | 2026-11-13 | the commit that adds the spawn check, after the first run | The second fixture is `DRBOD` instead of `MUMFIG01`, which died or vanished between the two readings; `verify` compares AC as the file's plus the `DEXMOD.2DA` Dexterity adjustment | `MUMFIG01` as a fixture, and AC compared with the file's AC alone |
 | 2026-11-13 | the same commit, after the second run | `verify` judges the reading taken straight after spawning, not the second, and prints later readings with what changed since; a fight with the spawned creatures is no longer a reason to stop | the second reading judged, which the tester's attack had changed (three creatures at 0 HP, one turned hostile) |
 | 2026-11-14 | the commit that writes the checks' lines as JSON | Before you start and the last steps: the tester copies and removes `a7xjson.lua`, the JSON writer, with the others; the script writes its lines as JSON defined in `src/model/schemas.ts`, which `deno task verify` checks | three files copied, and lines written as text |
+| 2026-11-15 | the commit that renames `A7X` before v0.1.0 ([first-release plan](../plans/2026-11-15-first-release.md#the-name)) | Names only, every check the same: the files take the prefix `insp` (`inspoff.lua`, `inspwalk.lua`, `inspjson.lua`, `inspspwn.lua`, `Infinity_DoFile("inspspwn")`), the lines `INSPECTOR_SPAWN`, the summary and the library's lines `Inspector …`, and `Inspector_native` | the same steps under the names `a7x…`, `A7XSPAWN`, `A7X …` and `A7X_native` |
