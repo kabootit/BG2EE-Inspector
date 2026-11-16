@@ -35,8 +35,10 @@ covers it.
   third part, `examples/consumer-mod/`, moved to after Phase 5 (below).
 - **Phase 5, in three parts:** finding and proving the effect list (done on 2026-11-15,
   [delivery note](docs/notes/2026-11-15-effect-list.md)), then time remaining and its duration gate
-  (done on 2026-11-15, [delivery note](docs/notes/2026-11-15-time-remaining.md)), then the output: spell names, `A7X.show` and
-  the record's `effects`.
+  (done on 2026-11-15, [delivery note](docs/notes/2026-11-15-time-remaining.md)), then the output:
+  spell names, `A7X.show` and the record's `effects` (done on 2026-11-15,
+  [delivery note](docs/notes/2026-11-15-spell-output.md)). Left over: a name for the bard song's
+  `FJBARDB`, which no spell file gives.
 - **`examples/consumer-mod/`, after Phase 5.** Moved on 2026-11-15: it needs its own design, not
   the 30-line example the foundation plan assumed. What research found so far, to start from:
   - **Lua loads without a `ui.menu` patch.** "The v2.2 update adds native support for M_*.lua files.

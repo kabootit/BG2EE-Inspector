@@ -214,7 +214,7 @@ sequenceDiagram
     A-->>G: log A7X disabled, glClear only passes through
   end
   G->>G: main, create the Lua state, register Infinity_* functions
-  G->>L: load ui.menu: after combatLog, Infinity_DoFile a7x, from the WeiDU patch
+  G->>L: load ui.menu: after combatLog, Infinity_DoFile a7xnames, then a7x, from the WeiDU patch
   Note over L: A7X_native may not exist yet: status() is no_native
   G->>A: glClear, once a frame on the main thread
   A->>A: Lua state set and idle? if not, wait for the next frame

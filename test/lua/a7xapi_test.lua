@@ -1,7 +1,7 @@
 -- The public API (mod/inspector/lib/a7xapi.lua, loaded through a7x.lua) on the fake game with its
 -- crowd: the native table taken private, status in each state, get, list, hovered, portrait and show,
--- the A7XDATA lines against the golden file shared with the Deno tests, fresh tables, and no raise on
--- failure.
+-- the records' active spells, the A7XDATA lines against the golden file shared with the Deno tests,
+-- fresh tables, and no raise on failure.
 
 local T = dofile("test/lua/testlib.lua")
 local F = dofile("test/lua/fakegame.lua")
@@ -13,13 +13,25 @@ function Infinity_DoFile(name) dofile("mod/inspector/lib/" .. name .. ".lua") en
 function Infinity_Log(s) logged[#logged + 1] = s end
 function Infinity_DisplayString(s) said[#said + 1] = s end
 
--- A fresh load, as at the start of a session: the library has registered its table.
+-- A's timed effects: Bless, 36 seconds left, with its 2-second visual effect a tick past its expiry
+-- and still listed; 100 ticks of a source the names table lacks; a permanent ability.
+local A_EFFECTS = {
+  { opcode = 142, p2 = 17, timing = 4096, duration = F.TIME + 540, source = "SPPR101" },
+  { opcode = 215, timing = 4096, duration = F.TIME - 1, source = "SPPR101" },
+  { opcode = 142, p2 = 37, timing = 4096, duration = F.TIME + 100, source = "FJBARDB" },
+  { opcode = 0, timing = 9, source = "SPCL234" },
+}
+
+-- A fresh load, as at the start of a session: the library has registered its table, and ui.menu has
+-- loaded the names table (a7xnames.lua) first.
 local function load()
   said, logged = {}, {}
   A7X, A7X_native = nil, NATIVE
+  A7XNAMES = { SPPR101 = 12089, SPCL234 = 99999 }
   mouseOverPortrait = nil -- ui.menu's, set while the pointer is over a portrait
   F.world()
   F.crowd()
+  F.effects(F.A, "timed", A_EFFECTS)
   dofile("mod/inspector/lib/a7x.lua")
 end
 
@@ -32,6 +44,7 @@ end
 T.test("loading leaves A7X as the only global, and the first call takes the native table", function()
   load()
   T.eq(A7XOFF == nil and A7XWALK == nil and A7XJSON == nil and A7XFMT == nil, true, "modules cleared")
+  T.eq(A7XNAMES, nil, "the names table kept private too")
   T.eq(A7X_native, NATIVE, "not taken before a call")
   T.eq(A7X.status(), "ok", "status")
   T.eq(A7X_native, nil, "taken by the first call")
@@ -91,6 +104,44 @@ T.test("get gives a record of every schema-1 field for a party member and an ene
   T.eq(select(2, A7X.get("x")), "not an id: x", "not a number")
 end)
 
+T.test("a record's effects: each spell once, by name, its latest expiry in game seconds, soonest first", function()
+  load()
+  local a = assert(A7X.get(F.ID_A))
+  T.eq(#a.effects, 2, "Bless and the nameless source; the permanent ability left out")
+  local first, second = a.effects[1], a.effects[2]
+  T.eq(first.resref .. " " .. first.name .. " " .. first.seconds, "FJBARDB FJBARDB 7",
+    "100 ticks rounds up to 7 seconds; no name in the table, so the resref")
+  T.eq(second.resref .. " " .. second.name .. " " .. second.seconds, "SPPR101 Bless 36",
+    "Bless by its icon effect, not its expired visual effect")
+  T.eq(#assert(A7X.get(F.ID_B)).effects, 0, "nothing active: an empty list")
+  T.eq(#assert(A7X.get(F.ID_C)).effects, 0, "an enemy's record has effects too")
+end)
+
+T.test("effects are missing, not empty, when the list or the clock cannot be read", function()
+  load()
+  F.field(F.A, O.sprite.timed_effects, 0x10) -- a node pointing nowhere
+  local a = assert(A7X.get(F.ID_A))
+  T.eq(a.effects, nil, "an unreadable list")
+  T.eq(a.name, "Alarion", "the rest of the record still returns")
+  load()
+  local read = NATIVE.Read
+  NATIVE.Read = function(addr, kind)
+    if addr == F.GAME + O.game.time[1] then return nil end
+    return read(addr, kind)
+  end
+  T.eq(assert(A7X.get(F.ID_A)).effects, nil, "an unreadable clock")
+  NATIVE.Read = read
+end)
+
+T.test("without the names table, a spell shows its resref", function()
+  load()
+  A7X = nil
+  A7XNAMES = nil
+  dofile("mod/inspector/lib/a7x.lua")
+  A7X_native = NATIVE
+  T.eq(assert(A7X.get(F.ID_A)).effects[2].name, "SPPR101", "no a7xnames.lua: Infinity_DoFile(\"a7x\") alone")
+end)
+
 T.test("every call returns fresh tables", function()
   load()
   local first = A7X.get(F.ID_A)
@@ -119,9 +170,11 @@ T.test("show prints each record and logs the golden A7XDATA lines", function()
   for _, l in ipairs(logged) do if l:find("^A7XDATA\t") then data[#data + 1] = l end end
   T.eq(#data, #want, "one A7XDATA line per record")
   for i = 1, #want do T.eq(data[i], want[i], "A7XDATA line " .. i) end
-  T.eq(#said, 7, "two message-window lines per record, then the summary")
-  T.eq(said[5], "[A7X] ^0xff6060ffOgre^-  HP 60/60  AC 0  THAC0 0  MR 0%", "the enemy's first line")
-  T.eq(said[7], "[A7X] all in AR0602: 3 shown, 0 not readable", "the summary")
+  T.eq(#said, 10, "three message-window lines per record, then the summary")
+  T.eq(said[3], "      Spells FJBARDB 7s, Bless 36s", "the party member's spells")
+  T.eq(said[7], "[A7X] ^0xff6060ffOgre^-  HP 60/60  AC 0  THAC0 0  MR 0%", "the enemy's first line")
+  T.eq(said[9], "      Spells none", "the enemy's spells")
+  T.eq(said[10], "[A7X] all in AR0602: 3 shown, 0 not readable", "the summary")
 end)
 
 T.test("every message-window line is in the session log too", function()
@@ -198,13 +251,13 @@ T.test("show with no argument shows the portrait, else the creature, else usage 
   T.eq(logged[#logged]:find('^A7XDATA\t.*"name":"Jaheira"') ~= nil, true, "its A7XDATA line")
   mouseOverPortrait = -1
   A7X.show()
-  T.eq(said[3]:find("Ogre", 1, true) ~= nil, true, "then the creature: " .. said[3])
+  T.eq(said[4]:find("Ogre", 1, true) ~= nil, true, "then the creature: " .. said[4])
   F.field(F.AREA1, O.area.picked, F.ID_E)
   A7X.show()
-  T.eq(said[5], "[A7X] not a creature", "what is there cannot be shown")
+  T.eq(said[7], "[A7X] not a creature", "what is there cannot be shown")
   F.field(F.AREA1, O.area.picked, -1)
   A7X.show()
-  T.eq(said[6]:match("^%[A7X%] point at") ~= nil, true, "usage over empty ground")
+  T.eq(said[8]:match("^%[A7X%] point at") ~= nil, true, "usage over empty ground")
 end)
 
 T.test("a creature whose fields cannot be read gives a reason, never a partial record", function()

@@ -61,7 +61,7 @@ The tasks available so far; more arrive with each step of the plan:
 | `deno task setup-dev` | download the Lua 5.2.4 source into `vendor/` (contributors only) |
 | `deno task build` | build `build/a7x.dylib` (arm64, ad-hoc signed) from `native/` |
 | `deno task play` | launch the game with the library, log redacted output to `logs/`; `--no-inject` for a control run. Only when asked |
-| `deno task install-mod` | install the WeiDU component (`mod/inspector/`) into the game with the pinned WeiDU, refusing any other binary; `--uninstall` restores `ui.menu`. Only when asked |
+| `deno task install-mod` | install the WeiDU component (`mod/inspector/`) into the game with the pinned WeiDU, refusing any other binary, with the names table built from the game's files; `--uninstall` restores `ui.menu`. Only when asked |
 | `deno task re <command>` | reverse-engineering tools on the installed game's arm64 slice; `deno task re` alone lists them, as `src/re/commands.ts` and the table in [docs/re-notes.md](docs/re-notes.md) do |
 | `deno task lint` | fmt check, lint, type-check, the Deno, native and Lua tests, `lint:docs`, `lint:security`. Run before every commit |
 | `deno task lint:docs` | the mechanical docs rules |
@@ -79,7 +79,8 @@ The tasks available so far; more arrive with each step of the plan:
 native/          the read-only dylib (C) and builds.h, the per-build address table
 mod/inspector/   the in-game Lua, loaded by lib/a7x.lua: a7xoff.lua (offsets by name), a7xwalk.lua (the
                  walker), a7xjson.lua (JSON writer), a7xfmt.lua (formatter), a7xapi.lua (the public A7X);
-                 the WeiDU component from Phase 4
+                 the WeiDU component from Phase 4, which also installs a7xnames.lua, the names table
+                 install-mod writes from the game's files
 src/             Deno, grouped by concern; no loose files (test/structure_test.ts)
   tasks/         one entry point per deno task: `await runTask(main)`; the only code that exits
   shared/        deno_version.ts, task.ts (the runner), repo_files.ts, config.ts, sha256.ts
@@ -89,7 +90,8 @@ src/             Deno, grouped by concern; no loose files (test/structure_test.t
                  decoding, cross-references, stat tables), objdump.ts, builds.ts (builds.h against the game)
   build/         dylib.ts (build and check the library, shared by build and doctor), lua.ts (the test interpreter)
   game/          capture.ts, launch.ts, session.ts (the play launcher)
-  gamefiles/     iebinary.ts (KEY, BIFF, CRE readers) and resources.ts (override/ first, then the archives)
+  gamefiles/     iebinary.ts (KEY, BIFF, CRE readers), resources.ts (override/ first, then the archives),
+                 names.ts (spell and item names, and the names table for the game)
   model/         schemas.ts: every data shape, one Zod schema each (the record, every check's lines),
                  the types inferred from them, and parseLines; the one place to read a data shape
   verify/        checks.ts (the party check), list.ts (the creature list), spawn.ts (the spawn check)

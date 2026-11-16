@@ -7,17 +7,26 @@
  * .cre file, read from the installed game, and what later runs saw change. The effect probe
  * (src/verify/effects.ts): its latest run, every effect's fields where the effect layout puts them.
  * The Effect duration test (src/verify/durations.ts): the probe's last three runs, against the game
- * clock and the spell files, when the session has three. The A7XDATA records A7X.show writes: every one a schema-1 record. Exits non-zero unless the log
- * holds at least one check and every run judged passed.
+ * clock and the spell files, when the session has three. The A7XDATA records A7X.show writes: every
+ * one a schema-1 record, and their active spells against the game files (src/verify/spells.ts).
+ * Exits non-zero unless the log holds at least one check and every run judged passed.
  */
 import {
   type CheckRun,
+  type CreatureRecord,
   type EffectRun,
   type ListRun,
   parseLines,
   RecordSchema,
   type SpawnRun,
 } from "../model/schemas.ts";
+import {
+  longestSeconds,
+  type SpellFacts,
+  spellProblems,
+  spellSources,
+  spellSummary,
+} from "../verify/spells.ts";
 import { memberDump, offsetsHolding, parseChecks, problems } from "../verify/checks.ts";
 import {
   durationProblems,
@@ -40,10 +49,10 @@ import {
   openGameFiles,
   openStringTable,
   readCreature,
-  readName,
   readResource,
   readSpellEffects,
 } from "../gamefiles/resources.ts";
+import { nameRef } from "../gamefiles/names.ts";
 import { GAME_DIR } from "../shared/config.ts";
 import { runTask } from "../shared/task.ts";
 
@@ -202,9 +211,7 @@ async function judgeSpawn(runs: SpawnRun[], path: string): Promise<boolean> {
 
 /**
  * The name the game shows for each source of a run's effects, from the installed game's spell and
- * item files and dialog.tlk. A helper spell often has none (SPCL920A, the effects of SPCL920,
- * Enhanced Bard Song), so a source without a name tries the resref without its last character,
- * shown as a guess. Also the text of a strref, for the icons the record screen lists. Without the
+ * item files and dialog.tlk, a parent spell's shown as a guess (names.ts). Also the text of a strref, for the icons the record screen lists. Without the
  * game files every name and text is empty.
  */
 async function sourceNames(
@@ -218,9 +225,9 @@ async function sourceNames(
     runs.flatMap((r) => r.members.flatMap((m) => m.effects.map((e) => e.source ?? ""))),
   );
   for (const source of [...sources].filter((s) => s !== "")) {
-    const own = await readName(files, strings, source);
-    const parent = own ?? await readName(files, strings, source.slice(0, -1));
-    names.set(source, own ?? (parent ? `part of ${parent}?` : "(no name)"));
+    const ref = await nameRef(files, strings, source);
+    const name = ref && strings.get(ref.strref);
+    names.set(source, name ? (ref!.guess ? `part of ${name}?` : name) : "(no name)");
   }
   return {
     nameOf: (resref: string): string => names.get(resref) ?? "",
@@ -300,6 +307,64 @@ async function judgeDurations(runs: EffectRun[]): Promise<boolean> {
   return false;
 }
 
+/**
+ * What the installed game's files say of each source: its name (a nameless helper spell's parent's,
+ * as the names table has it; the resref when there is none) and its spell file's longest duration;
+ * null without the game files.
+ */
+async function spellFacts(resrefs: string[]): Promise<Map<string, SpellFacts> | null> {
+  const files = await openGameFiles(GAME_DIR).catch(() => null);
+  const strings = files && await openStringTable(files);
+  if (!files || !strings) return null;
+  const pairs = await Promise.all(resrefs.map(async (resref): Promise<[string, SpellFacts]> => {
+    const ref = await nameRef(files, strings, resref);
+    const spell = await readSpellEffects(files, resref);
+    return [resref, {
+      name: (ref && strings.get(ref.strref)) ?? resref,
+      longest: spell && longestSeconds(spell),
+    }];
+  }));
+  return new Map(pairs);
+}
+
+/**
+ * The A7XDATA records: every one a schema-1 record, and the active spells of those with any against
+ * the game files; true when they passed.
+ */
+async function judgeData(
+  records: CreatureRecord[],
+  bad: string[],
+  path: string,
+): Promise<boolean> {
+  console.log(`verify: ${path}, ${records.length + bad.length} A7XDATA line(s)`);
+  for (const r of records) {
+    console.log(
+      `  ${r.allegiance.side.padEnd(8)} ${String(r.id).padEnd(10)} hp ${
+        `${r.hp.cur}/${r.hp.max}`.padEnd(8)
+      } ${r.name}`,
+    );
+  }
+  if (!noBadLines("A7XDATA", bad)) return false;
+  console.log(`verify: data passed, ${records.length} line(s), every one a schema-1 record`);
+  const sources = spellSources(records);
+  if (sources.length === 0) return true;
+  for (const line of spellSummary(records)) console.log(line);
+  const facts = await spellFacts(sources);
+  if (!facts) {
+    console.log("verify: spells not judged: the game files cannot be read");
+    return true;
+  }
+  const found = spellProblems(records, facts);
+  if (found.length === 0) {
+    console.log(
+      `verify: spells passed, ${sources.length} source(s), every name as the game files give it, every time within its spell file's duration`,
+    );
+    return true;
+  }
+  for (const p of found) console.error(`verify: spells: ${p}`);
+  return false;
+}
+
 await runTask(async () => {
   const path = Deno.args[0] ?? await newestLog();
   if (!path) {
@@ -339,18 +404,6 @@ await runTask(async () => {
     );
   }
   if (spawns.runs.length > 0) passed = await judgeSpawn(spawns.runs, path) && passed;
-  if (data.count > 0) {
-    console.log(`verify: ${path}, ${data.count} A7XDATA line(s)`);
-    for (const r of data.lines) {
-      console.log(
-        `  ${r.allegiance.side.padEnd(8)} ${String(r.id).padEnd(10)} hp ${
-          `${r.hp.cur}/${r.hp.max}`.padEnd(8)
-        } ${r.name}`,
-      );
-    }
-    if (noBadLines("A7XDATA", data.problems)) {
-      console.log(`verify: data passed, ${data.count} line(s), every one a schema-1 record`);
-    } else passed = false;
-  }
+  if (data.count > 0) passed = await judgeData(data.lines, data.problems, path) && passed;
   return passed ? 0 : 1;
 });

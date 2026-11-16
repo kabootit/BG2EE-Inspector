@@ -13,7 +13,7 @@ Only fields a check has proven are in the record, so a value is never a guess
 as the engine uses them. The checks are the [party check](manual-tests/walker.md), the
 [creature list](manual-tests/creatures.md) and the [spawn check](manual-tests/spawn.md); where each
 value sits in game memory is in [docs/re-notes.md](re-notes.md#engine-structures), which consumers
-never need. Every record carries every field:
+never need. The fields, each with the checks that proved it:
 
 | Field | Type | Meaning | Proven by |
 | --- | --- | --- | --- |
@@ -29,9 +29,17 @@ never need. Every record carries every field:
 | `saves` | `{ death, wand, poly, breath, spell }` | saving throws | party check, spawn check |
 | `resist` | `{ fire, cold, electricity, acid, magic_fire, magic_cold, slashing, crushing, piercing, missile }` | resistances, in percent | spawn check |
 | `mr` | integer | magic resistance, in percent | spawn check |
+| `effects` | list of `{ resref, name, seconds }`, optional | the spells active on the creature, soonest to expire first: `resref`, the spell or item that applied them; `name`, the name the game shows for it, a helper spell's parent's (`SPCL920A` shows Enhanced Bard Song), or the resref when the game gives none; `seconds`, game seconds until its last effect expires, rounded up. An empty list when nothing is active; missing when the inspector could not read the effects. Permanent effects and those of items worn have no countdown, and the list leaves them out | [Effect presence](manual-tests/effects.md), [Effect duration](manual-tests/durations.md), [Spell countdown](manual-tests/countdown.md) |
 
-All numbers are integers. A record never has fields other than these; a consumer may still ignore
-fields it does not know, to be ready for optional ones.
+All numbers are integers. Every record carries every field above except `effects`, an optional field
+added in Phase 5. A record never has fields other than these; a consumer may still ignore fields it
+does not know, to be ready for later optional ones.
+
+**Game seconds, not real ones.** A spell's duration counts game time, as its description gives it:
+the countdown stands still while the player has the game paused, and the game's speed setting
+changes how long it takes in real time. `name` comes from the names table `deno task install-mod` writes from the
+game's files; a spell from a mod installed after the inspector shows its resref until the next
+install, and without the WeiDU component every spell shows its resref.
 
 ## Example
 
@@ -51,6 +59,7 @@ is the third line of `test/fixtures/a7xdata.txt`, which the Lua API writes for t
     "ea": 255,
     "side": "enemy"
   },
+  "effects": [],
   "hp": {
     "cur": 60,
     "max": 60
@@ -85,7 +94,7 @@ is the third line of `test/fixtures/a7xdata.txt`, which the Lua API writes for t
 
 ## Changes
 
-- **Adding an optional field** keeps `schema = 1`. Phase 5 adds game time, the pause state and active
-  spells this way.
+- **Adding an optional field** keeps `schema = 1`. Phase 5 added the active spells, `effects`, this
+  way.
 - **Renaming, removing or changing the meaning of a field** raises `schema`, and changes the Zod
   schema, `deno task schema`'s generated file, this page and the Lua API together.

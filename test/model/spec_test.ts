@@ -10,10 +10,19 @@ const fields = spec.slice(spec.indexOf("## Fields"), spec.indexOf("## Example"))
   .filter((m): m is RegExpMatchArray => m !== null)
   .map((m) => ({ name: m[1], keys: m[2].match(/\{ ([a-z0-9_, ]+) \}/)?.[1].split(", ") ?? [] }));
 
-/** The keys of a Zod object, or none for anything else. */
+/**
+ * The keys of a Zod object, or of the objects an optional field or an array holds (`effects`, a list
+ * of `{ resref, name, seconds }`); none for anything else.
+ */
 function keysOf(schema: unknown): string[] {
-  const shape = (schema as { shape?: Record<string, unknown> }).shape;
-  return shape ? Object.keys(shape).sort() : [];
+  const s = schema as {
+    shape?: Record<string, unknown>;
+    element?: unknown;
+    unwrap?: () => unknown;
+  };
+  if (s.shape) return Object.keys(s.shape).sort();
+  if (s.element) return keysOf(s.element);
+  return typeof s.unwrap === "function" ? keysOf(s.unwrap()) : [];
 }
 
 Deno.test("docs/data-model.md lists exactly the schema's fields", () => {

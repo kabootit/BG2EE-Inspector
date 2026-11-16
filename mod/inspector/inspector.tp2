@@ -15,13 +15,15 @@ REQUIRE_PREDICATE FILE_EXISTS_IN_GAME ~ui.menu~ ~ui.menu was not found in this i
 // The key the inspector answers, set here only.
 OUTER_SPRINT a7x_key ~e~
 
-// The Lua. ui.menu loads a7x.lua, which loads the rest.
+// The Lua. ui.menu loads a7xnames.lua, then a7x.lua, which loads the rest. deno task install-mod
+// writes a7xnames.lua from the game's spell and item files before WeiDU runs (src/gamefiles/names.ts).
 COPY ~inspector/lib/a7x.lua~ ~override~
   ~inspector/lib/a7xoff.lua~ ~override~
   ~inspector/lib/a7xwalk.lua~ ~override~
   ~inspector/lib/a7xjson.lua~ ~override~
   ~inspector/lib/a7xfmt.lua~ ~override~
   ~inspector/lib/a7xapi.lua~ ~override~
+  ~inspector/lib/a7xnames.lua~ ~override~
 
 COPY_EXISTING ~ui.menu~ ~override~
   // Fail rather than install a patch that never runs: a missing or doubled anchor would look like a
@@ -36,8 +38,10 @@ COPY_EXISTING ~ui.menu~ ~override~
   END
 
   // 1. Load the inspector where BG2EE-GameLog loads its tap: both leave the line in place, so either
-  //    may install first. Nothing in a7x.lua calls the engine while ui.menu loads.
+  //    may install first. Nothing in a7x.lua calls the engine while ui.menu loads. The names table
+  //    loads first, so the API finds it when it loads.
   REPLACE_TEXTUALLY ~combatLog = {}~ ~combatLog = {}
+Infinity_DoFile("a7xnames")
 Infinity_DoFile("a7x")~
 
   // 2. The key: a button with no area, as stock ui.menu binds '8' on character creation, in the

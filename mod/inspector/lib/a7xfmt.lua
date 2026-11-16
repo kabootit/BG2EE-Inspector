@@ -2,9 +2,12 @@
 --
 --   [A7X] Fire Giant  HP 112/140  AC -1  THAC0 4  MR 0%
 --         Saves D3 W5 P4 B4 S6  Resist fire 100
+--         Spells Bless 34s, Haste 1m 42s
 --
 -- The name is colored by side with the engine's markup: "^0x", eight hex digits, the text, "^-"
 -- (the binary formats it as ^%#010x%s^-). AC modifiers and resistances are listed only when not 0.
+-- The spells line lists the record's effects in its order, soonest first, in game time; a record
+-- without effects, when the inspector could not read them, has no spells line.
 
 A7XFMT = {}
 
@@ -42,6 +45,16 @@ local function nonzero(t, order, show)
   return out
 end
 
+-- Game seconds as the countdown shows them: 34s, 1m 42s, 2h 5m. A local, as lines() calls it after
+-- the API has cleared the global A7XFMT.
+local function duration(seconds)
+  if seconds < 60 then return seconds .. "s" end
+  local floor = math.floor -- Lua 5.2: no // operator
+  if seconds < 3600 then return string.format("%dm %ds", floor(seconds / 60), seconds % 60) end
+  return string.format("%dh %dm", floor(seconds / 3600), floor(seconds % 3600 / 60))
+end
+A7XFMT.duration = duration
+
 -- The record's lines, in order.
 function A7XFMT.lines(r)
   local ac = tostring(r.ac)
@@ -49,10 +62,16 @@ function A7XFMT.lines(r)
   if #mods > 0 then ac = ac .. " (" .. table.concat(mods, ", ") .. ")" end
   local resist = nonzero(r.resist, RESISTS, tostring)
   local s = r.saves
-  return {
+  local lines = {
     string.format("[A7X] %s  HP %d/%d  AC %s  THAC0 %d  MR %d%%",
       colored(r.name, r.allegiance.side), r.hp.cur, r.hp.max, ac, r.thac0, r.mr),
     string.format("      Saves D%d W%d P%d B%d S%d  Resist %s",
       s.death, s.wand, s.poly, s.breath, s.spell, #resist > 0 and table.concat(resist, ", ") or "none"),
   }
+  if r.effects then
+    local spells = {}
+    for i, e in ipairs(r.effects) do spells[i] = e.name .. " " .. duration(e.seconds) end
+    lines[#lines + 1] = "      Spells " .. (#spells > 0 and table.concat(spells, ", ") or "none")
+  end
+  return lines
 end

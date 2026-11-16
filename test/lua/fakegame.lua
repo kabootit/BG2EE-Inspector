@@ -197,7 +197,7 @@ A7X_native = {
     return table.concat(chars)
   end,
 }
-local NAMES = { [1234] = "Jaheira", [1235] = "Ogre", [1236] = "Commoner" }
+local NAMES = { [1234] = "Jaheira", [1235] = "Ogre", [1236] = "Commoner", [12089] = "Bless" }
 function Infinity_FetchString(strref) return NAMES[strref] end
 
 

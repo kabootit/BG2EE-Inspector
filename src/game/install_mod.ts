@@ -17,10 +17,23 @@ export const MOD_FOLDER = "inspector";
 export const TP2 = `${MOD_FOLDER}/inspector.tp2`;
 
 /**
- * What a run works with: the game folder, the repo's mod folder, the vendored WeiDU, and the SHA-256
- * it must have (the task passes `pinnedWeidu()`; tests, their fake binary's).
+ * The names table's place in the component's folder: the task writes it from the game's files
+ * (src/gamefiles/names.ts), and the tp2 copies it to override/ with the rest of lib/.
  */
-export type ModSetup = { gameDir: string; modDir: string; weidu: string; weiduSha256: string };
+export const NAMES_FILE = "lib/a7xnames.lua";
+
+/**
+ * What a run works with: the game folder, the repo's mod folder, the vendored WeiDU, the SHA-256 it
+ * must have (the task passes `pinnedWeidu()`; tests, their fake binary's), and for an install the
+ * names table's Lua.
+ */
+export type ModSetup = {
+  gameDir: string;
+  modDir: string;
+  weidu: string;
+  weiduSha256: string;
+  names?: string;
+};
 
 /** What a run did: the lines to show, then WeiDU's own output. */
 export type ModResult = { lines: string[]; weiduOutput: string };
@@ -74,16 +87,17 @@ async function mergeInto(sys: System, from: string, to: string): Promise<number>
 }
 
 /**
- * Install (or with `uninstall`, remove) the component. Throws, before anything is written, when the
- * game folder has no `chitin.key` or WeiDU is missing or not the pinned binary; throws after the
- * copy, with WeiDU's output, when WeiDU fails or `WeiDU.log` does not show the change.
+ * Install (or with `uninstall`, remove) the component: copy the mod folder, write the names table
+ * beside its Lua, run WeiDU. Throws, before anything is written, when the game folder has no
+ * `chitin.key`, WeiDU is missing or not the pinned binary, or an install has no names table; throws
+ * after the copy, with WeiDU's output, when WeiDU fails or `WeiDU.log` does not show the change.
  */
 export async function installMod(
   sys: System,
   setup: ModSetup,
   uninstall: boolean,
 ): Promise<ModResult> {
-  const { gameDir, modDir, weidu, weiduSha256 } = setup;
+  const { gameDir, modDir, weidu, weiduSha256, names } = setup;
   if (!(await sys.exists(`${gameDir}/chitin.key`))) {
     throw new Error(`not a game folder (no chitin.key): ${gameDir}`);
   }
@@ -96,11 +110,19 @@ export async function installMod(
     );
   }
 
+  if (!uninstall && names === undefined) {
+    throw new Error(`no names table for ${NAMES_FILE}, which the tp2 copies`);
+  }
+
   const copied = await mergeInto(sys, modDir, `${gameDir}/${MOD_FOLDER}`);
   const lines = [
     `WeiDU v${WEIDU_RELEASE.version} arm64, SHA-256 matches the pinned release`,
     `copied ${copied} files into the game folder's ${MOD_FOLDER}/`,
   ];
+  if (!uninstall && names !== undefined) {
+    await sys.writeBytes(`${gameDir}/${MOD_FOLDER}/${NAMES_FILE}`, new TextEncoder().encode(names));
+    lines.push(`wrote ${MOD_FOLDER}/${NAMES_FILE}`);
+  }
 
   const out = await sys.run(weidu, weiduArgs(gameDir, uninstall), gameDir);
   const weiduOutput = `${out.stdout}${out.stderr}`;

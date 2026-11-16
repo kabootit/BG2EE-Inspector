@@ -33,7 +33,7 @@ The functions, all of which return fresh tables and none of which raises:
 | `A7X.list(filter)` | `{ area = "<resref>", creatures = { { id, name, allegiance = { ea, side } }, ... } }` for the area on screen; `filter` is `"all"` (the default), `"enemies"` or `"party"` |
 | `A7X.hovered()` | the record of the creature under the pointer in the area on screen, or `nil` and a reason: the status, `"nothing under the pointer"`, `"not a creature"` for a door, container or region, `"stale id"`, or `"unreadable: <field>"` (since 1.1) |
 | `A7X.portrait()` | the record of the party member whose portrait is under the pointer, or `nil` and a reason: the status, `"no portrait under the pointer"`, `"no party member in slot <n>"` (since 1.1) |
-| `A7X.show(what)` | console output, not data: prints the records for an id, `"enemies"`, `"party"` or `"all"` to the message window, and writes each as an `A7XDATA` line; a list ends with a summary line (`[A7X] all in AR0602: 12 shown, 0 not readable`), a creature it cannot read appears by name with the reason, and every line it prints also goes to the game's log as plain text. With no argument, what the hotkey calls: the portrait under the pointer, else the creature under it; how to call it when the pointer is on neither, and the reason when it cannot read what is there |
+| `A7X.show(what)` | console output, not data: prints the records for an id, `"enemies"`, `"party"` or `"all"` to the message window, each as its stats and a `Spells` line with every active spell and its time left in game time (`Spells Bless 34s, Haste 1m 42s`), and writes each as an `A7XDATA` line; a list ends with a summary line (`[A7X] all in AR0602: 12 shown, 0 not readable`), a creature it cannot read appears by name with the reason, and every line it prints also goes to the game's log as plain text. With no argument, what the hotkey calls: the portrait under the pointer, else the creature under it; how to call it when the pointer is on neither, and the reason when it cannot read what is there |
 
 Rules a consumer can rely on:
 
@@ -48,6 +48,9 @@ Rules a consumer can rely on:
   API could not work: the first one took the library's table private.
 - **Each call reads the pointer anew.** `hovered` and `portrait` answer for where the
   pointer is at that moment, so call them from a key press or a click, not from a timer.
+- **A record's `effects` is optional.** It lists the active spells with their time left, in game
+  seconds, at the moment of the call; it is missing when the inspector could not read them, so
+  check for it before use ([data-model.md](data-model.md#fields)).
 
 ## Outside the game: `A7XDATA` lines
 

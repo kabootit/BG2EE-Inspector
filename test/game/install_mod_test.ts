@@ -6,6 +6,7 @@ import {
   installMod,
   listsComponent,
   type ModSetup,
+  NAMES_FILE,
   pinnedWeidu,
   weiduArgs,
 } from "../../src/game/install_mod.ts";
@@ -22,6 +23,7 @@ const SETUP: ModSetup = {
   modDir: "/repo/mod/inspector",
   weidu: WEIDU,
   weiduSha256: await sha256Hex(BINARY),
+  names: 'A7XNAMES = {\n  ["SPPR101"] = 12089,\n}\n',
 };
 
 // WeiDU.log as WeiDU wrote it in a scratch game folder (2026-11-14): its header, then one line per
@@ -89,6 +91,12 @@ Deno.test("an install copies the mod into the game folder, then runs WeiDU there
   const result = await installMod(sys, SETUP, false);
   strictEqual(new TextDecoder().decode(sys.files.get(`${GAME}/inspector/lib/a7x.lua`)), "-- a7x");
   strictEqual(sys.files.has(`${GAME}/inspector/inspector.tp2`), true, "the tp2");
+  strictEqual(
+    new TextDecoder().decode(sys.files.get(`${GAME}/inspector/${NAMES_FILE}`)),
+    SETUP.names,
+    "the names table beside the Lua",
+  );
+  strictEqual(result.lines.includes(`wrote inspector/${NAMES_FILE}`), true);
   deepStrictEqual(sys.ran, [[WEIDU, ...weiduArgs(GAME, false)]]);
   deepStrictEqual(sys.ranIn, [GAME], "WeiDU's working directory");
   strictEqual(result.weiduOutput, "SUCCESSFULLY INSTALLED\n");
@@ -98,7 +106,7 @@ Deno.test("an install copies the mod into the game folder, then runs WeiDU there
 Deno.test("a reinstall keeps WeiDU's backup, and an uninstall runs --force-uninstall", async () => {
   const sys = machine();
   sys.files.set(`${GAME}/inspector/backup/0/ui.menu`, new TextEncoder().encode("stock"));
-  await installMod(sys, SETUP, true);
+  await installMod(sys, { ...SETUP, names: undefined }, true);
   strictEqual(
     new TextDecoder().decode(sys.files.get(`${GAME}/inspector/backup/0/ui.menu`)),
     "stock",
@@ -106,7 +114,7 @@ Deno.test("a reinstall keeps WeiDU's backup, and an uninstall runs --force-unins
   deepStrictEqual(sys.ran, [[WEIDU, ...weiduArgs(GAME, true)]]);
 });
 
-Deno.test("no game folder, no WeiDU or the wrong WeiDU refuses before anything is written", async () => {
+Deno.test("no game folder, no WeiDU, the wrong WeiDU or no names table refuses before anything is written", async () => {
   const cases: [string, (sys: ReturnType<typeof fakeSystem>) => void, RegExp][] = [
     ["no chitin.key", (sys) => sys.files.delete(`${GAME}/chitin.key`), /not a game folder/],
     ["no WeiDU", (sys) => sys.files.delete(WEIDU), /run deno task setup-weidu/],
@@ -115,12 +123,14 @@ Deno.test("no game folder, no WeiDU or the wrong WeiDU refuses before anything i
       (sys) => sys.files.set(WEIDU, new TextEncoder().encode("something else")),
       /not the pinned WeiDU v251\.00 arm64 \(SHA-256 [0-9a-f]{64}\)/,
     ],
+    ["no names table", () => {}, /no names table for lib\/a7xnames\.lua/],
   ];
   for (const [what, change, message] of cases) {
     const sys = machine();
     change(sys);
     const before = [...sys.files.keys()].sort();
-    await rejects(installMod(sys, SETUP, false), message, what);
+    const setup = what === "no names table" ? { ...SETUP, names: undefined } : SETUP;
+    await rejects(installMod(sys, setup, false), message, what);
     deepStrictEqual([...sys.files.keys()].sort(), before, `${what}: nothing written`);
     deepStrictEqual(sys.ran, [], `${what}: nothing run`);
   }

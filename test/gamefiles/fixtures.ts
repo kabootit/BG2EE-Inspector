@@ -1,8 +1,10 @@
 /**
- * Synthetic game files for the gamefiles tests: a KEY, a BIFF and a CRE, laid out as IESDP gives
- * them, holding only the fields the readers use.
+ * Synthetic game files for the gamefiles tests: a KEY, a BIFF, a TLK, a CRE and spell and item
+ * headers, laid out as IESDP gives them, holding only the fields the readers use; and a disk in
+ * memory to hold them.
  */
 import { CRE_HEADER_SIZE } from "../../src/gamefiles/iebinary.ts";
+import type { Disk } from "../../src/gamefiles/resources.ts";
 
 const ascii = (s: string) => new TextEncoder().encode(s);
 
@@ -59,6 +61,59 @@ export function biffFile(
     bytes.set(f.bytes, f.at);
   });
   return bytes;
+}
+
+/** A TLK V1 file of these strings, laid out as IESDP has it; an empty string has length 0. */
+export function tlkFile(strings: string[]): Uint8Array {
+  const text = strings.map((s) => ascii(s));
+  const stringsAt = 18 + 26 * strings.length;
+  const bytes = new Uint8Array(stringsAt + text.reduce((n, t) => n + t.length, 0));
+  const dv = new DataView(bytes.buffer);
+  bytes.set(ascii("TLK V1  "), 0);
+  dv.setUint32(0x0a, strings.length, true);
+  dv.setUint32(0x0e, stringsAt, true);
+  let offset = 0;
+  text.forEach((t, i) => {
+    dv.setUint32(18 + 26 * i + 0x12, offset, true); // relative to the strings, not the file
+    dv.setUint32(18 + 26 * i + 0x16, t.length, true);
+    bytes.set(t, stringsAt + offset);
+    offset += t.length;
+  });
+  return bytes;
+}
+
+/** A spell's or item's header, `SPL V1  ` or `ITM V1  `, with only its two name strrefs. */
+export function nameHeader(
+  signature: string,
+  unidentified: number,
+  identified: number,
+): Uint8Array {
+  const bytes = new Uint8Array(0x10);
+  bytes.set(ascii(signature), 0);
+  new DataView(bytes.buffer).setInt32(0x08, unidentified, true);
+  new DataView(bytes.buffer).setInt32(0x0c, identified, true);
+  return bytes;
+}
+
+/** A game folder in memory, by path: missing files are NotFound, as on a real disk. */
+export function memoryDisk(files: Map<string, Uint8Array>): Disk {
+  return {
+    readFile(path): Promise<Uint8Array> {
+      const bytes = files.get(path);
+      return bytes ? Promise.resolve(bytes) : Promise.reject(new Deno.errors.NotFound(path));
+    },
+    readAt(path, offset, length): Promise<Uint8Array | null> {
+      const bytes = files.get(path);
+      if (!bytes || offset + length > bytes.length) return Promise.resolve(null);
+      return Promise.resolve(bytes.slice(offset, offset + length));
+    },
+    listDir(path): Promise<string[]> {
+      const prefix = `${path}/`;
+      return Promise.resolve(
+        [...files.keys()].filter((p) => p.startsWith(prefix)).map((p) => p.slice(prefix.length)),
+      );
+    },
+  };
 }
 
 /** A CRE V1.0 header with the fields the reader takes, negative values included. */

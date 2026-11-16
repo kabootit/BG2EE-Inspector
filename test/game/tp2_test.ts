@@ -3,6 +3,7 @@
 // pattern against the game's own ui.menu, so a game update that moves an anchor fails here first.
 
 import { deepStrictEqual, strictEqual } from "node:assert/strict";
+import { MOD_FOLDER, NAMES_FILE } from "../../src/game/install_mod.ts";
 import { countMatches, patch, readTp2, weiduRegex } from "../../src/game/tp2.ts";
 import { openGameFiles, readResource } from "../../src/gamefiles/resources.ts";
 import { GAME_DIR } from "../../src/shared/config.ts";
@@ -44,8 +45,8 @@ Deno.test("a WeiDU regexp groups with \\( \\) and reads ( ) { } | as literal cha
   strictEqual(weiduRegex("a\\|b(c)").source, "a|b\\(c\\)");
 });
 
-Deno.test("the tp2 copies every file in mod/inspector/lib, and nothing else", async () => {
-  const lib: string[] = [];
+Deno.test("the tp2 copies every file in mod/inspector/lib and the names table, nothing else", async () => {
+  const lib: string[] = [`${MOD_FOLDER}/${NAMES_FILE}`];
   for await (const e of Deno.readDir("mod/inspector/lib")) lib.push(`inspector/lib/${e.name}`);
   deepStrictEqual([...tp2.copies].sort(), lib.sort());
 });
@@ -60,10 +61,11 @@ Deno.test("each anchor occurs once in a menu shaped like the stock one", () => {
   for (const p of tp2.counted) strictEqual(countMatches(MENU, p), 1, p);
 });
 
-Deno.test("patching loads a7x after combatLog and puts the key button after the bar's label", () => {
+Deno.test("patching loads the names, then a7x, after combatLog and puts the key button after the bar's label", () => {
   const lines = patch(MENU, tp2).split(/\r?\n/);
   const at = (text: string) => lines.indexOf(text);
-  strictEqual(at('Infinity_DoFile("a7x")'), at("\tcombatLog = {}") + 1, "the load line");
+  strictEqual(at('Infinity_DoFile("a7xnames")'), at("\tcombatLog = {}") + 1, "the names first");
+  strictEqual(at('Infinity_DoFile("a7x")'), at("\tcombatLog = {}") + 2, "then the inspector");
   deepStrictEqual(lines.slice(at("\t\tmosaic GUWBTP10") + 1, at("\t\tmosaic GUWBTP10") + 7), [
     "\t}",
     "\tbutton",

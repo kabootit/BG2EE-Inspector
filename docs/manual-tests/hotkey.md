@@ -47,9 +47,10 @@ portrait. The new questions are whether the WeiDU patch works and whether the wo
    ls "$G/override"; cat "$G/WeiDU.log"
    ```
 
-   Expect WeiDU's output, then `install-mod: installed`. `override/` now holds `ui.menu` and the six
-   files `a7x.lua`, `a7xapi.lua`, `a7xfmt.lua`, `a7xjson.lua`, `a7xoff.lua` and `a7xwalk.lua`, and
-   `WeiDU.log` has a line for `INSPECTOR/INSPECTOR.TP2`. If WeiDU fails, stop here and report its
+   Expect the number of spell and item names found, WeiDU's output, then `install-mod: installed`.
+   `override/` now holds `ui.menu` and seven files: the six `a7x.lua`, `a7xapi.lua`, `a7xfmt.lua`,
+   `a7xjson.lua`, `a7xoff.lua` and `a7xwalk.lua`, and the names table `a7xnames.lua`. `WeiDU.log`
+   has a line for `INSPECTOR/INSPECTOR.TP2`. If WeiDU fails, stop here and report its
    output; nothing in the game has changed.
 3. **Build and launch.**
 
@@ -111,7 +112,7 @@ and 9 showed. The run passes when:
 
 | Check | Where | Pass when |
 | --- | --- | --- |
-| The install | step 2 | `install-mod: installed`; `ui.menu` and the six files in `override/`; the inspector's line in `WeiDU.log` |
+| The install | step 2 | `install-mod: installed`; `ui.menu` and the seven files in `override/`; the inspector's line in `WeiDU.log` |
 | Build and registration | `A7X build 2.7.3 arm64 matched, 14 sites checked` and `A7X registered A7X_native` | both present, no `A7X disabled` |
 | `e` reaches `ui.menu` | step 5 | `[A7X]` lines appear when the tester presses `e` |
 | The creature and the portraits | steps 5 to 7 | each shows the creature, party member or portrait the tester pressed `e` over |
@@ -139,3 +140,4 @@ the version of the test that judged it.
 | Date | Commit | What changed | Criteria for runs before it |
 | --- | --- | --- | --- |
 | 2026-11-14 | the commit that adds this test, after the first run | Step 12 and its pass criterion: the uninstall leaves `override/` as an empty folder, and `WeiDU.log` gains a `Recently Uninstalled` comment, as WeiDU did in a scratch game folder | `override/` and `WeiDU.log` exactly as in step 1 |
+| 2026-11-15 | the commit that adds the names table ([spell-output plan](../plans/2026-11-15-spell-output.md)) | Step 2 and its pass criterion: `install-mod` writes the names table, `a7xnames.lua`, and the install copies it with the six files | six files in `override/` |

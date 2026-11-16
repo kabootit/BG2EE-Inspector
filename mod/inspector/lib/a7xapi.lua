@@ -2,13 +2,15 @@
 -- (docs/data-model.md).
 --
 -- Loaded last by a7x.lua. It keeps the other inspector files' tables as locals and clears their
--- globals, so A7X is the only global the inspector leaves. The native table is captured the first
--- time a call finds A7X_native, and that global is cleared too, so no other Lua can make raw memory
--- reads; lazily, because this file may load before the library registers the table. Every call
--- returns fresh tables and none raises: a failure is nil and a reason.
+-- globals, so A7X is the only global the inspector leaves. That includes A7XNAMES, the names table
+-- the WeiDU component loads before a7x (a7xnames.lua, written by deno task install-mod); without it
+-- a spell shows its resref. The native table is captured the first time a call finds A7X_native,
+-- and that global is cleared too, so no other Lua can make raw memory reads; lazily, because this
+-- file may load before the library registers the table. Every call returns fresh tables and none
+-- raises: a failure is nil and a reason.
 
-local O, W, J, F = A7XOFF, A7XWALK, A7XJSON, A7XFMT
-A7XOFF, A7XWALK, A7XJSON, A7XFMT = nil, nil, nil, nil
+local O, W, J, F, NAMES = A7XOFF, A7XWALK, A7XJSON, A7XFMT, A7XNAMES
+A7XOFF, A7XWALK, A7XJSON, A7XFMT, A7XNAMES = nil, nil, nil, nil, nil
 
 local API, SCHEMA = "1.1", 1
 
@@ -80,6 +82,41 @@ local function unreadable(r)
   end
 end
 
+-- The name the game shows for a spell or an item, fetched by its strref in the names table, in the
+-- game's language; the resref when the table does not have it or the game gives no string.
+local function spell_name(resref)
+  local strref = NAMES and NAMES[resref:upper()]
+  local name = strref and type(Infinity_FetchString) == "function" and Infinity_FetchString(strref)
+  if type(name) ~= "string" or name == "" then return resref end
+  return name
+end
+
+-- The creature's active spells, soonest to expire first, each { resref, name, seconds }: one entry
+-- per source of its timed effects with an expiry, the latest of them, in game seconds rounded up;
+-- nil when the list or the clock cannot be read. Permanent and equipped effects have no expiry.
+local function active_spells(sprite)
+  local now = W.game_time()
+  local list = now and W.effects(sprite, "timed")
+  if not list then return nil end
+  local latest, out = {}, {}
+  for _, e in ipairs(list) do
+    local left = W.remaining(e, now)
+    if left and e.source and e.source ~= "" then
+      if latest[e.source] == nil then out[#out + 1] = { resref = e.source } end
+      latest[e.source] = math.max(latest[e.source] or 0, left)
+    end
+  end
+  for _, s in ipairs(out) do
+    s.name = spell_name(s.resref)
+    s.seconds = math.ceil(latest[s.resref] / O.effect.ticks_per_second)
+  end
+  table.sort(out, function(a, b)
+    if a.seconds ~= b.seconds then return a.seconds < b.seconds end
+    return a.resref < b.resref
+  end)
+  return out
+end
+
 local function record(sprite, party)
   local c, why = W.creature(sprite)
   if not c then return nil, why end
@@ -99,6 +136,7 @@ local function record(sprite, party)
   }
   local field = unreadable(r)
   if field then return nil, "unreadable: " .. field end
+  r.effects = active_spells(sprite) -- optional: missing when unreadable
   return r
 end
 

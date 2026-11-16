@@ -27,6 +27,22 @@ Deno.test("every record the Lua API writes is a schema-1 record", () => {
   strictEqual("record" in first && first.record.allegiance.side, "party");
 });
 
+Deno.test("effects is optional; each entry needs a resref, a name and whole seconds, nothing else", () => {
+  const record = () => structuredClone(GOLDEN[0]);
+  const without = record();
+  delete without.effects;
+  deepStrictEqual(problems(without), [], "a record without effects, as before Phase 5");
+  const negative = record();
+  negative.effects[0].seconds = -1;
+  deepStrictEqual(problems(negative).map((p) => p.split(":")[0]), ["effects.0.seconds"]);
+  const extra = record();
+  extra.effects[1].ticks = 540;
+  deepStrictEqual(problems(extra).map((p) => p.split(":")[0]), ["effects.1"]);
+  const noResref = record();
+  noResref.effects[0].resref = "";
+  deepStrictEqual(problems(noResref).map((p) => p.split(":")[0]), ["effects.0.resref"]);
+});
+
 Deno.test("an unknown, missing or mistyped field fails, naming the field", () => {
   const record = () => structuredClone(GOLDEN[0]);
   const unknown = { ...record(), spells: [] };

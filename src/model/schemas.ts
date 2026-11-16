@@ -59,6 +59,13 @@ export const RecordSchema = z.strictObject({
   saves: integers(SAVES).describe("saving throws"),
   resist: integers(RESISTS).describe("resistances, in percent"),
   mr: int.describe("magic resistance, in percent"),
+  effects: z.array(z.strictObject({
+    resref: z.string().min(1).max(8).describe("the spell or item that applied the effects"),
+    name: z.string().describe("the name the game shows for it, or the resref when it has none"),
+    seconds: int.min(0).describe("game seconds until its last effect expires, rounded up"),
+  })).optional().describe(
+    "active spells with time left, soonest first; missing when the inspector could not read them",
+  ),
 }).describe("A creature as the inspector reads it, schema 1");
 
 export type CreatureRecord = z.infer<typeof RecordSchema>;

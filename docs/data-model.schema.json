@@ -228,6 +228,37 @@
       "minimum": -9007199254740991,
       "maximum": 9007199254740991,
       "description": "magic resistance, in percent"
+    },
+    "effects": {
+      "description": "active spells with time left, soonest first; missing when the inspector could not read them",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "resref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8,
+            "description": "the spell or item that applied the effects"
+          },
+          "name": {
+            "type": "string",
+            "description": "the name the game shows for it, or the resref when it has none"
+          },
+          "seconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "game seconds until its last effect expires, rounded up"
+          }
+        },
+        "required": [
+          "resref",
+          "name",
+          "seconds"
+        ],
+        "additionalProperties": false
+      }
     }
   },
   "required": [

@@ -3,13 +3,11 @@ import { readCre, RES_TYPE } from "../../src/gamefiles/iebinary.ts";
 import {
   type Disk,
   openGameFiles,
-  openStringTable,
   readCreature,
-  readName,
   readSpellEffects,
 } from "../../src/gamefiles/resources.ts";
 import { GAME_DIR } from "../../src/shared/config.ts";
-import { biffFile, creFile, keyFile } from "./fixtures.ts";
+import { biffFile, creFile, keyFile, memoryDisk } from "./fixtures.ts";
 
 /** A game folder in memory: chitin.key, one archive, and optionally a patched file in override/. */
 function fakeDisk(withOverride: boolean): Disk {
@@ -29,23 +27,7 @@ function fakeDisk(withOverride: boolean): Disk {
     new DataView(patched.buffer).setUint16(0x26, 99, true);
     files.set("/game/override/CowH.CRE", patched);
   }
-  return {
-    readFile(path): Promise<Uint8Array> {
-      const bytes = files.get(path);
-      return bytes ? Promise.resolve(bytes) : Promise.reject(new Deno.errors.NotFound(path));
-    },
-    readAt(path, offset, length): Promise<Uint8Array | null> {
-      const bytes = files.get(path);
-      if (!bytes || offset + length > bytes.length) return Promise.resolve(null);
-      return Promise.resolve(bytes.slice(offset, offset + length));
-    },
-    listDir(path): Promise<string[]> {
-      const prefix = `${path}/`;
-      return Promise.resolve(
-        [...files.keys()].filter((p) => p.startsWith(prefix)).map((p) => p.slice(prefix.length)),
-      );
-    },
-  };
+  return memoryDisk(files);
 }
 
 Deno.test("a creature is read from its archive, by any case of its resref", async () => {
@@ -85,31 +67,6 @@ Deno.test("each spawn fixture is in the installed game, with no items and no eff
     deepStrictEqual([resref, c.itemCount, c.effectCount], [resref, 0, 0]);
     strictEqual(c.acNatural, c.acEffective, `${resref}: one AC to compare with`);
   }
-});
-
-// Names the first effect probe run (2026-11-15) met, as the game shows them.
-Deno.test("the installed game: spells and items by name, and helper spells without one", async () => {
-  let files;
-  try {
-    files = await openGameFiles(GAME_DIR);
-  } catch (error) {
-    if (error instanceof Deno.errors.NotFound) return;
-    throw error;
-  }
-  const strings = await openStringTable(files);
-  strictEqual(strings === null, false, "lang/en_US/dialog.tlk");
-  const names: Record<string, string | null> = {};
-  for (const resref of ["SPWI112", "SPCL920", "SPCL920A", "SPCL321", "RING39", "NOSUCH"]) {
-    names[resref] = await readName(files, strings!, resref);
-  }
-  deepStrictEqual(names, {
-    SPWI112: "Magic Missile",
-    SPCL920: "Enhanced Bard Song",
-    SPCL920A: null,
-    SPCL321: "Enrage",
-    RING39: "Ring of Gaxx",
-    NOSUCH: null,
-  });
 });
 
 // The durations the fourth Effect presence run (2026-11-15) fits at 15 game ticks a second.

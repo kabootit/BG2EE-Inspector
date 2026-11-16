@@ -1,5 +1,5 @@
--- The formatter (mod/inspector/lib/a7xfmt.lua): a record's two message-window lines, the name
--- colored by side, and AC modifiers and resistances listed only when not 0.
+-- The formatter (mod/inspector/lib/a7xfmt.lua): a record's message-window lines, the name colored by
+-- side, AC modifiers and resistances listed only when not 0, and the spells line with game time.
 
 local T = dofile("test/lua/testlib.lua")
 dofile("mod/inspector/lib/a7xfmt.lua")
@@ -50,6 +50,26 @@ T.test("only non-zero AC modifiers and resistances are listed, with their signs"
     slashing = 0, crushing = 0, piercing = 0, missile = 0,
   } }))
   T.eq(none[2]:match("Resist (.*)$"), "none", "no resistances")
+end)
+
+T.test("the spells line lists each spell with its time left, in the record's order", function()
+  local lines = A7XFMT.lines(record({ effects = {
+    { resref = "FJBARDB", name = "FJBARDB", seconds = 6 },
+    { resref = "SPPR101", name = "Bless", seconds = 34 },
+    { resref = "SPWI305", name = "Haste", seconds = 102 },
+  } }))
+  T.eq(#lines, 3, "three lines")
+  T.eq(lines[3], "      Spells FJBARDB 6s, Bless 34s, Haste 1m 42s", "the spells")
+  T.eq(A7XFMT.lines(record({ effects = {} }))[3], "      Spells none", "nothing active")
+  T.eq(#A7XFMT.lines(record()), 2, "effects unread: no spells line")
+end)
+
+T.test("game time as the countdown shows it", function()
+  T.eq(A7XFMT.duration(0), "0s", "expired, still listed")
+  T.eq(A7XFMT.duration(59), "59s", "under a minute")
+  T.eq(A7XFMT.duration(60), "1m 0s", "a minute")
+  T.eq(A7XFMT.duration(3599), "59m 59s", "under an hour")
+  T.eq(A7XFMT.duration(7500), "2h 5m", "hours and minutes")
 end)
 
 T.done()
